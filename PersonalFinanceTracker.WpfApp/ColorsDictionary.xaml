@@ -1,0 +1,50 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <Color x:Key="CelestialBlueColor">#1e91d6</Color>
+    <Color x:Key="FrenchBlueColor">#0072bb</Color>
+    <Color x:Key="YellowGreenColor">#8fc93a</Color>
+    <Color x:Key="CitrineColor">#e4cc37</Color>
+    <Color x:Key="CaramelColor">#e18335</Color>
+    <Color x:Key="BlackColor">#0a0a0a</Color>
+    <Color x:Key="WhiteSmokeColor">#FFF5F5F5</Color>
+    <Color x:Key="WhiteColor">#FFFFFFFF</Color>
+
+    <sys:String x:Key="ApplicationName">My App</sys:String>
+    
+    <!-- BANNER START -->
+    
+    <SolidColorBrush x:Key="BannerColor" Color="{StaticResource CelestialBlueColor}"/>
+    <SolidColorBrush x:Key="BannerTextColor" Color="{StaticResource WhiteSmokeColor}"/>
+    <FontFamily x:Key="BannerTextFont">Castellar</FontFamily>
+
+    <!-- BANNER END -->
+
+    
+    <!-- STATUS BAR START -->
+
+    <SolidColorBrush x:Key="StatusBarColor" Color="{StaticResource CelestialBlueColor}"/>
+    <SolidColorBrush x:Key="StatusBarTextColor" Color="{StaticResource WhiteSmokeColor}"/>
+    <SolidColorBrush x:Key="StatusBarBorderColor" Color="{StaticResource FrenchBlueColor}"/>
+    <FontFamily x:Key="StatusBarFont">Tw Cen MT Condensed</FontFamily>
+    <sys:Double x:Key="StatusBarFontSize">16</sys:Double>
+
+    <!-- STATUS BAR END -->
+
+    
+    <!-- FORM ELEMENTS START -->
+    
+    <SolidColorBrush x:Key="FormTextColor" Color="{StaticResource BlackColor}"/>
+    <sys:Double x:Key="FormTextFontSize">16</sys:Double>
+    <FontFamily x:Key="FormTextFont">Cascadia Code</FontFamily>
+
+    <!-- FORM ELEMENTS END -->
+    
+    <!--
+    <DynamicResource x:Key="BannerColor" ResourceKey="CelestialBlueColor"/>
+    <DynamicResource x:Key="TextBoxBackgroundColor" ResourceKey="DarkBrown"/>
+    <DynamicResource x:Key="ToolBarButtonForegroundColor" ResourceKey="DarkBrown"/>
+    -->
+
+
+</ResourceDictionary>
