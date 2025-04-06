@@ -7,7 +7,11 @@
         xmlns:views="clr-namespace:PersonalFinanceTracker.WpfApp.Views"
         mc:Ignorable="d"
         Title="Personal Finance Tracker" Height="450" Width="800">
-    <ContentControl>
+
+    
+    <!--<ContentControl>
         <views:LoginView />
-    </ContentControl>
+    </ContentControl>-->
+    <ContentPresenter x:Name="MainContentPresenter" />
+
 </Window>
