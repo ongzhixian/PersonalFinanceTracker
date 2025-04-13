@@ -1,0 +1,41 @@
+localhost {
+	respond "Hello, world of caddy!"
+}
+
+localhost:2016 {
+	respond "Goodbye, world!"
+}
+
+
+http://localhost:7071 {
+    
+    handle /api/* {
+        reverse_proxy http://localhost:10020 {
+            header_up -*
+
+        }
+    }
+
+    handle /* {
+        respond "Unhandled!"
+    }
+}
+
+localhost:2017 {
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy http://localhost:10020 
+    }
+
+    handle /admin/* {
+        reverse_proxy localhost:8080
+    }
+
+    handle /* {
+        reverse_proxy localhost:5000
+    }
+
+    handle /msg {
+        respond "Goodbye, world!aa"
+    }
+}

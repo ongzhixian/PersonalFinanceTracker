@@ -398,3 +398,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+.idea/
+
+# Python
+.venv/
+
+# ZX custom
+_temp/
+temp-layer/

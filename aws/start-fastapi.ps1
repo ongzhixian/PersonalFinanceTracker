@@ -1,0 +1,1 @@
+fastapi.exe dev fastapi_main.py --port 10020 --app app
