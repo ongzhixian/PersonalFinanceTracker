@@ -1,0 +1,28 @@
+@startuml
+/'
+
+'/
+'========================================
+'ENTITIES
+
+entity Entity01 {
+
+    *id : number <<generated>>
+    version: number
+    searchingText: string
+    --
+    owner_id : number <<FK>>
+    follower_id : number <<FK>>
+    card_id: number <<FK>>
+    other_details : text
+    * identifying_attribute
+    --
+    * mandatory_attribute
+    optional_attribute
+}
+
+'========================================
+'RELATIONSHIPS
+
+
+@enduml

@@ -1,0 +1,61 @@
+@startuml
+/'  # Overview
+ '  This is entity diagram for PFT
+ '
+ '  ========================================
+ '  To generate diagram, run this command:
+ '   java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\sample-pft.puml
+'/
+
+header <font color=red>Note:</font> __draft v1__ endheader
+
+center footer Generated for demonstration
+
+title PFT Entites
+caption figure 1 PFT entity relationship diagraam
+
+
+
+'========================================
+'ENTITIES
+
+
+entity "UserCredential" as user_credential {
+    * username : string <<partition key>>
+    --
+    password_hash : string
+    password_salt : string
+    password_last_changed : datetime
+    .. 
+    last_login : datetime
+    login_attempts : number
+    -- <<FK>> --
+    * user_id : number <<generated>>
+}
+
+
+entity "Account" as pft_account {
+    * username : string <<partition key>>
+    * name : string <<sort name>>
+    --
+    type : string
+    -- <<FK>> --
+    * account_id : string <<generated>>
+}
+
+
+entity "AccountDetail" as pft_account_detail {
+    * account_id : string <<partition key>>
+    * timestamp : datetime <<sort name>>
+    --
+    amount : number
+}
+
+
+'========================================
+'RELATIONSHIPS
+
+pft_account 
+
+
+@enduml

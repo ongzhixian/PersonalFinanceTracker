@@ -1,0 +1,4 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\sample-sequence.puml
+@startuml
+Alice -> Bob: test
+@enduml

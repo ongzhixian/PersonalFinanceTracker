@@ -1,7 +1,9 @@
 from typing import Union
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
+
+from fastapi.responses import FileResponse
+
 import uvicorn
 
 description = """
@@ -68,16 +70,24 @@ app = FastAPI(
     root_path="/api", # NEEDED FOR CADDY REVERSE PROXY to get openapi_url properly
 )
 
-app.mount("/www", StaticFiles(directory="www"), name="static")
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World22"}
-
+#from fastapi.staticfiles import StaticFiles
+#app.mount("/www", StaticFiles(directory="www"), name="static")
 
 # @app.get("/")
-# async def read_index():
-#     return FileResponse('index.html')
+# def read_root():
+#     return {"Hello": "World22"}
+
+
+# ENDPOINTS TO STATIC FILES INSTEAD 
+#  
+@app.get("/")
+async def read_index(): return FileResponse('./www/index.html')
+
+@app.get("/contact")
+async def get_contact(): return FileResponse('./www/contact.html')
+
+@app.get("/terms-of-service")
+async def get_terms_of_service(): return FileResponse('./www/terms-of-service.html')
 
 
 @app.get("/items/{item_id}")

@@ -1,11 +1,22 @@
-localhost {
-	respond "Hello, world of caddy!"
+########################################
+# EXAMPLE STATIC SITE HOSTING
+
+localhost:7081 {
+	root * ./www
+	file_server
 }
 
-localhost:2016 {
-	respond "Goodbye, world!"
-}
+#localhost {
+#	respond "Hello, world of caddy!"
+#}
 
+#localhost:2016 {
+#	respond "Goodbye, world!"
+#}
+
+
+########################################
+# REVERSE-PROXY FOR NGROK
 
 http://localhost:7071 {
     
@@ -21,7 +32,11 @@ http://localhost:7071 {
     }
 }
 
-localhost:2017 {
+
+########################################
+# REVERSE-PROXY FOR LOCAL FASTAPI
+
+localhost:7072 {
     handle /api/* {
         uri strip_prefix /api
         reverse_proxy http://localhost:10020 
@@ -32,7 +47,7 @@ localhost:2017 {
     }
 
     handle /* {
-        reverse_proxy localhost:5000
+        reverse_proxy http://localhost:10020 
     }
 
     handle /msg {
