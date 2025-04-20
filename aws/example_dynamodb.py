@@ -17,7 +17,7 @@ if __name__ == '__main__':
     repo = UserCredentialRepository()
     #repo.create_table_if_not_exists()
     #repo.delete_table(repo.TABLE_NAME)
-    repo.get_table('user_credential')
+    # repo.get_table('user_credential')
     print(repo.get_table_list())
 
     table_exist = repo.table_exists('user_credential')
