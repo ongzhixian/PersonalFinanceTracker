@@ -22,6 +22,8 @@ runtime_dns_domain = os.environ.get('USERDNSDOMAIN')
 aws_profile = 'stub-dev' if runtime_dns_domain == 'AD.MLP.COM' else 'default'
 boto3.setup_default_session(profile_name=aws_profile)
 
+from message_types import CreateUserCredentialMessage
+from record_types import InsertUserCredentialRecord
 
 ########################################
 # BaseDynamoDbRepository
@@ -364,7 +366,73 @@ class UserCredentialRepository(BaseDynamoDbRepository):
         sha256.update(combined_bytes)
         return (sha256.hexdigest(), base64.b64encode(salt_bytes).decode())
 
-    def resert_record(self, record: dict):
+    def add_new_record(self, message: CreateUserCredentialMessage):
+        InsertUserCredentialRecord(message)
+        # new_item = {
+        #     'username': {
+        #         'S': record['username'] if 'username' in record else ''},
+        #     'password_hash': {
+        #         'S': record['password_hash'] if 'password_hash' in record else ''},
+        #     'password_salt': {
+        #         'S': record['password_salt'] if 'password_salt' in record else ''},
+        #     'password_last_changed_datetime': {
+        #         'S': record['password_last_changed_datetime'] if 'password_last_changed_datetime' in record else ''},
+        #     'last_successful_login': {
+        #         'S': record['last_successful_login'] if 'last_successful_login' in record else ''},
+        #     'last_login_attempt_datetime': {
+        #         'S': record['last_login_attempt'] if 'last_login_attempt' in record else ''},
+        #     'failed_login_attempts': {
+        #         'N': record['failed_login_attempts'] if 'failed_login_attempts' in record else '0'},
+        #     'status': {
+        #         'S': record['status'] if 'status' in record else ''},
+        # }
+        new_item = {}
+
+        from datetime import datetime, timezone
+
+        if 'username' in record:
+            new_item['username'] = {'S': record['username']}
+        if 'password' in record:
+            (sha256_hex, salt_b64) = self.repo.hash_password(record['password'])
+            new_item['password_hash'] = {'S': sha256_hex}
+            new_item['password_salt'] = {'S': salt_b64}
+            new_item['password_last_changed_datetime'] = {'S': datetime.now(timezone.utc).isoformat()}
+
+        # if 'last_successful_login' in record:
+        #     new_item['last_successful_login'] = record['last_successful_login']
+        # if 'last_login_attempt_datetime' in record: new_item['last_login_attempt_datetime'] = record['last_login_attempt_datetime']
+        # if 'failed_login_attempts' in record:
+        #     new_item['failed_login_attempts'] = record['failed_login_attempts']
+        # if 'status' in record:
+        #     new_item['status'] = record['status']
+
+        response = self.client.put_item(
+            TableName=self.TABLE_NAME,
+            Item={
+                'username': {
+                    'S': record['username'] if 'username' in record else ''},
+                'password_hash': {
+                    'S': record['password_hash'] if 'password_hash' in record else ''},
+                'password_salt': {
+                    'S': record['password_salt'] if 'password_salt' in record else ''},
+                'password_last_changed_datetime': {
+                    'S': record['password_last_changed_datetime'] if 'password_last_changed_datetime' in record else ''},
+                'last_successful_login': {
+                    'S': record['last_successful_login'] if 'last_successful_login' in record else ''},
+                'last_login_attempt_datetime': {
+                    'S': record['last_login_attempt'] if 'last_login_attempt' in record else ''},
+                'failed_login_attempts': {
+                    'N': record['failed_login_attempts'] if 'failed_login_attempts' in record else '0'},
+                # 'status': {
+                #     'S': record['status'] if 'status' in record else 'NA'},
+            },
+            ReturnConsumedCapacity='TOTAL',
+        )
+        if 'Item' in response:
+            return response['Item']
+        self.log.debug(response)
+
+    def resert_record(self, record: InsertUserCredentialRecord):
         # new_item = {
         #     'username': {
         #         'S': record['username'] if 'username' in record else ''},

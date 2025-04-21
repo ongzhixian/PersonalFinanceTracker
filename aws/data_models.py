@@ -5,9 +5,6 @@ import logging
 import boto3
 from botocore.exceptions import ClientError
 
-from message_types import Message
-from record_types import Record
-
 ########################################
 # BaseDynamoDbRepository
 
@@ -39,20 +36,17 @@ class BaseDynamoDbModel(object):
 ########################################
 # UserCredential
 
+from message_types import CreateUserCredentialMessage
+
 from data_repositories import UserCredentialRepository
+from record_types import InsertUserCredentialRecord
 
 # UserCredential Messages
 
-class CreateUserCredentialMessage(Message):
-    def __init__(self, username:str, password:str):
-        self.username = username
-        self.password = password
-
-class InsertUserCredentialRecord(Record):
-    def __init__(self, message:CreateUserCredentialMessage):
-        self.username = message.username
-        self.password = message.password
-
+# class CreateUserCredentialMessage(Message):
+#     def __init__(self, username:str, password:str):
+#         self.username = username
+#         self.password = password
 
 # UserCredential Business Logic
 
@@ -67,11 +61,9 @@ class UserCredential(BaseDynamoDbModel):
     def get_user_credential(self, username:str) -> object:
         return self.user_credential_repo.get_record(username)
 
-    def add_user_credential(self, record:CreateUserCredentialMessage):
+    def add_user_credential(self, message:CreateUserCredentialMessage):
         # Transform message into record
-
-        #return self.user_credential_repo.resert_record(record)
-        pass
+        return self.user_credential_repo.add_new_record(message)
 
     def update_user_credential(self):
         pass
