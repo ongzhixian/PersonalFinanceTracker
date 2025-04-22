@@ -25,6 +25,7 @@ boto3.setup_default_session(profile_name=aws_profile)
 from message_types import CreateUserCredentialMessage, UserCredentialPasswordUpdateMessage, LoginMessage
 from record_types import UserCredentialRecord, InsertUserCredentialRecord, UpdateUserCredentialPasswordRecord
 
+
 ########################################
 # BaseDynamoDbRepository
 
@@ -44,7 +45,7 @@ class BaseDynamoDbRepository(object):
     1.  wait_for_table_exists
     1.  wait_for_table_not_exists
 
-    Table operations: (GET-CHECKS-ADD-UPDATE-REMOVE) GCAUD
+    Table operations: (GET-CHECKS-ADD-UPDATE-REMOVE)
 
     1.  get_table_list
     1.  table_exists
@@ -58,7 +59,7 @@ class BaseDynamoDbRepository(object):
 
     """
 
-    def __init__(self, table_name:str, client = None):
+    def __init__(self, table_name: str, client=None):
         self.TABLE_NAME = table_name
         self.client = boto3.client('dynamodb') if client is None else client
         self.__setup_logging(logging.DEBUG)
@@ -78,7 +79,7 @@ class BaseDynamoDbRepository(object):
 
     # Waiters
 
-    def wait_for_table_exists(self, delay:float = 1, max_attempts:int = 25):
+    def wait_for_table_exists(self, delay: float = 1, max_attempts: int = 25):
         """Waits for a table to come into existence ('ACTIVE')
 
         :param delay:
@@ -132,7 +133,6 @@ class BaseDynamoDbRepository(object):
             })
         except WaiterError as waiter_error:
             return waiter_error.last_response
-
 
     # Table Operations
 
@@ -215,7 +215,6 @@ class BaseDynamoDbRepository(object):
             print("delete_table In ClientError block", client_error)
             error = client_error.response['Error']
 
-
         # except errorfactory.ResourceInUseException as error:
         #     import pdb
         #     print("delete_table In ResourceInUseException block", error)
@@ -258,11 +257,11 @@ class UserCredentialRepository(BaseDynamoDbRepository):
         super().__init__('user_credential', client)
         self.PasswordUtility = PasswordUtility()
 
-    def __get_salt(self):
-        import string
-        import secrets
-        alphabet = string.ascii_letters + string.digits
-        password = ''.join(secrets.choice(alphabet) for i in range(8))
+    # def __get_salt(self):
+    #     import string
+    #     import secrets
+    #     alphabet = string.ascii_letters + string.digits
+    #     password = ''.join(secrets.choice(alphabet) for i in range(8))
 
     def create_table_if_not_exists(self):
         t0 = time()
@@ -328,15 +327,15 @@ class UserCredentialRepository(BaseDynamoDbRepository):
             )
         return []
 
-    def get_record(self, partition_key: str) -> UserCredentialRecord:
+    def get_record(self, partition_key: str) -> UserCredentialRecord|None:
         response = self.client.get_item(
             TableName=self.TABLE_NAME,
             Key={'username': {'S': partition_key}}
         )
         if 'Item' in response:
             return UserCredentialRecord(response['Item'])
-            return response['Item']
         self.log.warning('Record does not exists')
+        return None
 
     def find_record(self):
         pass
@@ -369,7 +368,8 @@ class UserCredentialRepository(BaseDynamoDbRepository):
     #     return (sha256.hexdigest(), base64.b64encode(salt_bytes).decode())
 
     def add_new_record(self, message: CreateUserCredentialMessage):
-        insert_user_credential_record = InsertUserCredentialRecord(message).to_dynamodb_item() # Transform message into record
+        insert_user_credential_record = InsertUserCredentialRecord(
+            message).to_dynamodb_item()  # Transform message into record
         response = self.client.put_item(
             TableName=self.TABLE_NAME,
             Item=insert_user_credential_record,
@@ -379,12 +379,12 @@ class UserCredentialRepository(BaseDynamoDbRepository):
             return response['Item']
         self.log.debug(response)
 
-    def update_password(self, message:UserCredentialPasswordUpdateMessage):
+    def update_password(self, message: UserCredentialPasswordUpdateMessage):
         update_record = UpdateUserCredentialPasswordRecord(message)
         response = self.client.update_item(
             TableName=self.TABLE_NAME,
             Key={
-                'username': { 'S': update_record.username,}
+                'username': {'S': update_record.username, }
             },
             UpdateExpression='SET #PH = :ph, #PS = :ps, #DT = :dt',
             ExpressionAttributeNames={
@@ -411,7 +411,7 @@ class UserCredentialRepository(BaseDynamoDbRepository):
     #     sha256.update(combined_bytes)
     #     return (sha256.hexdigest(), base64.b64encode(salt_bytes).decode())
 
-    def validate_login(self, message:LoginMessage):
+    def validate_login(self, message: LoginMessage):
         #update_record = UpdateUserCredentialPasswordRecord(message)
         failed_login_attempts_tolerance = 6
 
@@ -455,8 +455,7 @@ class UserCredentialRepository(BaseDynamoDbRepository):
         # )
         #user_credential_record.b64decode()
 
-
-    def update_login_success_stats(self, username:str):
+    def update_login_success_stats(self, username: str):
         timestamp = datetime.now(timezone.utc).isoformat()
         response = self.client.update_item(
             TableName=self.TABLE_NAME,
@@ -478,7 +477,7 @@ class UserCredentialRepository(BaseDynamoDbRepository):
         )
         print(response)
 
-    def update_login_fail_stats(self, username:str):
+    def update_login_fail_stats(self, username: str):
         timestamp = datetime.now(timezone.utc).isoformat()
         response = self.client.update_item(
             TableName=self.TABLE_NAME,
@@ -498,10 +497,10 @@ class UserCredentialRepository(BaseDynamoDbRepository):
         )
         print(response)
 
-    def update_login(self, username:str,
-                     failed_login_attempts:int = 0,
-                     last_successful_login:int = 0,
-                     last_login_attempt_datetime:str = ''):
+    def update_login(self, username: str,
+                     failed_login_attempts: int = 0,
+                     last_successful_login: int = 0,
+                     last_login_attempt_datetime: str = ''):
         response = self.client.update_item(
             TableName=self.TABLE_NAME,
             Key={
@@ -522,68 +521,69 @@ class UserCredentialRepository(BaseDynamoDbRepository):
         )
         print(response)
 
-    def resert_record(self, record: InsertUserCredentialRecord):
-        # new_item = {
-        #     'username': {
-        #         'S': record['username'] if 'username' in record else ''},
-        #     'password_hash': {
-        #         'S': record['password_hash'] if 'password_hash' in record else ''},
-        #     'password_salt': {
-        #         'S': record['password_salt'] if 'password_salt' in record else ''},
-        #     'password_last_changed_datetime': {
-        #         'S': record['password_last_changed_datetime'] if 'password_last_changed_datetime' in record else ''},
-        #     'last_successful_login': {
-        #         'S': record['last_successful_login'] if 'last_successful_login' in record else ''},
-        #     'last_login_attempt_datetime': {
-        #         'S': record['last_login_attempt'] if 'last_login_attempt' in record else ''},
-        #     'failed_login_attempts': {
-        #         'N': record['failed_login_attempts'] if 'failed_login_attempts' in record else '0'},
-        #     'status': {
-        #         'S': record['status'] if 'status' in record else ''},
-        # }
-        new_item = {}
-
-        if 'username' in record:
-            new_item['username'] = {'S': record['username']}
-        if 'password' in record:
-            (sha256_hex, salt_b64) = self.repo.hash_password(record['password'])
-            new_item['password_hash'] = {'S': sha256_hex}
-            new_item['password_salt'] = {'S': salt_b64}
-            new_item['password_last_changed_datetime'] = {'S': datetime.now(timezone.utc).isoformat()}
-
-        # if 'last_successful_login' in record:
-        #     new_item['last_successful_login'] = record['last_successful_login']
-        # if 'last_login_attempt_datetime' in record: new_item['last_login_attempt_datetime'] = record['last_login_attempt_datetime']
-        # if 'failed_login_attempts' in record:
-        #     new_item['failed_login_attempts'] = record['failed_login_attempts']
-        # if 'status' in record:
-        #     new_item['status'] = record['status']
-
-        response = self.client.put_item(
-            TableName=self.TABLE_NAME,
-            Item={
-                'username': {
-                    'S': record['username'] if 'username' in record else ''},
-                'password_hash': {
-                    'S': record['password_hash'] if 'password_hash' in record else ''},
-                'password_salt': {
-                    'S': record['password_salt'] if 'password_salt' in record else ''},
-                'password_last_changed_datetime': {
-                    'S': record['password_last_changed_datetime'] if 'password_last_changed_datetime' in record else ''},
-                'last_successful_login': {
-                    'S': record['last_successful_login'] if 'last_successful_login' in record else ''},
-                'last_login_attempt_datetime': {
-                    'S': record['last_login_attempt'] if 'last_login_attempt' in record else ''},
-                'failed_login_attempts': {
-                    'N': record['failed_login_attempts'] if 'failed_login_attempts' in record else '0'},
-                # 'status': {
-                #     'S': record['status'] if 'status' in record else 'NA'},
-            },
-            ReturnConsumedCapacity='TOTAL',
-        )
-        if 'Item' in response:
-            return response['Item']
-        self.log.debug(response)
+    # def resert_record(self, record: InsertUserCredentialRecord):
+    #     # new_item = {
+    #     #     'username': {
+    #     #         'S': record['username'] if 'username' in record else ''},
+    #     #     'password_hash': {
+    #     #         'S': record['password_hash'] if 'password_hash' in record else ''},
+    #     #     'password_salt': {
+    #     #         'S': record['password_salt'] if 'password_salt' in record else ''},
+    #     #     'password_last_changed_datetime': {
+    #     #         'S': record['password_last_changed_datetime'] if 'password_last_changed_datetime' in record else ''},
+    #     #     'last_successful_login': {
+    #     #         'S': record['last_successful_login'] if 'last_successful_login' in record else ''},
+    #     #     'last_login_attempt_datetime': {
+    #     #         'S': record['last_login_attempt'] if 'last_login_attempt' in record else ''},
+    #     #     'failed_login_attempts': {
+    #     #         'N': record['failed_login_attempts'] if 'failed_login_attempts' in record else '0'},
+    #     #     'status': {
+    #     #         'S': record['status'] if 'status' in record else ''},
+    #     # }
+    #     new_item = {}
+    #
+    #     if 'username' in record:
+    #         new_item['username'] = {'S': record['username']}
+    #     if 'password' in record:
+    #         (sha256_hex, salt_b64) = self.repo.hash_password(record['password'])
+    #         new_item['password_hash'] = {'S': sha256_hex}
+    #         new_item['password_salt'] = {'S': salt_b64}
+    #         new_item['password_last_changed_datetime'] = {'S': datetime.now(timezone.utc).isoformat()}
+    #
+    #     # if 'last_successful_login' in record:
+    #     #     new_item['last_successful_login'] = record['last_successful_login']
+    #     # if 'last_login_attempt_datetime' in record: new_item['last_login_attempt_datetime'] = record['last_login_attempt_datetime']
+    #     # if 'failed_login_attempts' in record:
+    #     #     new_item['failed_login_attempts'] = record['failed_login_attempts']
+    #     # if 'status' in record:
+    #     #     new_item['status'] = record['status']
+    #
+    #     response = self.client.put_item(
+    #         TableName=self.TABLE_NAME,
+    #         Item={
+    #             'username': {
+    #                 'S': record['username'] if 'username' in record else ''},
+    #             'password_hash': {
+    #                 'S': record['password_hash'] if 'password_hash' in record else ''},
+    #             'password_salt': {
+    #                 'S': record['password_salt'] if 'password_salt' in record else ''},
+    #             'password_last_changed_datetime': {
+    #                 'S': record[
+    #                     'password_last_changed_datetime'] if 'password_last_changed_datetime' in record else ''},
+    #             'last_successful_login': {
+    #                 'S': record['last_successful_login'] if 'last_successful_login' in record else ''},
+    #             'last_login_attempt_datetime': {
+    #                 'S': record['last_login_attempt'] if 'last_login_attempt' in record else ''},
+    #             'failed_login_attempts': {
+    #                 'N': record['failed_login_attempts'] if 'failed_login_attempts' in record else '0'},
+    #             # 'status': {
+    #             #     'S': record['status'] if 'status' in record else 'NA'},
+    #         },
+    #         ReturnConsumedCapacity='TOTAL',
+    #     )
+    #     if 'Item' in response:
+    #         return response['Item']
+    #     self.log.debug(response)
 
     def delete_record(self, username):
         response = self.client.delete_item(
@@ -599,6 +599,6 @@ class UserCredentialRepository(BaseDynamoDbRepository):
 ########################################
 # main
 
-if __name__ == '__main__': # pragma: no cover
+if __name__ == '__main__':  # pragma: no cover
     repo = BaseDynamoDbRepository('text_example')
     table_list = repo.wait_for_table_exists(1, 2)

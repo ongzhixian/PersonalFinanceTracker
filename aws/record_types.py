@@ -12,31 +12,19 @@ class Record(object):
 
 class CredentialRecord(Record):
     def __init__(self):
-        self.password_hash:str = None
-        self.password_salt:str = None
-        self.password_last_changed_datetime:datetime = None
+        self.password_hash:str|None = None
+        self.password_salt:str|None = None
+        self.password_last_changed_datetime:datetime|None = None
         self.PasswordUtility = PasswordUtility()
-
-    # def __get_salt_bytes(self, length=32):
-    #     return secrets.token_bytes(length)
-    #
-    # def hash_password(self, password_text, salt_bytes = None):
-    #     if salt_bytes is None:
-    #         salt_bytes = self.__get_salt_bytes()
-    #     password_bytes = password_text.encode('utf-8')
-    #     combined_bytes = salt_bytes + password_bytes
-    #     sha256 = hashlib.sha256()
-    #     sha256.update(combined_bytes)
-    #     return (sha256.hexdigest(), base64.b64encode(salt_bytes).decode())
 
 
 class UserCredentialRecord(CredentialRecord):
     def __init__(self, record:dict = None ):
         super().__init__()
-        self.username:str = None
-        self.last_successful_login:datetime = None
-        self.last_login_attempt_datetime:datetime = None
-        self.failed_login_attempts:int = None
+        self.username:str|None = None
+        self.last_successful_login:datetime|None = None
+        self.last_login_attempt_datetime:datetime|None = None
+        self.failed_login_attempts:int = 0
         self.status:UserCredentialRecord.Status = UserCredentialRecord.Status.NEW
         if record is not None:
             self.load_values(record)
@@ -47,8 +35,15 @@ class UserCredentialRecord(CredentialRecord):
     def load_values(self, record:dict):
         for key, value in record.items():
             setattr(self, key, value.popitem()[1])
-            # print(f'Key = {key} and Value = {value.popitem()[1]}')
-        #print(self)
+
+    class Status(Enum):
+        NEW = 'NEW1'
+        ACTIVE = 'ACTIVE1'
+        INACTIVE = 'INACTIVE1'
+        def __str__(self) -> str:
+            return self.name
+        def __repr__(self) -> str:
+            return self.name
 
     # class Field(Enum):
     #     USERNAME = 'username'
@@ -60,14 +55,6 @@ class UserCredentialRecord(CredentialRecord):
     #     FAILED_LOGIN_ATTEMPTS = 'failed_login_attempts'
     #     STATUS = 'status'
 
-    class Status(Enum):
-        NEW = 'NEW1'
-        ACTIVE = 'ACTIVE1'
-        INACTIVE = 'INACTIVE1'
-        def __str__(self) -> str:
-            return self.name
-        def __repr__(self) -> str:
-            return self.name
 
 class InsertUserCredentialRecord(UserCredentialRecord):
 
@@ -84,17 +71,16 @@ class InsertUserCredentialRecord(UserCredentialRecord):
         self.status = UserCredentialRecord.Status.NEW
 
     def to_dynamodb_item(self):
-        item = {}
-        item['username'] = { 'NULL': True } if self.username is None else { 'S' : self.username }
-        item['password_hash'] = {'NULL': True} if self.password_hash is None else {'S': self.password_hash}
-        item['password_salt'] = {'NULL': True} if self.password_salt is None else {'S': self.password_salt}
-        item['password_last_changed_datetime'] = {'NULL': True} if self.password_last_changed_datetime is None else {'S': self.password_last_changed_datetime}
-        item['last_successful_login'] = {'NULL': True} if self.last_successful_login is None else {'S': self.last_successful_login}
-        item['last_login_attempt_datetime'] = {'NULL': True} if self.last_login_attempt_datetime is None else {'S': self.last_login_attempt_datetime}
-        item['failed_login_attempts'] = {'N': '0'} if self.failed_login_attempts is None else {'N': str(self.failed_login_attempts)}
-        item['status'] = {'NULL': True} if self.status is None else {'S': str(self.status)}
-        return item
-
+        return {
+            'username': {'NULL': True} if self.username is None else {'S': self.username},
+            'password_hash': {'NULL': True} if self.password_hash is None else {'S': self.password_hash},
+            'password_salt': {'NULL': True} if self.password_salt is None else {'S': self.password_salt},
+            'password_last_changed_datetime': {'NULL': True} if self.password_last_changed_datetime is None else {'S': self.password_last_changed_datetime},
+            'last_successful_login': {'NULL': True} if self.last_successful_login is None else {'S': self.last_successful_login},
+            'last_login_attempt_datetime': {'NULL': True} if self.last_login_attempt_datetime is None else {'S': self.last_login_attempt_datetime},
+            'failed_login_attempts': {'N': '0'} if self.failed_login_attempts is None else {'N': str(self.failed_login_attempts)},
+            'status': {'NULL': True} if self.status is None else {'S': str(self.status)}
+        }
 
 class UpdateUserCredentialPasswordRecord(CredentialRecord):
     def __init__(self, message:UserCredentialPasswordUpdateMessage):

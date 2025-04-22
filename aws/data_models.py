@@ -3,8 +3,7 @@
 
 import logging
 import boto3
-from botocore.exceptions import ClientError
-
+#from botocore.exceptions import ClientError
 
 ########################################
 # BaseDynamoDbModel
@@ -37,7 +36,6 @@ class BaseDynamoDbModel(object):
 # UserCredential
 
 from message_types import (CreateUserCredentialMessage,
-                           UpdateUserCredentialMessage,
                            UserCredentialPasswordUpdateMessage,
                            LoginMessage)
 
@@ -59,13 +57,13 @@ class UserCredential(BaseDynamoDbModel):
         Get user credential matching specified username
 
     3. add_user_credential(self, message:CreateUserCredentialMessage):
-        Add an user credential given CreateUserCredentialMessage
+        Add user credential given CreateUserCredentialMessage
 
     4. update_user_credential_password(self, message:UserCredentialPasswordUpdateMessage)
-        Updates the password of an user credential given UserCredentialPasswordUpdateMessage
+        Updates the password of user credential given UserCredentialPasswordUpdateMessage
 
     5. remove_user_credential(self, username:str)
-        Removes an user credential object for specified username
+        Removes user credential object for specified username
 
     6. is_valid_login(self, message:LoginMessage)
         Validates if a LoginMessage contains valid credentials
@@ -77,8 +75,6 @@ class UserCredential(BaseDynamoDbModel):
 
     def get_user_credential_list(self) -> list:
         """
-        Args:
-            None
         Returns:
             list:
                 A list of user credentials available in system.
@@ -100,7 +96,7 @@ class UserCredential(BaseDynamoDbModel):
         """
         Args:
             message (CreateUserCredentialMessage):
-                Message containings parameters for creating user credential object
+                Message containing parameters for creating user credential object
         Returns:
             None
         """
@@ -147,8 +143,8 @@ class UserCredential(BaseDynamoDbModel):
 #     def __init__(self, owner:str):
 #         super().__init__()
 #         self.owner = owner
-#         self.pft_account_repo = PftAccountRespository(self.client)
-#         self.pft_account_history_repo = PftAccountHistoryRespository(self.client)
+#         self.pft_account_repo = PftAccountRepository(self.client)
+#         self.pft_account_history_repo = PftAccountHistoryRepository(self.client)
 #
 #     def add_account(self, account_name:str):
 #         self.pft_account_repo.put_record({

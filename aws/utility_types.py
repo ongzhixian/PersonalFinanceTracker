@@ -2,7 +2,6 @@ import hashlib
 import base64
 import secrets
 
-
 class PasswordUtility(object):
     def __init__(self):
         pass
