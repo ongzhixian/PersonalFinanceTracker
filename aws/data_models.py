@@ -5,8 +5,6 @@ import logging
 import boto3
 from botocore.exceptions import ClientError
 
-########################################
-# BaseDynamoDbRepository
 
 ########################################
 # BaseDynamoDbModel
@@ -21,7 +19,8 @@ class BaseDynamoDbModel(object):
         1. Maybe move this to data_models.py
 
     """
-    def __init__(self, client = None):
+
+    def __init__(self, client=None):
         self.client = boto3.client('dynamodb') if client is None else client
         self.__setup_logging(logging.DEBUG)
 
@@ -33,44 +32,115 @@ class BaseDynamoDbModel(object):
         self.log.addHandler(ch)
         self.log.setLevel(logging_level)
 
+
 ########################################
 # UserCredential
 
-from message_types import CreateUserCredentialMessage
+from message_types import (CreateUserCredentialMessage,
+                           UpdateUserCredentialMessage,
+                           UserCredentialPasswordUpdateMessage,
+                           LoginMessage)
 
 from data_repositories import UserCredentialRepository
-from record_types import InsertUserCredentialRecord
 
-# UserCredential Messages
-
-# class CreateUserCredentialMessage(Message):
-#     def __init__(self, username:str, password:str):
-#         self.username = username
-#         self.password = password
 
 # UserCredential Business Logic
 
 class UserCredential(BaseDynamoDbModel):
+    """
+    UserCredential business model
+
+    Use this model to:
+
+    1. get_user_credential_list(self) -> list
+        Get a list of user credential objects
+
+    2. get_user_credential(self, username:str) -> object
+        Get user credential matching specified username
+
+    3. add_user_credential(self, message:CreateUserCredentialMessage):
+        Add an user credential given CreateUserCredentialMessage
+
+    4. update_user_credential_password(self, message:UserCredentialPasswordUpdateMessage)
+        Updates the password of an user credential given UserCredentialPasswordUpdateMessage
+
+    5. remove_user_credential(self, username:str)
+        Removes an user credential object for specified username
+
+    6. is_valid_login(self, message:LoginMessage)
+        Validates if a LoginMessage contains valid credentials
+    """
+
     def __init__(self):
         super().__init__()
-        self.user_credential_repo  = UserCredentialRepository(self.client)
+        self.user_credential_repo = UserCredentialRepository(self.client)
 
     def get_user_credential_list(self) -> list:
+        """
+        Args:
+            None
+        Returns:
+            list:
+                A list of user credentials available in system.
+        """
         return self.user_credential_repo.get_record_list()
 
-    def get_user_credential(self, username:str) -> object:
+    def get_user_credential(self, username: str) -> object:
+        """
+        Args:
+            username (str):
+                Username of user credential to return
+        Returns:
+            object:
+                User credential record matching username
+        """
         return self.user_credential_repo.get_record(username)
 
-    def add_user_credential(self, message:CreateUserCredentialMessage):
-        # Transform message into record
+    def add_user_credential(self, message: CreateUserCredentialMessage):
+        """
+        Args:
+            message (CreateUserCredentialMessage):
+                Message containings parameters for creating user credential object
+        Returns:
+            None
+        """
         return self.user_credential_repo.add_new_record(message)
 
-    def update_user_credential(self):
-        pass
+    def update_user_credential_password(self, message: UserCredentialPasswordUpdateMessage):
+        """
+        Args:
+            message (UserCredentialPasswordUpdateMessage):
+                Message containing parameters to update password of specified user credential
+        Returns:
+            None
+        """
+        return self.user_credential_repo.update_password(message)
 
-    def remove_user_credential(self):
-        pass
+    def remove_user_credential(self, username: str):
+        """
+        Args:
+            username(str):
+                Username of user credential to remove
+        Returns:
+            None
+        """
+        return self.user_credential_repo.delete_record(username)
 
+    def is_valid_login(self, message: LoginMessage):
+        """
+        Args:
+            message (LoginMessage):
+                Message containing the user credential to authenticate against system
+        Returns:
+            bool:
+                True -> credentials in message match system
+                False -> credentials in message does not match system
+        """
+        return self.user_credential_repo.validate_login(message)
+
+    # def update_user_credential(self):
+    #     """NOT IN USED -- too generic"""
+    #     pass
 
 #
 # class Pft(BaseDynamoDbModel):
