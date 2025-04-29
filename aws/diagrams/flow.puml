@@ -1,0 +1,194 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\flow.puml
+@startuml hci-borrow
+/'  # Overview
+ '  This is sequence diagram for HCI
+ '
+ '  ========================================
+ '  To generate diagram, run this command:
+ '   java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\flow.puml
+'/
+
+<style>
+header {
+    HorizontalAlignment center
+    FontColor Black
+}
+</style>
+
+!$version = 1
+
+center header hci (v$version)
+right header hci (v$version)
+
+center footer Page %page% of %lastpage%
+
+title Borrow Sequence
+
+caption figure 1 Borrow Sequence
+
+autonumber
+' ----------------------------------------------------------------------
+' The only difference between actor and participant is the drawing
+' Steps to borrow:
+' 1. Scan borrower's code (ID Card) -> Validate that borower ID is valid
+' 1. Scan item code (Item QR)       ->
+' 1. Confirm borrow
+
+'actor Student #blue
+actor Administrator #gray
+
+participant SERVER
+participant DATASTORE
+
+== Borrow (Borrower ID) ==
+
+Administrator   -> SERVER           ++  : Sends borrower ID
+SERVER          -> SERVER               : Validates borrower ID
+SERVER          -> Administrator    --  : Returns borrower ID validation result
+
+== Borrow (Item ID) ==
+
+Administrator   -> SERVER           ++  : Sends item code
+SERVER          -> SERVER               : Validates item code
+SERVER          -> Administrator    --  : Returns item code validation result
+
+== Borrow (Confirmation) ==
+
+Administrator   -> SERVER           ++  : Sends borrow confirmation
+'SERVER         -> SERVER           : Validate borrow confirmation
+SERVER          -> DATASTORE        --++: Validate borrow details
+DATASTORE       -> DATASTORE            : Save borrow details
+DATASTORE       -> SERVER           --++: Return save operation result
+SERVER          -> Administrator    --  : Returns borrow result
+
+
+'newpage Return
+''
+''== Return  ==
+''
+'Administrator   -> SERVER           ++  : Sends item ID
+'SERVER          -> SERVER               : Validates item ID
+'SERVER          -> Administrator    --  : Returns item
+
+
+' SomeSystem -> SomeSystem: This is a signal to self.\nIt also demonstrates\nmultiline \ntext
+
+' participant User
+' User -> A: DoWork
+' activate A
+
+' A -> B: << createRequest >>
+' activate B
+' B -> C: DoWork
+' activate C
+' C --> B: WorkDone
+' destroy C
+' B --> A: RequestCreated
+' deactivate B
+' A -> User: Done
+' deactivate A
+
+
+' == Administration ==
+'
+' == Borrowing ==
+'
+' omeSystem  ->  Student         : Loan Ticket
+' 'Bob     ->  Alice   : Authentication Response
+' 'Bob     ->  L       : Log transaction
+'
+' == Returns ==
+
+@enduml
+
+' ########################################
+' HCI RETURN
+@startuml hci-return
+
+<style>
+header {
+    HorizontalAlignment center
+    FontColor Black
+}
+</style>
+
+!$version = 1
+center header hci (v$version) <font color=red>draft</font>
+
+center footer Page %page% of %lastpage%
+
+
+title Return Sequence
+
+caption figure 1 Return Sequence
+
+autonumber
+' ----------------------------------------------------------------------
+' The only difference between actor and participant is the drawing
+' Steps to return:
+' 1. Scan item code (Item QR)
+' 1. Confirm return
+
+actor Administrator #gray
+
+participant SERVER
+participant DATASTORE
+
+== Return  ==
+
+Administrator   -> SERVER           ++  : Sends item ID
+SERVER          -> SERVER               : Validate item ID
+SERVER          -> DATASTORE        --++: Sends validated item ID
+DATASTORE       -> DATASTORE            : Update item status
+DATASTORE       -> SERVER           --++: Return update result
+SERVER          -> Administrator    --  : Returns return result
+'SERVER          -> Administrator    --  : Returns item
+
+
+@enduml
+
+
+' ########################################
+' Work Breakdown Structure
+@startwbs hci-wbs
+/'  # Overview
+ '  WBS - Work Breakdown Structure for HCI
+ '
+ '  ========================================
+ '  To generate diagram, run this command:
+ '   java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\flow.puml
+'/
+!procedure $add_sub_tasks($count)
+!log Calling add_sub_tasks function with $count.
+!$i = 1
+!while $i <= $count
+*** Sub-Task $i
+!$i = $i + 1
+!endwhile
+!endprocedure
+
+* App
+
+** B
+$add_sub_tasks(3)
+*** Ad-hoc Sub-Task
+
+** R
+$add_sub_tasks(1)
+
+** I
+$add_sub_tasks(2)
+
+' -- METADATA --
+
+center header
+    HCI WBS v1
+endheader
+
+footer v1
+
+title WBS
+
+caption WBS
+
+@endwbs
