@@ -5,31 +5,71 @@
 # UTILITARIAN FUNCTIONS
 
 Set-Variable temp_layer_folder_path -Option Constant -Value './temp-layer'
+Set-Variable publish_folder_path -Option Constant -Value './publish'
 
-function Resolve-TempLayerFolder {
+function Resolve-Folder {
     param (
         [Parameter(Mandatory=$true)]
-        [string] $temp_layer_folder_path
+        [string] $folder_path
     )
 
-    if (-not (Test-Path $temp_layer_folder_path))
+    if (-not (Test-Path $folder_path))
     {
-        Write-Debug "Create missing temp layer folder."
-        New-Item -ItemType Directory -Path $temp_layer_folder_path
+        Write-Debug "Create missing folder $folder_path"
+        New-Item -ItemType Directory -Path $folder_path
     }
 }
+
+
+
+function Publish-LambdaLayer {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string] $LayerName,
+        [Parameter(Mandatory=$true)]
+        [string] $ZipFilePath
+    )
+    # Write-Host TODO: Publish-LambdaFunction
+    # Write-Host function-name:   $FunctionName
+    # Write-Host zip-file:        $ZipFilePath
+    # Write-Host handler:         $HandlerName
+    # --description "some desc"
+    # --memory-size 128
+    # --timeout 3
+    # --tags KeyName1=string,KeyName2=string
+
+    Write-Debug "Create function for $FunctionName using AWS-CLI"
+
+    # return aws lambda create-function `
+    # --function-name $FunctionName `
+    # --runtime python3.10 `
+    # --zip-file fileb://$ZipFilePath `
+    # --handler $HandlerName `
+    # --role arn:aws:iam::009167579319:role/ProjectAppRole
+
+    return aws lambda publish-layer-version `
+    --layer-name $LayerName `
+    --zip-file fileb://$ZipFilePath `
+    --description "Layer for sending HTTP requests" `
+    --compatible-runtimes python3.10 `
+    --compatible-architectures x86_64 `
+    --license-info AGPL-3.0-or-later
+}
+
 
 ########################################
 # MAIN SCRIPT
 
-Resolve-TempLayerFolder $temp_layer_folder_path
-# $publish_filename = "$($FunctionName).zip"
-# $publish_file_path = Join-Path $publish_folder_path $publish_filename
+$layer_name = "http_layer"
+$pip_output_path = Join-Path $temp_layer_folder_path $layer_name "python"
+Resolve-Folder $pip_output_path
 
-# .\deploy-layers.ps1
-# pip install requests --target python
-# pip.exe install -r .\layer_http_requirements.txt --target 
-# pip.exe install -r .\layer_http_requirements.txt --target .\temp-layer\layer_http\python
+$publish_filename = "$($layer_name).zip"
+$publish_file_path = Join-Path $publish_folder_path $publish_filename
 
-#Compress-Archive $PythonScriptPath -DestinationPath $publish_file_path -Force
-#Compress-Archive .\temp-layer\layer_http\python\ -DestinationPath .\publish\layer_http.zip -Force
+# LAYERS
+
+#pip.exe install -r .\$($layer_name)_requirements.txt --target $pip_output_path
+#Compress-Archive $pip_output_path -DestinationPath $publish_file_path -Force
+
+Publish-LambdaLayer $layer_name $publish_file_path
