@@ -36,6 +36,24 @@ def __list_tables():
     response = dynamodb_client.list_tables()
     return response
 
+def __create_inventory_item_table():
+    response = dynamodb_client.create_table(
+        TableName='hci_inventory_item',
+        AttributeDefinitions=[
+            {'AttributeType': 'S', 'AttributeName': 'item_code'},
+            {'AttributeType': 'S', 'AttributeName': 'item_description'},
+        ],
+        KeySchema=[
+            {'AttributeName': 'item_code', 'KeyType': 'HASH'},
+            {'AttributeName': 'item_description','KeyType': 'RANGE'},
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1,'WriteCapacityUnits': 1}
+    )
+    print(response)
+
+def __delete_table(table_name:str):
+    response = dynamodb_client.delete_table(TableName=table_name)
+    print(response)
 
 # AWS DynamoDb generic helper function
 
@@ -102,11 +120,12 @@ def put_user_credential(username: str, password_text: str):
 
 INVENTORY_ITEM_TABLE_NAME = 'hci_inventory_item'
 
-def put_inventory_item(item_code: str):
+def put_inventory_item(item_code: str, item_description:str):
     response = dynamodb_client.put_item(
         TableName=INVENTORY_ITEM_TABLE_NAME,
         Item={
             'item_code':  {'S': item_code},
+            'item_description':  {'S': item_description},
             'borrower_code': {'NULL': True},
             'borrow_datetime': {'NULL': True},
             'target_return_datetime': {'NULL': True},
@@ -368,16 +387,27 @@ if __name__ == "__main__":
     # CREATE CREDENTIAL
     #result = put_user_credential('zhixian', 'pass1234')
     #print(result)
+
     # VIEW CREDENTIAL
     # credential_message = CredentialMessage('hci-zhixian1', 'adasd')
     # result = __get_user_credential(credential_message)
     # print(result)
     # VALIDATE CREDENTIAL
+    
     # LIST TABLES
-    response = __list_tables()
-    table_name_list = response['TableNames']
-    print(table_name_list)
-    print("Table count:", len(table_name_list))
+    # response = __list_tables()
+    # table_name_list = response['TableNames']
+    # print(table_name_list)
+    # print("Table count:", len(table_name_list))
+
+    # CREATE/DELETE TABLE
+    #__delete_table('inventory_item')
+    #__create_inventory_item_table()
+
+    # ADD INVENTORY ITEM
+    #put_inventory_item('code1', 'ITEM 1')
+    #put_inventory_item('code2', 'ITEM 2')
+    #put_inventory_item('code3', 'ITEM 3')
 
     #print(result)
 #     import sys
