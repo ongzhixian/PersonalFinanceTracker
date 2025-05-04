@@ -1,0 +1,59 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-2100-add-item.txt
+@startuml hci-add-item-seq
+/'  # Overview
+ '  This is sequence diagram for adding items to HCI
+ '
+ '  ========================================
+ '  To generate diagram, run this command:
+ '   java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-2100-add-item.txt
+'/
+
+<style>
+header {
+    HorizontalAlignment center
+    FontColor Black
+}
+</style>
+
+hide footbox
+skinparam style strictuml
+
+!$version = 1
+
+center header hci (v$version)
+right header hci (v$version)
+
+center footer Page %page% of %lastpage%
+
+title HCI Add Item Flow
+
+caption figure 1 HCI Add Item Flow
+
+!pragma teoz true
+
+autonumber
+
+' ----------------------------------------------------------------------
+
+
+
+box "<<API ENDPOINT>>"
+    participant API_ENDPOINT as "<<LAMBDA>>\nadd_item"  #99FF99
+end box
+
+box "<<API SERVICE>>"
+    participant API_SERVICE AS "<<API_SERVICE>>"    #99FF99
+    participant InventoryRepo
+end box
+
+database    DATASTORE                       #99FF99
+
+
+               [-> API_ENDPOINT         : <<RequestMessage>>
+API_ENDPOINT    -> API_ENDPOINT         : <<NewInventoryItemMessage>>
+API_ENDPOINT    -> API_SERVICE          : <<Message>>
+& API_SERVICE   -> InventoryRepo        : <<Message>>
+               [<- API_ENDPOINT         : <<ResponseMessage>>
+
+
+@enduml

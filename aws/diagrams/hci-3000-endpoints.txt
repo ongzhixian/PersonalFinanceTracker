@@ -1,0 +1,57 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-3000-endpoints.txt
+
+' ########################################
+' HCI API ROUTES
+@startwbs hci-api-endpoints
+
+!include hci-1000-overview.txt!0
+
+
+center header hci (v$version)
+
+title Hci Blazer Api Routes
+
+caption figure 1 Api routes
+
+<style>
+wbsDiagram {
+}
+</style>
+
+*_ /hci-blazer
+**_ /item
+***_ /{id}
+****_ GET
+***_ GET
+***_ PATCH
+***_ POST
+**_ /authenticate-user-credential
+***_ POST
+
+
+@endwbs
+
+
+' ########################################
+' 
+@startyaml hci-api-endpoints-map
+
+!include hci-1000-overview.txt!0
+
+#highlight "french-hens" <<h1>>
+#highlight "xmas-fifth-day" / "partridges" <<h2>>
+
+'/hci-blazer: 
+'    GET:    <<N/A>>
+/hci-blazer/auth:
+    POST:   Get auth ticket <size:8><#green:x:>
+/hci-blazer/item:
+    GET:    <done> Get item list 
+    POST:   <<done>> Create new item <size:8><#green:white_check_mark:>
+    PATCH:  Update existing item
+    DELETE: Remove item
+/hci-blazer/item/{id}: 
+    GET:    Get specific item
+
+
+@endyaml

@@ -1,0 +1,18 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-3000-endpoints.txt
+
+' ########################################
+' HCI CLASSES
+@startuml hci-api-endpoints
+
+!include hci-1000-overview.txt!0
+
+center header hci (v$version)
+
+title Service Classes
+
+caption figure 1 Service classes
+
+class "This is my class" as class1
+
+@enduml
+

@@ -1,0 +1,76 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-2100-add-item-act.txt
+@startuml hci-add-item-act
+/'  # Overview
+ '  This is sequence diagram for adding items to HCI
+ '
+ '  ========================================
+ '  To generate diagram, run this command:
+ '   java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-2100-add-item-act.txt
+'/
+
+<style>
+header {
+    HorizontalAlignment center
+    FontColor Black
+}
+</style>
+
+skinparam style strictuml
+
+!$version = 1
+
+center header hci (v$version)
+right header hci (v$version)
+
+center footer Page %page% of %lastpage%
+
+title HCI Add Item Flow
+
+caption figure 1 HCI Add Item Flow
+
+' ----------------------------------------------------------------------
+
+group Endpoint (received request)
+
+start
+
+'floating note left: When received <<RequestMessage>>
+
+-> received <<RequestMessage>>;
+
+    :Validate <<RequestMessage>>;
+    note right: Ensured message required fields are populated
+
+    if (<<RequestMessage>>?) is (<color:red>invalid) then
+        :Return <<BadRequestMessage>>;
+        kill
+    'else (<color:green>valid)
+
+    endif
+
+end group
+
+group Repository
+
+    :<<create_new_inventory_item()>>;
+    note right: Put item if not exists;
+
+end group
+
+group Endpoint
+
+    if (<<OperationResult>>?) is (<color:red>fail) then
+        :Form operation fail response message;
+    else (<color:green>success)
+        :Form operation success response message;
+    endif
+
+    -> Return response message;
+
+    ''->: Return response message;
+
+end group
+
+stop
+
+@enduml

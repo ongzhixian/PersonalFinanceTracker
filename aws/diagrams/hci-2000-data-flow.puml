@@ -1,0 +1,74 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-2100add_item.puml
+
+@startuml hci-high-level-data-flow
+/'  # Overview
+ '  This is sequence diagram for HCI
+ '
+ '  ========================================
+ '  To generate diagram, run this command:
+ '   java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-2100add_item.puml
+'/
+
+<style>
+header {
+    HorizontalAlignment center
+    FontColor Black
+}
+</style>
+
+hide footbox
+skinparam style strictuml
+!$version = 1
+
+center header hci (v$version)
+right header hci (v$version)
+
+center footer Page %page% of %lastpage%
+
+title HCI High-Level Data flow
+
+caption figure 1 High-level Data flow
+
+autonumber
+
+' ----------------------------------------------------------------------
+' User -> UI -> SERVICE
+
+actor AppUser
+
+box "<<Frontend>" #AliceBlue
+    participant UI                              #99FF99
+    participant UI_SERVICE as "UI-SERVICE"      #99FF99
+end box
+
+box "<<Backend>>"
+participant API_ENDPOINT as "API-ENDPOINT"  #99FF99
+participant API_SERVICE AS "API_SERVICE"    #99FF99
+database    DATASTORE                       #99FF99
+end box
+
+AppUser         -> UI                   : <<input data>>\n(interaction)
+UI              -> UI_SERVICE           : Users inputs
+UI_SERVICE      -> API_ENDPOINT         : <<Message>>
+'note over API_ENDPOINT: Just relays message
+API_ENDPOINT    -> API_SERVICE          : <<Message>>
+note left: relays message
+note over API_SERVICE
+    Deciphers <<Message>> into
+    CRUD operations
+end note
+API_SERVICE     -> DATASTORE            : Calls CRUD operation
+DATASTORE       -> DATASTORE            : Do CRUD operation
+'Return results
+DATASTORE       -> API_SERVICE          : CRUD operation result
+note over API_SERVICE
+    Deciphers operation result into
+    <<Message>>
+end note
+API_SERVICE     -> API_ENDPOINT         : <<Message>>
+'note over API_ENDPOINT: Just relays message
+API_ENDPOINT    -> UI_SERVICE           : <<Message>>
+note right: relays message
+UI_SERVICE      -> UI                   : <<UI updates>>
+UI              -> AppUser              : <<UI updates>>\n(interaction)
+@enduml

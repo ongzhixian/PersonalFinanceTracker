@@ -1,0 +1,19 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-1000-overview.txt
+
+@startuml hci-borrow-seq
+/'  # Overview
+ '  This is sequence diagram for HCI
+ '
+ '  ========================================
+ '  To generate diagram, run this command:
+ '   java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-1000-overview.txt
+'/
+
+'== CONSTANTS ==
+
+!$version = 2
+
+'== DIAGRAMS ==
+
+
+@enduml

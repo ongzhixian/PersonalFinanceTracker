@@ -1,11 +1,11 @@
-' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\flow.puml
-@startuml hci-borrow-seq
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-2-000-data-flow
+@startuml hci-borrow
 /'  # Overview
  '  This is sequence diagram for HCI
  '
  '  ========================================
  '  To generate diagram, run this command:
- '   java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\flow.puml
+ '   java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-2-000-data-flow
 '/
 
 <style>
@@ -195,126 +195,52 @@ caption WBS
 
 
 ' ########################################
-' Mindmap of routes
-@startmindmap hci-route-map
+' HCI API ROUTES
+@startmindmap hci-api-routes
 
-* Root (/)
+!$version = 1
 
-** authenticate-user-credential
+center header hci (v$version)
+right header hci (v$version)
 
-** item
-*** GET (/)
-*** GET (/{id})
-*** PUT (/{id}) (add/borrow/return)
+center footer Page %page% of %lastpage%
+
+title Hci Blazer Api Routes
+
+caption figure 1 Api routes
+
+
+* /hci-blazer
+** /item
+*** GET /
+*** GET /{id}
+*** PATCH /
+*** POST /
+** POST /authenticate-user-credential
 
 @endmindmap
 
 
-
 ' ########################################
-' What do we want to know
-@startuml hci-entities
+' HCI API CLASS DIAGRAMS
+@startuml hci-classes
+!$version = 1
+center header hci (v$version)
+right header hci (v$version)
 
-entity hci_entity {
-    record_updated_by:S
-    record_updated_datetime:
+center footer Page %page% of %lastpage%
+
+title Hci Api Class
+
+caption figure 1 Hci Blazer Api Classes
+
+class Message {
 }
 
-entity hci_inventory_item{
-    * item_code:S
-    item_description:S
-    item_borrower_code:S
-    item_borrow_date:S
-    item_return_due_date:S
-    ---
-    set_borrow(borrow_details)
-    set_return(return_details)
-}
-hci_inventory_item --> hci_entity
-
-
-class hci_record {
-    record_updated_by:S
-    record_updated_datetime:
-}
-
-class borrow_details{
-    * item_code:S
-}
-borrow_details --> hci_record
-
-
-class return_details{
-    * item_code:S
-}
-return_details --> hci_record
-
-@enduml
-
-' The set_borrow() method
-' What should happen:
-'item_borrower_code:S
-'item_borrow_date:S
-'item_return_due_date:S
-
-
-
-@startuml hci_act_set_borrow
-
-map "borrow_details => hci_inventory_item" as set_borrow_mapping {
-    item_borrower_code      => item_borrower_code
-    <<utcnow>>              => item_borrow_date
-    <<utcnow>>+14 days      => item_return_date
-    item_borrower_code      => item_borrower_code
-    record_updated_by       => record_updated_by
-    record_updated_datetime => record_updated_datetime
-}
-@enduml
-
-@startuml hci-borrow
-
-start
-floating note right: With <<hci_inventory_item>>
-:Set item_borrower_code;
-:Set item_borrow_date;
-:Set item_return_due_date;
-end
-
-note
-With <<hci_inventory_item>>
-This note is on several
-//lines// and can
-contain <b>HTML</b>
-====
-* Calling the method ""foo()"" is prohibited
-end note
-
-@enduml
-
-
-@startuml hci-use-cases
-
-left to right direction
-'skinparam packageStyle rectangle
-
-actor executive
-
-rectangle hci {
-    executive -- (borrow item)
-    executive -- (return item)
-    executive -- (view borrowed items)
-    executive -- (view registered items)
-
-' (checkout) .> (payment) : include
-' (help) .> (checkout) : extends
-' (checkout) -- executive
-}
-
-actor borrower
-rectangle hci-b {
-    borrower -- (submit loan request)
-    borrower -- (view loan requests)
-    borrower -- (cancel loan request)
+Message <|-- CredentialMessage
+class CredentialMessage {
+    username
+    password
 }
 
 @enduml
