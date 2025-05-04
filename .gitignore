@@ -406,3 +406,4 @@ FodyWeavers.xsd
 # ZX custom
 _temp/
 temp-layer/
+aws/diagrams/*.png
