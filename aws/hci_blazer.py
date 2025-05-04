@@ -1,11 +1,15 @@
 '''SOME MODULE-LEVEL DOCS SPEC'''
 import json
 from os import environ
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import boto3
+import botocore.exceptions
 
 from utility_types import PasswordUtility
+from hci_decorators import endpoint_url, dump_api_gateway_event_context
+
+import pdb
 
 
 # GENERAL HTTP-RELATED STUFF
@@ -36,24 +40,6 @@ def __list_tables():
     response = dynamodb_client.list_tables()
     return response
 
-def __create_inventory_item_table():
-    response = dynamodb_client.create_table(
-        TableName='hci_inventory_item',
-        AttributeDefinitions=[
-            {'AttributeType': 'S', 'AttributeName': 'item_code'},
-            {'AttributeType': 'S', 'AttributeName': 'item_description'},
-        ],
-        KeySchema=[
-            {'AttributeName': 'item_code', 'KeyType': 'HASH'},
-            {'AttributeName': 'item_description','KeyType': 'RANGE'},
-        ],
-        ProvisionedThroughput={'ReadCapacityUnits': 1,'WriteCapacityUnits': 1}
-    )
-    print(response)
-
-def __delete_table(table_name:str):
-    response = dynamodb_client.delete_table(TableName=table_name)
-    print(response)
 
 # AWS DynamoDb generic helper function
 
@@ -89,13 +75,12 @@ def get_user_credential(username:str) -> dict:
     )
     if 'Item' not in response:
         return None
-    
+
     record = response['Item']
     newObject = {}
     for record_key in sorted(record.keys(), key=lambda x:x.lower()):
         newObject[record_key] = get_record_value(record[record_key])
     return newObject
-
 
 def put_user_credential(username: str, password_text: str):
     pwd_util = PasswordUtility()
@@ -120,27 +105,214 @@ def put_user_credential(username: str, password_text: str):
 
 INVENTORY_ITEM_TABLE_NAME = 'hci_inventory_item'
 
-def put_inventory_item(item_code: str, item_description:str):
-    response = dynamodb_client.put_item(
+def put_inventory_item(item_code: str) -> bool:
+    try:
+        response = dynamodb_client.put_item(
+            TableName=INVENTORY_ITEM_TABLE_NAME,
+            Item={
+                'item_code':  {'S': item_code},
+                'item_description': {'S': item_code},
+                'borrower_code': {'NULL': True},
+                'borrow_datetime': {'NULL': True},
+                'target_return_datetime': {'NULL': True},
+                # 'last_borrow_datetime': {'NULL': True},
+                # 'last_changed_datetime': {'S': datetime.now(timezone.utc).isoformat()},
+                # 'failed_login_attempts': {'N': '0'},
+                # 'last_login_attempt_datetime': {'NULL': True},
+                # 'last_successful_login': {'NULL': True},
+                # 'password_hash': {'S': hex_digest},
+                # 'username': {'S': f'hci-{username}'},
+            },
+            ConditionExpression = "attribute_not_exists(item_code)",
+            ReturnConsumedCapacity='TOTAL'
+        )
+        print(response)
+        return True
+    except botocore.exceptions.ClientError as e:
+        print(e)
+        return False
+        # if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+        #     print('This was not a unique key')
+        # else:
+        #     print('some other dynamodb related error')
+
+def __get_field_value(value):
+    value_tuple = value.popitem()  # value tuple consists of a type-value like: { 'S': 'SomeValue' }
+    if value_tuple[0] == 'NULL':
+        return None
+    if value_tuple[0] == 'N':
+        return float(value_tuple[1])
+    if value_tuple[0] == 'S':
+        return value_tuple[1]
+    return value_tuple[1]
+
+def __map_to_inventory_item(item:any):
+    newObject = {}
+    for key, value in sorted(item.items()):
+        newObject[key] = __get_field_value(value)
+    return newObject
+
+def get_all_inventory_item_list(event:dict, context):
+    result_list = []
+    for response in dynamodb_client.get_paginator('scan').paginate(TableName=INVENTORY_ITEM_TABLE_NAME):
+        if 'Items' in response:
+            result_list.extend(list(map(__map_to_inventory_item, response['Items'])))
+    result_list.sort(key=lambda record: record['item_description'])
+    return result_list
+
+def delete_inventory_item_table():
+    response = dynamodb_client.delete_table(TableName=INVENTORY_ITEM_TABLE_NAME)
+    print(response)
+
+def create_inventory_item_table():
+    response = dynamodb_client.create_table(
         TableName=INVENTORY_ITEM_TABLE_NAME,
-        Item={
-            'item_code':  {'S': item_code},
-            'item_description':  {'S': item_description},
-            'borrower_code': {'NULL': True},
-            'borrow_datetime': {'NULL': True},
-            'target_return_datetime': {'NULL': True},
-            # 'last_borrow_datetime': {'NULL': True},
-            # 'last_changed_datetime': {'S': datetime.now(timezone.utc).isoformat()},
-            # 'failed_login_attempts': {'N': '0'},
-            # 'last_login_attempt_datetime': {'NULL': True},
-            # 'last_successful_login': {'NULL': True},
-            # 'password_hash': {'S': hex_digest},
-            # 'username': {'S': f'hci-{username}'},
-        },
-        ReturnConsumedCapacity='TOTAL'
+        KeySchema=[
+            { 'AttributeName': 'item_code', 'KeyType': 'HASH'}
+            #{ 'AttributeName': 'SongTitle', 'KeyType': 'RANGE',},
+        ],
+
+        AttributeDefinitions=[
+            {'AttributeName': 'item_code', 'AttributeType': 'S'},
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
     )
     print(response)
 
+def borrow_inventory_item(item_code:str, user_code:str):
+    timestamp = datetime.now(timezone.utc)
+    borrow_duration = timedelta(days=14)
+    try:
+        response = dynamodb_client.update_item(
+            TableName=INVENTORY_ITEM_TABLE_NAME,
+            Key={
+                'item_code': {'S': item_code}
+            },
+            UpdateExpression='SET #BORROW_DATETIME = :borrow_datetime, #BORROWER_CODE = :borrower_code, #TARGET_RETURN_DATETIME = :target_return_datetime',
+            ExpressionAttributeNames={
+                '#BORROW_DATETIME': 'borrow_datetime',
+                '#BORROWER_CODE': 'borrower_code',
+                '#TARGET_RETURN_DATETIME': 'target_return_datetime'
+            },
+            ExpressionAttributeValues={
+                ':borrow_datetime'          : {'S': timestamp.isoformat() },
+                ':borrower_code'            : {'S': user_code},
+                ':target_return_datetime'   : {'S': (timestamp + borrow_duration).isoformat(), },
+                ':v_sub'                    : {'S': 'NULL', }
+            },
+            ConditionExpression="attribute_type(borrower_code, :v_sub)",
+            ReturnValues='ALL_NEW',
+        )
+        print(response)
+        return True
+    except botocore.exceptions.ClientError as e:
+        print(e)
+        error_code = e.response['Error']['Code'] # 'ConditionalCheckFailedException'
+        return False
+        # if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+        #     print('This was not a unique key')
+        # else:
+        #     print('some other dynamodb related error')
+
+def return_inventory_item(item_code:str):
+    timestamp = datetime.now(timezone.utc)
+    borrow_duration = timedelta(days=14)
+    try:
+        response = dynamodb_client.update_item(
+            TableName=INVENTORY_ITEM_TABLE_NAME,
+            Key={
+                'item_code': {'S': item_code}
+            },
+            UpdateExpression='SET #BORROW_DATETIME = :borrow_datetime, #BORROWER_CODE = :borrower_code, #TARGET_RETURN_DATETIME = :target_return_datetime',
+            ExpressionAttributeNames={
+                '#BORROW_DATETIME': 'borrow_datetime',
+                '#BORROWER_CODE': 'borrower_code',
+                '#TARGET_RETURN_DATETIME': 'target_return_datetime'
+            },
+            ExpressionAttributeValues={
+                ':borrow_datetime'          : {'NULL': True },
+                ':borrower_code'            : {'NULL': True },
+                ':target_return_datetime'   : {'NULL': True },
+                ':v_sub'                    : {'S': 'NULL'},
+            },
+            ConditionExpression="NOT attribute_type(borrower_code, :v_sub)",
+            ReturnValues='ALL_NEW',
+        )
+        print(response)
+        return True
+    except botocore.exceptions.ClientError as e:
+        print(e)
+        error_code = e.response['Error']['Code'] # 'ConditionalCheckFailedException'
+        return False
+        # if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+        #     print('This was not a unique key')
+        # else:
+        #     print('some other dynamodb related error')
+
+
+# OBSOLETE
+def xxxget_inventory_item_page_list(page_number:int, page_size:int=3):
+    offset_to_start_reading = (page_number - 1) * page_size
+    print(f"offset_to_start_reading: {offset_to_start_reading}")
+    read_count = 0
+    result_list = []
+    for response in dynamodb_client.get_paginator('scan').paginate(TableName=INVENTORY_ITEM_TABLE_NAME, PaginationConfig={'PageSize': 3}):
+        if 'Items' not in response:
+            continue
+        print(f"read_count: {read_count}, offset_to_start_reading: {offset_to_start_reading}")
+        if read_count >= offset_to_start_reading:
+            result_list.extend(list(map(__map_to_inventory_item, response['Items'])))
+        read_count = read_count + len(response['Items'])
+        if len(result_list) >= page_size:
+            pass
+    return result_list
+
+def xxxget_all_inventory_item_list():
+    result_list = []
+    response = dynamodb_client.scan(TableName=INVENTORY_ITEM_TABLE_NAME, Limit=3)
+    if 'Items' in response:
+        result_list.extend(list(map(__map_to_inventory_item, response['Items'])))
+    while 'LastEvaluatedKey' in response:
+        last_evaluated_key = response['LastEvaluatedKey']
+        response = dynamodb_client.scan(TableName=INVENTORY_ITEM_TABLE_NAME, Limit=3, ExclusiveStartKey = last_evaluated_key)
+        if 'Items' in response:
+            result_list.extend(list(map(__map_to_inventory_item, response['Items'])))
+
+    return result_list
+    # if 'Items' in response:
+    #     return (response['Items'], lastEvaluatedKey)
+    # if exclusiveStartKey is None:
+    #     response = dynamodb_client.scan(
+    #         TableName=INVENTORY_ITEM_TABLE_NAME,
+    #         Limit=page_size
+    #     )
+    # else:
+    #     response = dynamodb_client.scan(
+    #         TableName=INVENTORY_ITEM_TABLE_NAME,
+    #         Limit=page_size,
+    #         ExclusiveStartKey=exclusiveStartKey
+    #     )
+    #print(response)
+    # lastEvaluatedKey = response['LastEvaluatedKey'] if 'LastEvaluatedKey' in response else None
+
+
+# def get_inventory_item_list(page_size:int, page_number:int, exclusiveStartKey:dict|None = None):
+#     if exclusiveStartKey is None:
+#         response = dynamodb_client.scan(
+#             TableName=INVENTORY_ITEM_TABLE_NAME,
+#             Limit=page_size
+#         )
+#     else:
+#         response = dynamodb_client.scan(
+#             TableName=INVENTORY_ITEM_TABLE_NAME,
+#             Limit=page_size,
+#             ExclusiveStartKey=exclusiveStartKey
+#         )
+#
+#     #print(response)
+#     lastEvaluatedKey = response['LastEvaluatedKey'] if 'LastEvaluatedKey' in response else None
+#     if 'Items' in response:
+#         return (response['Items'], lastEvaluatedKey)
 
 # GENERIC ENTITIES
 
@@ -189,9 +361,9 @@ def authenticate_user_credential(event:dict, context):
     print("[event]", event)
     print("[context]", context)
 
-    if 'body' not in event: 
+    if 'body' not in event:
         return response(HTTP_BAD_REQUEST_CODE, '`body` not found in context')
-    
+
     request_json = json.loads(event['body'])
 
     credential_message = __create_credential_message(request_json)
@@ -223,7 +395,7 @@ def authenticate_user_credential(event:dict, context):
 
     # if user_credential is None:
     #     return response(HTTP_OK_CODE, json.dumps({
-            
+
     #     }))
 
     # if credentials_are_valid(json):
@@ -235,8 +407,8 @@ def authenticate_user_credential(event:dict, context):
     #     return response(HTTP_OK_CODE, json.dumps(authentication_ticket))
     # else:
     #     return response(HTTP_OK_CODE, json.dumps(authentication_ticket))
-                        
-                    
+
+
 
     # return {
     #     'statusCode': 200,
@@ -252,8 +424,8 @@ class NewInventoryItemMessage(Message):
         return f"Item code:{self.item_code}"
 
 def __create_new_inventory_item_message(json:dict) -> NewInventoryItemMessage|None:
-    if 'item_code' not in json: return None
-    return NewInventoryItemMessage(json['item_code'])
+    if 'itemCode' not in json: return None
+    return NewInventoryItemMessage(json['itemCode'])
 
 def add_item(event:dict, context):
     if 'body' not in event:
@@ -263,12 +435,52 @@ def add_item(event:dict, context):
     new_inventory_item_message = __create_new_inventory_item_message(request_json)
 
     if new_inventory_item_message is None: return response(HTTP_BAD_REQUEST_CODE,
-                                               json.dumps(OperationResult(False, 'Invalid new inventory item message')))
+                                               json.dumps(OperationResult(False, 'Invalid new inventory item message').__dict__))
 
-    # TODO: Add item to data store
+    is_success = put_inventory_item(new_inventory_item_message.item_code)
 
-    return response(HTTP_OK_CODE, json.dumps(OperationResult(True)))
+    # ERROR HANDLING?
 
+    #return response(HTTP_OK_CODE, json.dumps(OperationResult(True).__dict__))
+    return_message = f'{new_inventory_item_message.item_code} added successfully' if is_success else f'{new_inventory_item_message.item_code} fail to add'
+    return {
+        'statusCode': HTTP_OK_CODE,
+        'body': json.dumps(OperationResult(is_success, return_message).__dict__)
+    }
+
+class GetInventoryItemListMessage(Message):
+    def __init__(self, page_size:int, page_number:int):
+        self.page_size = page_size
+        self.page_number = page_number
+    def __str__(self):
+        return f"Item code:{self.item_code}"
+
+def __create_get_inventory_item_list_message(json:dict) -> GetInventoryItemListMessage|None:
+    if 'pageSize' not in json: return None
+    if 'pageNumber' not in json: return None
+    return GetInventoryItemListMessage(json['pageSize'], json['pageNumber'])
+
+def get_item_list(event:dict, context):
+    if 'body' not in event:
+        return response(HTTP_BAD_REQUEST_CODE, '`body` not found in context')
+
+    request_json = json.loads(event['body'])
+    get_inventory_item_list_message = __create_get_inventory_item_list_message(request_json)
+
+    if get_inventory_item_list_message is None: return response(HTTP_BAD_REQUEST_CODE,
+                                               json.dumps(OperationResult(False, 'Invalid get_inventory_item_list message').__dict__))
+
+    #item_list = get_all_inventory_item_list(get_inventory_item_list_message.page_size, get_inventory_item_list_message.page_number)
+    item_list = get_all_inventory_item_list()
+
+    # ERROR HANDLING?
+
+    #return response(HTTP_OK_CODE, json.dumps(OperationResult(True).__dict__))
+    #return_message = f'{new_inventory_item_message.item_code} added successfully' if is_success else f'{new_inventory_item_message.item_code} fail to add'
+    return {
+        'statusCode': HTTP_OK_CODE,
+        'body': json.dumps(item_list)
+    }
 
 
 # BORROW RELATED STUFF
@@ -288,8 +500,8 @@ class BorrowMessage(Message):
         return f"User code:{self.user_code}, Item code:{self.item_code}"
 
 def __create_borrow_message(json:dict) -> BorrowMessage|None:
-    if 'user_code' not in json: return None
-    if 'item_code' not in json: return None
+    if 'userCode' not in json: return None
+    if 'itemCode' not in json: return None
     return BorrowMessage(json['user_code'], json['item_code'])
 
 # ??
@@ -361,55 +573,76 @@ def confirm_borrow(event:dict, context):
 
     return response(HTTP_OK_CODE, json.dumps(OperationResult(True)))
 
-# def dump_event_context(event, context):
-#     ''' Read an item by ID.
-#     Args:
-#         item_id (int): The ID of the item to retrieve.
-#         q (str, optional): An optional query parameter.
-#     Returns:
-#         dict: A dictionary containing the item details.
-#     '''
-    
-#     print("[event]")
-#     print(event)
-#     print("[context]")
-#     print(context)
-#     return {
-#         'statusCode': 200,
-#         'body': json.dumps('Return from Lambda 2')
-#     }
 
-#
+# END-POINTS
+
+
+
+
+@endpoint_url('/hci-blazer/auth', 'POST')
+def post_hci_blazer_auth(event:dict, context):
+    dump_api_gateway_event_context(event, context)
+
+@endpoint_url('/hci-blazer/item', 'GET')
+def get_hci_blazer_item(event:dict, context):
+    dump_api_gateway_event_context(event, context)
+
+@endpoint_url('/hci-blazer/item', 'POST')
+def post_hci_blazer_item(event:dict, context):
+    dump_api_gateway_event_context(event, context)
+
+@endpoint_url('/hci-blazer/item', 'PATCH')
+def patch_hci_blazer_item(event:dict, context):
+    dump_api_gateway_event_context(event, context)
+
+@endpoint_url('/hci-blazer/item', 'DELETE')
+def delete_hci_blazer_item(event:dict, context):
+    dump_api_gateway_event_context(event, context)
+
+@endpoint_url('/hci-blazer/item/{id}', 'GET')
+def patch_hci_blazer_item_id(event:dict, context):
+    dump_api_gateway_event_context(event, context)
 
 
 if __name__ == "__main__":
     pass
+    get_hci_blazer_item()
     # CREATE CREDENTIAL
     #result = put_user_credential('zhixian', 'pass1234')
     #print(result)
-
     # VIEW CREDENTIAL
     # credential_message = CredentialMessage('hci-zhixian1', 'adasd')
     # result = __get_user_credential(credential_message)
     # print(result)
     # VALIDATE CREDENTIAL
-    
     # LIST TABLES
     # response = __list_tables()
     # table_name_list = response['TableNames']
     # print(table_name_list)
     # print("Table count:", len(table_name_list))
+    # import pdb
+    # target_page = 3
+    # last_key = None
+    # current_page = 0
+    # while current_page < target_page:
+    #     (item_list, last_key) = get_inventory_item_list(8, current_page, last_key)
+    #     current_page = current_page + 1
+    #     print("Run iteration page", current_page, len(item_list))
+    #     if last_key is None:
+    #         break
+    # item_list = get_all_inventory_item_list()
+    # print('item_list', item_list)
+    # result = get_all_inventory_item_list()
 
-    # CREATE/DELETE TABLE
-    #__delete_table('inventory_item')
-    #__create_inventory_item_table()
+    # result = get_all_inventory_item_list()
+    # print(result)
 
-    # ADD INVENTORY ITEM
-    #put_inventory_item('code1', 'ITEM 1')
-    #put_inventory_item('code2', 'ITEM 2')
-    #put_inventory_item('code3', 'ITEM 3')
+    #delete_inventory_item_table()
+    #create_inventory_item_table()
+    #put_inventory_item('item 1')
+    # borrow_inventory_item('item 1', 'test user')
+    # return_inventory_item('item 1')
 
-    #print(result)
 #     import sys
 #     if len(sys.argv) < 2: 
 #         print(sys.argv)
