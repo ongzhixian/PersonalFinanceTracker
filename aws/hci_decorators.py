@@ -9,7 +9,7 @@ def endpoint_url(relative_path:str, http_method:str):
     def endpoint_url_decorator(func, relative_path = relative_path, http_method = http_method):
         def endpoint_url_decorator_wrapper(*args, **kwargs):
             print(http_method, relative_path, func.__name__)
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         endpoint_url_decorator_wrapper.__name__ = func.__name__ # Preserve function name
         endpoint_url_decorator_wrapper.__doc__ = func.__doc__   # Preserve docstring
         return endpoint_url_decorator_wrapper

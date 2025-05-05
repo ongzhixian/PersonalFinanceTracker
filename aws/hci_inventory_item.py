@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 import boto3
 from botocore.exceptions import ClientError
 
-from hci_message import OperationResultMessage, NewInventoryItemMessage, UpdateInventoryItemMessage
+from hci_messages import OperationResultMessage, NewInventoryItemMessage, UpdateInventoryItemMessage
 
 SINGAPORE_TIMEZONE = ZoneInfo("Asia/Singapore")
 

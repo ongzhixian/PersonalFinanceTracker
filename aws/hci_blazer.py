@@ -15,7 +15,7 @@ import botocore.exceptions
 
 from utility_types import PasswordUtility
 from hci_decorators import endpoint_url, dump_api_gateway_event_context
-from hci_message import OperationResultMessage, ResponseMessage, HciMessageService
+from hci_messages import OperationResultMessage, ResponseMessage, HciMessageService
 
 hci_message_service = HciMessageService()
 
@@ -147,15 +147,24 @@ def patch_hci_blazer_item(event:dict, context):
 
     event_body_json = __get_event_body_json(event)
 
+    print('patch_hci_blazer_item - Step 1')
+
     if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.ErrorMessage)
 
-    borrow_inventory_item_message = hci_message_service.create_update_inventory_item_message(event_body_json.DataObject)
+    update_inventory_item_message = hci_message_service.create_update_inventory_item_message(event_body_json.DataObject)
 
-    if borrow_inventory_item_message is None: return endpoint_response.bad_request('Invalid borrow inventory item message')
+    print('patch_hci_blazer_item - Step 2')
 
-    operation_result = repository.update_inventory_item(borrow_inventory_item_message)
+    if update_inventory_item_message is None: return endpoint_response.bad_request('Invalid borrow inventory item message')
 
-    return_message = f'{borrow_inventory_item_message.item_code} borrowed successfully' if operation_result.is_success else f'{borrow_inventory_item_message.item_code} fail to borrow'
+    operation_result = repository.update_inventory_item(update_inventory_item_message)
+
+
+    #???
+    return_message = f'{update_inventory_item_message.item_code} borrowed successfully' if operation_result.is_success else f'{update_inventory_item_message.item_code} fail to borrow'
+    return_message = operation_result.message
+
+    print('patch_hci_blazer_item - Step 3')
 
     return endpoint_response.ok(operation_result.is_success, return_message)
 

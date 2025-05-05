@@ -15,7 +15,7 @@ Set-Variable package_name -Option Constant -Value 'hci'
 Set-Variable package_zip_file_name -Option Constant -Value "$package_name.zip"
 Set-Variable package_file_list_path -Option Constant -Value "$($package_name)_lambda_file_list.txt"
 Set-Variable publish_folder_path -Option Constant -Value './publish'
-$awsProfile = 'Default'
+$awsProfile = 'default'
 
 if ($null -ne $env:USERDNSDOMAIN) {
     $awsProfile = 'stub-dev'

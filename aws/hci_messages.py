@@ -2,7 +2,11 @@
 Sections:
     Message (object) classes
         Base message classes
+            1. Message
+            1. OperationResultMessage
+            1. ResponseMessage
         other message classes
+            1. NewInventoryItemMessage
     Message Service Class(es)
 """
 
@@ -17,6 +21,7 @@ class Message(object):
     pass
 
 class OperationResultMessage(Message):
+    """Message to return result of some operation"""
     def __init__(self, operation_is_successful: bool, message: str | None = None, data_object: dict | None = None):
         self.is_success = operation_is_successful
         self.message = message
@@ -26,6 +31,7 @@ class OperationResultMessage(Message):
         return f"Operation is successful:{self.is_success}, Message:{self.message}, DataObject:{self.data_object}"
 
 class ResponseMessage(Message):
+    """Message use by endpoint to return response"""
     def __init__(self, status_code:int, body:str):
         self.statusCode = status_code
         self.body = body
@@ -59,7 +65,7 @@ class NewInventoryItemMessage(Message):
     def __str__(self):
         return f"Item code:{self.item_code}"
 
-class BorrowInventoryItemMessage(Message):
+class UpdateInventoryItemMessage(Message):
     """Message for a borrowing a new inventory item
         """
     # Field names
@@ -68,14 +74,28 @@ class BorrowInventoryItemMessage(Message):
     ITEM_CODE_FIELD_NAME = 'itemCode'
     USER_CODE_FIELD_NAME = 'userCode'
 
-    def __init__(self, type:str, borrower_code:str, item_code: str, user_code: str):
-        self.type = type
+    BORROW_MESSAGE_TYPE = 'BORROW'
+    RETURN_MESSAGE_TYPE = 'RETURN'
+    EXTEND_BORROW_PERIOD_MESSAGE_TYPE = 'EXTEND-BORROW-PERIOD'
+
+    def __init__(self, update_type:str, borrower_code:str, item_code: str, user_code: str):
+        self.update_type = update_type
         self.borrower_code = borrower_code
         self.item_code = item_code
         self.user_code = user_code
 
     def __str__(self):
         return f"Type: {self.type}, Borrower Code: {self.borrower_code}, Item code:{self.item_code}, User code: {self.user_code}"
+
+    def is_borrow_message(self):
+        return self.update_type == UpdateInventoryItemMessage.BORROW_MESSAGE_TYPE
+
+    def is_return_message(self):
+        return self.update_type == UpdateInventoryItemMessage.RETURN_MESSAGE_TYPE
+
+    def is_extend_borrow_message(self):
+        return self.update_type == UpdateInventoryItemMessage.EXTEND_BORROW_PERIOD_MESSAGE_TYPE
+
 
 # MESSAGE SERVICE CLASSES
 
@@ -98,21 +118,21 @@ class HciMessageService(object):
             json[NewInventoryItemMessage.ACTOR_CODE_FIELD_NAME])
 
 
-    def create_update_inventory_item_message(self, json:dict) -> BorrowInventoryItemMessage | None:
-        """Create BorrowInventoryItemMessage if json contains valid data
+    def create_update_inventory_item_message(self, json:dict) -> UpdateInventoryItemMessage | None:
+        """Create UpdateInventoryItemMessage if json contains valid data
         Args:
-            json (dict): data to create BorrowInventoryItemMessage
+            json (dict): data to create UpdateInventoryItemMessage
         Returns:
-            BorrowInventoryItemMessage: if json args contain valid information to create BorrowInventoryItemMessage
-            None: if json args does not contain valid information to create BorrowInventoryItemMessage
+            UpdateInventoryItemMessage: if json args contain valid information to create UpdateInventoryItemMessage
+            None: if json args does not contain valid information to create UpdateInventoryItemMessage
         """
-        if BorrowInventoryItemMessage.UPDATE_TYPE_FIELD_NAME not in json: return None
-        if BorrowInventoryItemMessage.BORROWER_CODE_FIELD_NAME not in json: return None
-        if BorrowInventoryItemMessage.ITEM_CODE_FIELD_NAME not in json: return None
-        if BorrowInventoryItemMessage.USER_CODE_FIELD_NAME not in json: return None
+        if UpdateInventoryItemMessage.UPDATE_TYPE_FIELD_NAME not in json: return None
+        if UpdateInventoryItemMessage.BORROWER_CODE_FIELD_NAME not in json: return None
+        if UpdateInventoryItemMessage.ITEM_CODE_FIELD_NAME not in json: return None
+        if UpdateInventoryItemMessage.USER_CODE_FIELD_NAME not in json: return None
 
-        return BorrowInventoryItemMessage(
-            type=json[BorrowInventoryItemMessage.UPDATE_TYPE_FIELD_NAME],
-            borrower_code=json[BorrowInventoryItemMessage.BORROWER_CODE_FIELD_NAME],
-            item_code=json[BorrowInventoryItemMessage.ITEM_CODE_FIELD_NAME],
-            user_code=json[BorrowInventoryItemMessage.USER_CODE_FIELD_NAME])
+        return UpdateInventoryItemMessage(
+            update_type=json[UpdateInventoryItemMessage.UPDATE_TYPE_FIELD_NAME],
+            borrower_code=json[UpdateInventoryItemMessage.BORROWER_CODE_FIELD_NAME],
+            item_code=json[UpdateInventoryItemMessage.ITEM_CODE_FIELD_NAME],
+            user_code=json[UpdateInventoryItemMessage.USER_CODE_FIELD_NAME])
