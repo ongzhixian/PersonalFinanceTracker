@@ -33,7 +33,7 @@ wbsDiagram {
 
 
 ' ########################################
-' 
+'
 @startyaml hci-api-endpoints-map
 
 !include hci-1000-overview.txt!0
@@ -41,16 +41,16 @@ wbsDiagram {
 #highlight "french-hens" <<h1>>
 #highlight "xmas-fifth-day" / "partridges" <<h2>>
 
-'/hci-blazer: 
+'/hci-blazer:
 '    GET:    <<N/A>>
 /hci-blazer/auth:
     POST:   Get auth ticket <size:8><#green:x:>
 /hci-blazer/item:
-    GET:    <done> Get item list 
+    GET:    <done> Get item list
     POST:   <<done>> Create new item <size:8><#green:white_check_mark:>
     PATCH:  Update existing item
     DELETE: Remove item
-/hci-blazer/item/{id}: 
+/hci-blazer/item/{id}:
     GET:    Get specific item
 
 

@@ -41,18 +41,21 @@ box "<<API ENDPOINT>>"
     participant API_ENDPOINT as "<<LAMBDA>>\nadd_item"  #99FF99
 end box
 
-box "<<API SERVICE>>"
-    participant API_SERVICE AS "<<API_SERVICE>>"    #99FF99
+box "<<DATA LAYER>>"
+    'participant API_SERVICE AS "<<API_SERVICE>>"    #99FF99
     participant InventoryRepo
+    database    DATASTORE                       #99FF99
 end box
 
-database    DATASTORE                       #99FF99
+
 
 
                [-> API_ENDPOINT         : <<RequestMessage>>
-API_ENDPOINT    -> API_ENDPOINT         : <<NewInventoryItemMessage>>
-API_ENDPOINT    -> API_SERVICE          : <<Message>>
-& API_SERVICE   -> InventoryRepo        : <<Message>>
+& API_ENDPOINT     -> InventoryRepo        : <<NewInventoryItemMessage>>
+InventoryRepo   -> DATASTORE            : CRUD-operation
+DATASTORE       -> DATASTORE            : CRUD
+DATASTORE       -> InventoryRepo        : CRUD-Result
+& InventoryRepo   -> API_ENDPOINT         : <<OperationResultMessage>>
                [<- API_ENDPOINT         : <<ResponseMessage>>
 
 
