@@ -17,7 +17,7 @@ Set-Variable package_file_list_path -Option Constant -Value "$($package_name)_la
 Set-Variable publish_folder_path -Option Constant -Value './publish'
 $awsProfile = 'Default'
 
-if ($env:USERDNSDOMAIN -ne $null) {
+if ($null -ne $env:USERDNSDOMAIN) {
     $awsProfile = 'stub-dev'
 }
 
@@ -88,6 +88,8 @@ function Update-LambdaFunction {
     --function-name $FunctionName `
     --zip-file fileb://$ZipFilePath `
     --profile $awsProfile | ConvertFrom-Json
+
+    Write-Host $response
 
 }
 
