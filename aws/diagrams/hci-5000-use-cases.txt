@@ -1,0 +1,39 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\diagrams\hci-5000-use-cases.txt
+
+' ########################################
+' HCI USE CASES
+@startuml hci-use-cases
+
+!include hci-1000-overview.txt!0
+
+center header hci (v$version)
+
+title Use Cases
+
+caption figure 1 Use Cases
+
+left to right direction
+'skinparam packageStyle rectangle
+
+actor executive
+
+rectangle hci {
+    executive -- (register new item)
+
+    executive -- (borrow item)
+    executive -- (return item)
+    executive -- (view borrowed items)
+    executive -- (view registered items)
+
+    executive -- (authentication)
+
+}
+
+actor borrower
+rectangle hci-b {
+    borrower -- (submit loan request)
+    borrower -- (view loan requests)
+    borrower -- (cancel loan request)
+}
+
+@enduml
