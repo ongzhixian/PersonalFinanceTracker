@@ -61,7 +61,8 @@ function Publish-LambdaLayer {
 # MAIN SCRIPT
 
 $layer_name = "http_layer"
-$pip_output_path = Join-Path $temp_layer_folder_path $layer_name "python"
+$layer_name = "google_api_layer"
+$pip_output_path = Join-Path $temp_layer_folder_path "$layer_name/python"
 Resolve-Folder $pip_output_path
 
 $publish_filename = "$($layer_name).zip"
@@ -69,7 +70,9 @@ $publish_file_path = Join-Path $publish_folder_path $publish_filename
 
 # LAYERS
 
-#pip.exe install -r .\$($layer_name)_requirements.txt --target $pip_output_path
-#Compress-Archive $pip_output_path -DestinationPath $publish_file_path -Force
+#pip.exe install -r .\$($layer_name)_requirements.txt --target $pip_output_path --platform manylinux2014_x86_64 --python-version 3.10 --only-binary=:all:
+pip.exe install -r .\$($layer_name)_requirements.txt --target $pip_output_path
+Compress-Archive $pip_output_path -DestinationPath $publish_file_path -Force
 
+Write-Host "Deploying..."
 Publish-LambdaLayer $layer_name $publish_file_path
