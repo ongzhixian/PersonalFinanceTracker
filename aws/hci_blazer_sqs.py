@@ -147,7 +147,6 @@ def __get_message_attribute_from_record(record:dict, attribute_name:str):
 
 def update_hci_blazer_google_sheet(event:dict, context):
     try:
-        # TODO: Do interesting work based on the new message
         dump_api_gateway_event_context(event, context)
         for record in event['Records']:
             body = json.loads(record['body'])
@@ -188,56 +187,6 @@ def update_hci_blazer_google_sheet(event:dict, context):
         print("An error occurred")
         print(err)
         #raise err
-
-#
-# #@endpoint_url('/hci-blazer/auth', 'POST')
-# def sample_write_google_sheet(event:dict, context):
-#     """Appends data to a Google sheet
-#     Use case:
-#         (authentication)
-#     """
-#     print('Step 1')
-#     dump_api_gateway_event_context(event, context)
-#     try:
-#         print('Step 2')
-#         from sample_google_sheet import GoogleSheet
-#         spreadsheet_id = '1IeETC6g8xqipia0SnrMsXOxN14SONPZxmJVOWx_rHgY'
-#         sheet_name = 'Outstanding'
-#         print('Step 3')
-#         data_to_add = [
-#             # ['New Data A1', 'New Data B1', 'New Data C1'],
-#             # ['Another Row 1', 'Another Row 2']
-#             ['item 1', 'Some student 2', '2025-05-10', '2025-05-24']
-#         ]
-#         print('Step 4')
-#         google_sheet = GoogleSheet(spreadsheet_id)
-#         print('Step 5')
-#         google_sheet.append_to_sheet(sheet_name, data_to_add)
-#         return {
-#             'statusCode': 200,
-#             'body': json.dumps('Successful HTTP OK')
-#         }
-#     except Exception as e:
-#         print(f"An unexpected error occurred: {e}")
-#         return {
-#             'statusCode': 500,
-#             'body': f"{e}"
-#         }
-#
-#
-#
-# def sample_sqs_handler(event:dict, context):
-#     try:
-#         # TODO: Do interesting work based on the new message
-#         dump_api_gateway_event_context(event, context)
-#         for record in event['Records']:
-#             body = json.loads(record['body'])
-#             __write_to_google_sheet(body)
-#             print(f"Message body: {body}")
-#     except Exception as err:
-#         print("An error occurred")
-#         print(err)
-#         #raise err
 
 
 

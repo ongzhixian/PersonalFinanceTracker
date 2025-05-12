@@ -159,7 +159,7 @@ def __write_to_google_sheet(data_to_add):
 
 def sample_sqs_handler(event:dict, context):
     try:
-        # TODO: Do interesting work based on the new message
+        # Do interesting work based on the new message
         dump_api_gateway_event_context(event, context)
         for record in event['Records']:
             body = json.loads(record['body'])

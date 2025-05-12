@@ -98,7 +98,7 @@ function Publish-LambdaFunction {
         [Parameter(Mandatory=$true)]
         [string] $HandlerName
     )
-    # Write-Host TODO: Publish-LambdaFunction
+    # Write-Host Publish-LambdaFunction
     # Write-Host function-name:   $FunctionName
     # Write-Host zip-file:        $ZipFilePath
     # Write-Host handler:         $HandlerName
