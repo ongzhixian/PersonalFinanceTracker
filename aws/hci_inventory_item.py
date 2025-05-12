@@ -1,7 +1,5 @@
 """
 Sections:
-    Base Entity classes
-        DynamoDbEntity
     Entity classes
         InventoryItemEntity
         NewInventoryItemEntity
@@ -11,13 +9,15 @@ Sections:
         InventoryItemRepository
 
 """
+import json
 from datetime import datetime, timezone, timedelta
 from os import environ
 from zoneinfo import ZoneInfo
 import boto3
 from botocore.exceptions import ClientError
 
-from hci_messages import OperationResultMessage, NewInventoryItemMessage, UpdateInventoryItemMessage
+from hci_data_repositories import DynamoDbEntity, BaseRepository
+from hci_messages import OperationResultMessage, NewInventoryItemMessage, UpdateInventoryItemMessage, SuccessBorrowMessage
 
 SINGAPORE_TIMEZONE = ZoneInfo("Asia/Singapore")
 
@@ -27,19 +27,6 @@ boto3.setup_default_session(profile_name=aws_profile)
 
 dynamodb = boto3.resource('dynamodb')
 dynamodb_client = boto3.client('dynamodb')
-
-# BASE ENTITY CLASSES
-
-class DynamoDbEntity(object):
-
-    @staticmethod
-    def dynamodb_null_value():
-        return {'NULL': True}
-
-    @staticmethod
-    def dynamodb_string_value(value):
-        return {'S': value}
-
 
 # ENTITY CLASSES
 
@@ -98,9 +85,9 @@ class NewInventoryItemEntity(InventoryItemEntity):
         self.item_code = message.item_code
         self.item_description = message.item_code
 
-        self.record_update_by = message.actor_code
+        self.record_update_by = message.user_code
         self.record_update_datetime = record_timestamp
-        self.record_create_by = message.actor_code
+        self.record_create_by = message.user_code
         self.record_create_datetime = record_timestamp
 
 class BorrowInventoryItemEntity(InventoryItemEntity):
@@ -123,21 +110,21 @@ class BorrowInventoryItemEntity(InventoryItemEntity):
             'item_code': {'S': self.item_code}
         }
 
-    def update_item_update_expression(self):
-        return 'SET #BORROWER_CODE = :borrower_code, #BORROW_DATETIME = :borrow_datetime, #DUE_DATETIME = :due_datetime, #RECORD_UPDATE_BY = :record_update_by, #RECORD_UPDATE_DATETIME = :record_update_datetime',
+    def update_item_update_expression(self) -> str:
+        return 'SET #BORROW_BY = :borrow_by, #BORROW_DATETIME = :borrow_datetime, #DUE_DATETIME = :due_datetime, #RECORD_UPDATE_BY = :record_update_by, #RECORD_UPDATE_DATETIME = :record_update_datetime'
 
     def update_item_get_expression_attribute_names(self):
         return {
-            '#BORROWER_CODE'    : 'borrower_code',
-            '#BORROW_DATETIME'  : 'borrow_datetime',
-            '#DUE_DATETIME'     : 'due_datetime',
-            '#UPDATE_BY'        : 'record_update_by',
-            '#UPDATE_DATETIME'  : 'record_update_datetime',
+            '#BORROW_BY'                : 'borrow_by',
+            '#BORROW_DATETIME'          : 'borrow_datetime',
+            '#DUE_DATETIME'             : 'due_datetime',
+            '#RECORD_UPDATE_BY'         : 'record_update_by',
+            '#RECORD_UPDATE_DATETIME'   : 'record_update_datetime',
         }
 
     def update_item_expression_attribute_values(self):
         return {
-            ':borrower_code'            : {'S': self.borrow_by},
+            ':borrow_by'                : {'S': self.borrow_by},
             ':borrow_datetime'          : {'S': self.borrow_datetime.isoformat() },
             ':due_datetime'             : {'S': self.due_datetime.isoformat(), },
             ':record_update_by'         : {'S': self.record_update_by, },
@@ -146,104 +133,55 @@ class BorrowInventoryItemEntity(InventoryItemEntity):
         }
 
     def update_item_conditional_expression(self):
-        return "attribute_type(borrower_code, :type_is_null)"
+        return "attribute_type(borrow_by, :type_is_null)"
+
+class ReturnInventoryItemEntity(InventoryItemEntity):
+    def __init__(self, message:UpdateInventoryItemMessage):
+        super().__init__()
+        record_timestamp = self.get_record_timestamp()
+
+        self.item_code = message.item_code                      # KEY
+        # self.borrow_by = message.borrower_code                  # UPDATE
+        # self.borrow_datetime = record_timestamp                 # UPDATE
+        # self.due_datetime = record_timestamp + timedelta(14)    # UPDATE
+        self.record_update_by = message.user_code               # UPDATE
+        self.record_update_datetime = record_timestamp          # UPDATE
+
+    # Components of update
+
+    def update_item_key(self):
+        return {
+            'item_code': {'S': self.item_code}
+        }
+
+    def update_item_update_expression(self) -> str:
+        return 'SET #BORROW_BY = :borrow_by, #BORROW_DATETIME = :borrow_datetime, #DUE_DATETIME = :due_datetime, #RECORD_UPDATE_BY = :record_update_by, #RECORD_UPDATE_DATETIME = :record_update_datetime'
+
+    def update_item_get_expression_attribute_names(self):
+        return {
+            '#BORROW_BY'                : 'borrow_by',
+            '#BORROW_DATETIME'          : 'borrow_datetime',
+            '#DUE_DATETIME'             : 'due_datetime',
+            '#RECORD_UPDATE_BY'         : 'record_update_by',
+            '#RECORD_UPDATE_DATETIME'   : 'record_update_datetime',
+        }
+
+    def update_item_expression_attribute_values(self):
+        return {
+            ':borrow_by'                : {'NULL': True},
+            ':borrow_datetime'          : {'NULL': True},
+            ':due_datetime'             : {'NULL': True},
+            ':record_update_by'         : {'S': self.record_update_by, },
+            ':record_update_datetime'   : {'S': self.record_update_datetime.isoformat(), },
+            ':type_is_null'             : {'S': 'NULL'},
+            ':item_code'                : {'S': self.item_code},
+        }
+
+    def update_item_conditional_expression(self):
+        return "NOT attribute_type(borrow_by, :type_is_null) and item_code = :item_code"
+
 
 # REPOSITORY CLASSES
-#
-# class InventoryItemTable(object):
-#     """
-#     # PRIVATE FUNCTIONS
-#     # 1. __create_table
-#     # 2. __delete_table
-#     """
-#     def __init__(self):
-#         self.TABLE_NAME = 'hci_inventory_item'
-#
-#     # PRIVATE FUNCTIONS
-#
-#     def __create_table(self):
-#         response = dynamodb_client.create_table(
-#             TableName=self.TABLE_NAME,
-#             AttributeDefinitions=[
-#                 {'AttributeType': 'S', 'AttributeName': 'item_code'}
-#             ],
-#             KeySchema=[
-#                 {'AttributeName': 'item_code', 'KeyType': 'HASH'}
-#             ],
-#             ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
-#         )
-#         print(response)
-#
-#     def __delete_table(self):
-#         response = dynamodb_client.delete_table(TableName=self.TABLE_NAME)
-#         print(response)
-#
-#     # PUBLIC FUNCTIONS
-#     # 1. put_inventory_item
-#     # 1. borrow_inventory_item
-#     # 1. return_inventory_item
-#
-#     def put_new_inventory_item_from(self, entity:NewInventoryItemEntity):
-#         """
-#         """
-#         response = dynamodb_client.put_item(
-#             TableName=self.TABLE_NAME,
-#             Item={
-#                 'item_code': {'S': entity.item_code},
-#                 'item_description': {'S': entity.item_description},
-#                 'borrower_code': {'NULL': True} if entity.borrower_code is None else {'S': entity.borrower_code },
-#                 'borrow_datetime': {'NULL': True},
-#                 'target_return_datetime': {'NULL': True},
-#             },
-#             ReturnConsumedCapacity='TOTAL'
-#         )
-#         print(response)
-#
-#     def put_new_inventory_item(self, item_code: str, item_description: str):
-#         """
-#         """
-#         response = dynamodb_client.put_item(
-#             TableName=self.TABLE_NAME,
-#             Item={
-#                 'item_code': {'S': item_code},
-#                 'item_description': {'S': item_description},
-#                 'borrower_code': {'NULL': True},
-#                 'borrow_datetime': {'NULL': True},
-#                 'target_return_datetime': {'NULL': True},
-#             },
-#             ReturnConsumedCapacity='TOTAL'
-#         )
-#         print(response)
-
-class BaseRepository(object):
-    pass
-    # def __list_tables(self):
-    #     response = dynamodb_client.list_tables()
-    #     return response
-    #
-    # def __create_inventory_item_table(self):
-    #     response = dynamodb_client.create_table(
-    #         TableName='hci_inventory_item',
-    #         AttributeDefinitions=[
-    #             {'AttributeType': 'S', 'AttributeName': 'item_code'},
-    #             {'AttributeType': 'S', 'AttributeName': 'item_description'},
-    #         ],
-    #         KeySchema=[
-    #             {'AttributeName': 'item_code', 'KeyType': 'HASH'},
-    #             {'AttributeName': 'item_description', 'KeyType': 'RANGE'},
-    #         ],
-    #         ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
-    #     )
-    #     print(response)
-    #
-    # def __delete_table(self, table_name: str):
-    #     response = dynamodb_client.delete_table(TableName=table_name)
-    #     print(response)
-
-
-###
-
-
 
 class InventoryItemRepository(BaseRepository):
     """Repository for inventory item
@@ -252,7 +190,6 @@ class InventoryItemRepository(BaseRepository):
     """
     def __init__(self):
         self.INVENTORY_ITEM_TABLE_NAME = 'hci_inventory_item'
-        pass
 
     def add_new_inventory_item(self, message:NewInventoryItemMessage):
         try:
@@ -272,7 +209,21 @@ class InventoryItemRepository(BaseRepository):
             # else:
             #     print('some other dynamodb related error')
 
+    def __make_borrow_record(self, attributes):
+        pass
 
+    def __map_from_dynamodb_attribute(self, att:dict):
+        for k, v in att.items():
+            match k:
+                case 'S':
+                    return v
+                case "N":
+                    return float(v)
+                case _:
+                    print(f'Unhandled DynamoDb attribute {k}')
+                    return None
+        print('No DynamoDb attribute')
+        return None
 
     def __borrow_inventory_item(self, message:UpdateInventoryItemMessage):
         try:
@@ -287,20 +238,48 @@ class InventoryItemRepository(BaseRepository):
                 ReturnValues='ALL_NEW',
             )
             print('update_item:', response)
-            return OperationResultMessage(True)
+
+            borrow_record = None
+            if 'Attributes' in response:
+                # dict(
+                #     map(lambda kv:
+                #         (kv[0], str(kv[1])),
+                #         self.__dict__.items()
+                #     )
+                # )
+
+                #borrow_record = self.__make_borrow_record(response['Attributes'])
+                #print('att', response['Attributes'])
+                # successBorrowMessage = SuccessBorrowMessage(response['Attributes'])
+                borrow_record = dict(
+                    map(lambda kv:
+                        (kv[0], self.__map_from_dynamodb_attribute(kv[1])),
+                        response['Attributes'].items()
+                    )
+                )
+                print('borrow_record', borrow_record)
+            return OperationResultMessage(True, 'Borrow success', data_object=borrow_record)
         except ClientError as client_error:
             print('client_error:', client_error)
+            print('client_error_response:', json.dumps(client_error.response))
+            if 'Error' in client_error.response  \
+                and 'Code' in client_error.response['Error'] \
+                and client_error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                return OperationResultMessage(False, 'Item code does not exist or was borrowed')
+                # "Error": {
+                #     "Message": "The conditional request failed",
+                #     "Code": "ConditionalCheckFailedException"
+                # },
+
             return OperationResultMessage(False, client_error.response)
             # if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
             #     print('This was not a unique key')
             # else:
             #     print('some other dynamodb related error')
 
-
     def __return_inventory_item(self, message: UpdateInventoryItemMessage):
-        return OperationResultMessage(False, '`return` message handler not implemented')
         try:
-            entity = BorrowInventoryItemEntity(message)
+            entity = ReturnInventoryItemEntity(message)
             response = dynamodb_client.update_item(
                 TableName=self.INVENTORY_ITEM_TABLE_NAME,
                 Key=entity.update_item_key(),
@@ -311,9 +290,13 @@ class InventoryItemRepository(BaseRepository):
                 ReturnValues='ALL_NEW',
             )
             print('update_item:', response)
-            return OperationResultMessage(True)
+            return OperationResultMessage(True, 'Return success')
         except ClientError as client_error:
             print('client_error:', client_error)
+            if 'Error' in client_error.response  \
+                and 'Code' in client_error.response['Error'] \
+                and client_error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                return OperationResultMessage(False, 'Item code does not exist or was returned')
             return OperationResultMessage(False, client_error.response)
             # if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
             #     print('This was not a unique key')
@@ -321,6 +304,7 @@ class InventoryItemRepository(BaseRepository):
             #     print('some other dynamodb related error')
 
     def __extend_borrow_inventory_item(self, message: UpdateInventoryItemMessage):
+        """KIV: Future nice to have feature"""
         return OperationResultMessage(False, '`extend_borrow` message handler not implemented')
         try:
             entity = BorrowInventoryItemEntity(message)
@@ -354,3 +338,4 @@ class InventoryItemRepository(BaseRepository):
             return self.__extend_borrow_inventory_item(message)
 
         return OperationResultMessage(False, 'No matching message handler')
+

@@ -407,3 +407,5 @@ FodyWeavers.xsd
 _temp/
 temp-layer/
 aws/diagrams/*.png
+
+*client-key.json

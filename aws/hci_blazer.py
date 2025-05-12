@@ -16,8 +16,10 @@ import botocore.exceptions
 from utility_types import PasswordUtility
 from hci_decorators import endpoint_url, dump_api_gateway_event_context
 from hci_messages import OperationResultMessage, ResponseMessage, HciMessageService
+from hci_message_queues import HciMessageQueue
 
 hci_message_service = HciMessageService()
+hci_message_queue = HciMessageQueue()
 
 import pdb
 
@@ -147,24 +149,44 @@ def patch_hci_blazer_item(event:dict, context):
 
     event_body_json = __get_event_body_json(event)
 
-    print('patch_hci_blazer_item - Step 1')
-
     if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.ErrorMessage)
 
     update_inventory_item_message = hci_message_service.create_update_inventory_item_message(event_body_json.DataObject)
-
-    print('patch_hci_blazer_item - Step 2')
 
     if update_inventory_item_message is None: return endpoint_response.bad_request('Invalid borrow inventory item message')
 
     operation_result = repository.update_inventory_item(update_inventory_item_message)
 
-
-    #???
-    return_message = f'{update_inventory_item_message.item_code} borrowed successfully' if operation_result.is_success else f'{update_inventory_item_message.item_code} fail to borrow'
+    #return_message = f'{update_inventory_item_message.item_code} borrowed successfully' if operation_result.is_success else f'{update_inventory_item_message.item_code} fail to borrow'
     return_message = operation_result.message
 
-    print('patch_hci_blazer_item - Step 3')
+    if (operation_result.is_success):
+        # Item Code, Borrower, Borrow Date, Due Date
+        print('data_object', operation_result.data_object)
+        hci_message_queue.enqueue_hci_blazer_google_sheet_update_message(
+            update_inventory_item_message.update_type,
+            json.dumps(operation_result.data_object)
+        )
+
+        # sample_data = json.dumps([
+        #     ['item 3', 'Some student', '2025-05-10', '2025-05-24'],
+        #     ['item 4', 'Some student', '2025-05-10', '2025-05-24']
+        # ])
+        sqs_message = ''
+        # if update_inventory_item_message.is_borrow_message():
+        #     # Item Code , Borrower , Borrow Date , Due Date
+        #     sqs_message = json.dumps([
+        #         [update_inventory_item_message.item_code,
+        #          update_inventory_item_message.borrower_code,
+        #          update_inventory_item_message
+        #          'Some student', '2025-05-10', '2025-05-24']
+        #     ])
+        # elif update_inventory_item_message.is_return_message():
+        #     # Item Code, Borrower, Borrow Date , Due Date, Return Date
+        #     sqs_message = json.dumps([
+        #         ['item 3', 'Some student', '2025-05-10', '2025-05-24'],
+        #         ['item 4', 'Some student', '2025-05-10', '2025-05-24']
+        #     ])
 
     return endpoint_response.ok(operation_result.is_success, return_message)
 

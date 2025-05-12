@@ -2,4 +2,6 @@ hci_blazer.py
 hci_decorators.py
 hci_messages.py
 hci_inventory_item.py
+hci_data_repositories.py
+hci_message_queues.py
 utility_types.py
