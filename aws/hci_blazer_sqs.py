@@ -155,7 +155,7 @@ def update_hci_blazer_google_sheet(event:dict, context):
             update_type = __get_message_attribute_from_record(record, 'UpdateType')
             print(f"update_type: {update_type}")
 
-            # Inefficient way
+            # Somewhat inefficient way, but ok, whatever...
             if update_type == 'BORROW':
                 # Format data for Outstanding
                 # Item Code	Borrower	Borrow Date	Due Date
@@ -166,9 +166,13 @@ def update_hci_blazer_google_sheet(event:dict, context):
 
             if update_type == 'RETURN':
                 # Format data for Loan_History
-                # Item Code	Borrower	Borrow Date	Due Date	Return Date
+                # [ Item Code , Borrower , Borrow Date , Due Date , Return Date ]
+                # data_to_add = [
+                #     #['item 1', 'Some student', '2025-05-10', '2025-05-24']
+                # ]
                 data_to_add = [
-                    ['item 1', 'Some student', '2025-05-10', '2025-05-24']
+                    [body['item_code'], body['borrow_by'], body['borrow_datetime'], body['due_datetime'],
+                     body['record_update_datetime']]
                 ]
                 __write_to_google_sheet('Loan_History', data_to_add)
 

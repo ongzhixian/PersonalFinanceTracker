@@ -168,26 +168,6 @@ def patch_hci_blazer_item(event:dict, context):
             json.dumps(operation_result.data_object)
         )
 
-        # sample_data = json.dumps([
-        #     ['item 3', 'Some student', '2025-05-10', '2025-05-24'],
-        #     ['item 4', 'Some student', '2025-05-10', '2025-05-24']
-        # ])
-        sqs_message = ''
-        # if update_inventory_item_message.is_borrow_message():
-        #     # Item Code , Borrower , Borrow Date , Due Date
-        #     sqs_message = json.dumps([
-        #         [update_inventory_item_message.item_code,
-        #          update_inventory_item_message.borrower_code,
-        #          update_inventory_item_message
-        #          'Some student', '2025-05-10', '2025-05-24']
-        #     ])
-        # elif update_inventory_item_message.is_return_message():
-        #     # Item Code, Borrower, Borrow Date , Due Date, Return Date
-        #     sqs_message = json.dumps([
-        #         ['item 3', 'Some student', '2025-05-10', '2025-05-24'],
-        #         ['item 4', 'Some student', '2025-05-10', '2025-05-24']
-        #     ])
-
     return endpoint_response.ok(operation_result.is_success, return_message)
 
 

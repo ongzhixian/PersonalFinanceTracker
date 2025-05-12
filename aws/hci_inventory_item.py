@@ -290,7 +290,16 @@ class InventoryItemRepository(BaseRepository):
                 ReturnValues='ALL_NEW',
             )
             print('update_item:', response)
-            return OperationResultMessage(True, 'Return success')
+            return_record = None
+            if 'Attributes' in response:
+                return_record = dict(
+                    map(lambda kv:
+                        (kv[0], self.__map_from_dynamodb_attribute(kv[1])),
+                        response['Attributes'].items()
+                        )
+                )
+                print('return_record', return_record)
+            return OperationResultMessage(True, 'Return success', data_object=return_record)
         except ClientError as client_error:
             print('client_error:', client_error)
             if 'Error' in client_error.response  \
