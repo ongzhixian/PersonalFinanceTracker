@@ -350,3 +350,11 @@ class InventoryItemRepository(BaseRepository):
 
         return OperationResultMessage(False, 'No matching message handler')
 
+if __name__ == "__main__":
+    inventory_item_repository = InventoryItemRepository()
+
+    for num in range(1, 15 + 1):
+        item_code = f'HS(14) - XL{num:02d}'
+        print(item_code)
+        message = NewInventoryItemMessage(item_code=item_code, user_code='zhixian@hotmail.com')
+        inventory_item_repository.add_new_inventory_item(message)
