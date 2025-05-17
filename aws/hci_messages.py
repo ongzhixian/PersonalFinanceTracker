@@ -1,53 +1,16 @@
 """Module for handling messages
 Sections:
     Message (object) classes
-        Base message classes
-            1. Message
-            1. OperationResultMessage
-            1. ResponseMessage
-        other message classes
-            1. NewInventoryItemMessage
+        1. NewInventoryItemMessage
+        1. UpdateInventoryItemMessage
+        1. SuccessBorrowMessage
     Message Service Class(es)
+        1. HciMessageService
 """
 
-import json
+from shared_messages import Message
 
 # MESSAGE CLASSES
-
-## BASE MESSAGE CLASSES
-
-class Message(object):
-    """Base class for all messages"""
-    pass
-
-class OperationResultMessage(Message):
-    """Message to return result of some operation"""
-    def __init__(self, operation_is_successful: bool, message: str | None = None, data_object: dict | None = None):
-        self.is_success = operation_is_successful
-        self.message = message
-        self.data_object = data_object
-
-    def __str__(self):
-        return f"Operation is successful:{self.is_success}, Message:{self.message}, DataObject:{self.data_object}"
-
-class ResponseMessage(Message):
-    """Message use by endpoint to return response"""
-    def __init__(self, status_code:int, body:str):
-        self.statusCode = status_code
-        self.body = body
-
-    def to_dict(self):
-        return {
-            'statusCode': self.statusCode,
-            'body': self.body
-        }
-
-    def __repr__(self):
-        return self.to_dict()
-
-    def __str__(self):
-        return f"statusCode: {self.statusCode}, body: {self.body}"
-
 
 ## OTHER MESSAGE CLASSES
 
@@ -85,7 +48,7 @@ class UpdateInventoryItemMessage(Message):
         self.user_code = user_code
 
     def __str__(self):
-        return f"Type: {self.type}, Borrower Code: {self.borrower_code}, Item code:{self.item_code}, User code: {self.user_code}"
+        return f"Type: {self.update_type}, Borrower Code: {self.borrower_code}, Item code:{self.item_code}, User code: {self.user_code}"
 
     def is_borrow_message(self):
         return self.update_type == UpdateInventoryItemMessage.BORROW_MESSAGE_TYPE
@@ -97,7 +60,7 @@ class UpdateInventoryItemMessage(Message):
         return self.update_type == UpdateInventoryItemMessage.EXTEND_BORROW_PERIOD_MESSAGE_TYPE
 
 class SuccessBorrowMessage(dict):
-    """Message of a successful borrrowed inventory item
+    """Message of a successful borrowed inventory item
     """
     # Field names
     # '#BORROW_BY': 'borrow_by',
@@ -112,8 +75,8 @@ class SuccessBorrowMessage(dict):
     RECORD_UPDATE_BY_FIELD_NAME = 'recordUpdateBy'
     RECORD_UPDATE_DATETIME_FIELD_NAME = 'recordUpdateDateTime'
 
-    def __init__(self, attr):
-        pass
+    def __init__(self):
+        super().__init__()
         # item_code:str, borrow_by:str, borrow_datetime:str, due_datetime:str, record_update_by:str, record_update_datetime:str
         # self.item_code = attr if 'item_code' in attr
         # self.borrow_by = borrow_by
@@ -123,7 +86,8 @@ class SuccessBorrowMessage(dict):
         # self.record_update_datetime = record_update_datetime
 
     def __str__(self):
-        return f"Item code:{self.item_code}"
+        return 'SuccessBorrowMessage'
+        #return f"Item code:{self.item_code}"
 
 
 # MESSAGE SERVICE CLASSES
@@ -131,7 +95,8 @@ class SuccessBorrowMessage(dict):
 class HciMessageService(object):
     """A service object for creating messages"""
 
-    def create_new_inventory_item_message(self, json:dict) -> NewInventoryItemMessage|None:
+    @staticmethod
+    def create_new_inventory_item_message(json:dict) -> NewInventoryItemMessage | None:
         """Create NewInventoryItemMessage if json contains valid data
         Args:
             json (dict): data to create NewInventoryItemMessage
@@ -147,7 +112,8 @@ class HciMessageService(object):
             json[NewInventoryItemMessage.USER_CODE_FIELD_NAME])
 
 
-    def create_update_inventory_item_message(self, json:dict) -> UpdateInventoryItemMessage | None:
+    @staticmethod
+    def create_update_inventory_item_message(json:dict) -> UpdateInventoryItemMessage | None:
         """Create UpdateInventoryItemMessage if json contains valid data
         Args:
             json (dict): data to create UpdateInventoryItemMessage
