@@ -16,9 +16,9 @@ from zoneinfo import ZoneInfo
 import boto3
 from botocore.exceptions import ClientError
 
-from hci_data_repositories import DynamoDbEntity, BaseRepository
 from hci_messages import NewInventoryItemMessage, UpdateInventoryItemMessage
 from shared_messages import OperationResultMessage
+from shared_data_repositories import DynamoDbEntity, BaseRepository
 
 SINGAPORE_TIMEZONE = ZoneInfo("Asia/Singapore")
 

@@ -5,3 +5,8 @@ hci_inventory_item.py
 hci_data_repositories.py
 hci_message_queues.py
 utility_types.py
+shared_message_queues.py
+shared_messages.py
+shared_data_repositories.py
+shared_configuration_mesages.py
+shared_configuration.py

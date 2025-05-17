@@ -8,20 +8,16 @@ Sections:
 """
 import json
 from os import environ
-from datetime import datetime, timezone, timedelta
 
 import boto3
-import botocore.exceptions
 
-from utility_types import PasswordUtility
 from hci_decorators import endpoint_url, dump_api_gateway_event_context
-from hci_messages import OperationResultMessage, ResponseMessage, HciMessageService
+from shared_messages import OperationResultMessage, ResponseMessage
+from hci_messages import HciMessageService
 from hci_message_queues import HciMessageQueue
 
 hci_message_service = HciMessageService()
 hci_message_queue = HciMessageQueue()
-
-import pdb
 
 # AWS PROFILE SETUP
 
@@ -160,7 +156,7 @@ def patch_hci_blazer_item(event:dict, context):
     #return_message = f'{update_inventory_item_message.item_code} borrowed successfully' if operation_result.is_success else f'{update_inventory_item_message.item_code} fail to borrow'
     return_message = operation_result.message
 
-    if (operation_result.is_success):
+    if operation_result.is_success:
         # Item Code, Borrower, Borrow Date, Due Date
         print('data_object', operation_result.data_object)
         hci_message_queue.enqueue_hci_blazer_google_sheet_update_message(

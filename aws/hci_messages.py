@@ -3,7 +3,6 @@ Sections:
     Message (object) classes
         1. NewInventoryItemMessage
         1. UpdateInventoryItemMessage
-        1. SuccessBorrowMessage
     Message Service Class(es)
         1. HciMessageService
 """
@@ -59,35 +58,35 @@ class UpdateInventoryItemMessage(Message):
     def is_extend_borrow_message(self):
         return self.update_type == UpdateInventoryItemMessage.EXTEND_BORROW_PERIOD_MESSAGE_TYPE
 
-class SuccessBorrowMessage(dict):
-    """Message of a successful borrowed inventory item
-    """
-    # Field names
-    # '#BORROW_BY': 'borrow_by',
-    # '#BORROW_DATETIME': 'borrow_datetime',
-    # '#DUE_DATETIME': 'due_datetime',
-    # '#RECORD_UPDATE_BY': 'record_update_by',
-    # '#RECORD_UPDATE_DATETIME': 'record_update_datetime',
-    ITEM_CODE_FIELD_NAME = 'itemCode'
-    BORROW_BY_FIELD_NAME = 'borrowBy'
-    BORROW_DATETIME_FIELD_NAME = 'borrowDateTime'
-    DUE_DATETIME_FIELD_NAME = 'dueDateTime'
-    RECORD_UPDATE_BY_FIELD_NAME = 'recordUpdateBy'
-    RECORD_UPDATE_DATETIME_FIELD_NAME = 'recordUpdateDateTime'
-
-    def __init__(self):
-        super().__init__()
-        # item_code:str, borrow_by:str, borrow_datetime:str, due_datetime:str, record_update_by:str, record_update_datetime:str
-        # self.item_code = attr if 'item_code' in attr
-        # self.borrow_by = borrow_by
-        # self.borrow_datetime = borrow_datetime
-        # self.due_datetime = due_datetime
-        # self.record_update_by = record_update_by
-        # self.record_update_datetime = record_update_datetime
-
-    def __str__(self):
-        return 'SuccessBorrowMessage'
-        #return f"Item code:{self.item_code}"
+# class SuccessBorrowMessage(dict):
+#     """Message of a successful borrowed inventory item
+#     """
+#     # Field names
+#     # '#BORROW_BY': 'borrow_by',
+#     # '#BORROW_DATETIME': 'borrow_datetime',
+#     # '#DUE_DATETIME': 'due_datetime',
+#     # '#RECORD_UPDATE_BY': 'record_update_by',
+#     # '#RECORD_UPDATE_DATETIME': 'record_update_datetime',
+#     ITEM_CODE_FIELD_NAME = 'itemCode'
+#     BORROW_BY_FIELD_NAME = 'borrowBy'
+#     BORROW_DATETIME_FIELD_NAME = 'borrowDateTime'
+#     DUE_DATETIME_FIELD_NAME = 'dueDateTime'
+#     RECORD_UPDATE_BY_FIELD_NAME = 'recordUpdateBy'
+#     RECORD_UPDATE_DATETIME_FIELD_NAME = 'recordUpdateDateTime'
+#
+#     def __init__(self):
+#         super().__init__()
+#         # item_code:str, borrow_by:str, borrow_datetime:str, due_datetime:str, record_update_by:str, record_update_datetime:str
+#         # self.item_code = attr if 'item_code' in attr
+#         # self.borrow_by = borrow_by
+#         # self.borrow_datetime = borrow_datetime
+#         # self.due_datetime = due_datetime
+#         # self.record_update_by = record_update_by
+#         # self.record_update_datetime = record_update_datetime
+#
+#     def __str__(self):
+#         return 'SuccessBorrowMessage'
+#         #return f"Item code:{self.item_code}"
 
 
 # MESSAGE SERVICE CLASSES
