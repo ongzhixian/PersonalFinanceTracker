@@ -1,3 +1,12 @@
+"""Module for handling messages
+Sections:
+    Message (object) classes
+        Base message classes
+            1. Message
+            1. OperationResultMessage
+            1. ResponseMessage
+"""
+
 ## BASE MESSAGE CLASSES
 
 class Message(object):
