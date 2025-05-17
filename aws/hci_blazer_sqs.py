@@ -1,30 +1,29 @@
 """API
 Sections:
-    AWS PROFILE SETUP
-    AWS Setup DynamoDB
+    AWS
+        Setup profile
+        Setup DynamoDB
     GENERAL HTTP-RELATED STUFF
     END-POINT RELATED STUFF
     END POINTS
 """
 import json
 from os import environ
-from datetime import datetime, timezone, timedelta
 
 import boto3
-import botocore.exceptions
 
 from hci_google_sheet import GoogleSheet
 
-import pdb
 
-# AWS PROFILE SETUP
+# AWS
+
+## Setup profile
 
 runtime_dns_domain = environ.get('USERDNSDOMAIN')
 aws_profile = 'stub-dev' if runtime_dns_domain == 'AD.MLP.COM' else None
 boto3.setup_default_session(profile_name=aws_profile)
 
-
-# AWS Setup DynamoDB
+## Setup DynamoDB
 
 dynamodb = boto3.resource('dynamodb')
 dynamodb_client = boto3.client('dynamodb')
@@ -90,13 +89,13 @@ def __get_event_body_json(event:dict):
         return EventBodyJson(error_message='`body` is invalid json')
 
 def dump_api_gateway_event_context(event:dict, context):
-    ''' Prints the event and context that AWS API Gateway receives
+    """ Prints the event and context that AWS API Gateway receives
     Args:
         event (dict): The ID of the item to retrieve.
         context (str, optional): An optional query parameter.
     Returns:
         response (dict): object with status code and text message
-    '''
+    """
     print("[event]", event)
     print("[context]", context)
     return {
