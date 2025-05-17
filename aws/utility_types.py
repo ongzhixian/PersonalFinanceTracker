@@ -1,6 +1,8 @@
 import hashlib
 import base64
 import secrets
+import time
+import hmac
 
 class PasswordUtility(object):
     def __init__(self):
@@ -71,7 +73,90 @@ class PasswordUtility(object):
         """
         return self.__class__.__name__
 
+class TokenUtility(object):
+    def __init__(self, secret_key:str):
+        # Secret key used for signing the token (keep this secure and private)
+        # SECRET_KEY = b'super_secret_key'
+        self.SECRET_KEY = secret_key.encode('utf8')
+
+    def generate_token(self, expiry_in_seconds:int) -> str:
+        """
+        Generates a token with an expiry timestamp that is cryptographically signed.
+
+        Args:
+            expiry_in_seconds (int): Number of seconds until the token expires.
+
+        Returns:
+            str: A secure, tamper-proof token.
+        """
+        # Calculate the expiry timestamp
+        expiry_timestamp = int(time.time()) + expiry_in_seconds
+
+        # Create the message to be signed (expiry timestamp as a string)
+        message = str(expiry_timestamp).encode()
+
+        # Generate the HMAC signature using the secret key and SHA256
+        signature = hmac.new(self.SECRET_KEY, message, hashlib.sha256).digest()
+
+        # Encode the expiry timestamp and signature into a single token
+        token = base64.urlsafe_b64encode(message + signature).decode()
+
+        return token
+
+    def verify_token(self, token:str):
+        """
+        Verifies the token's validity, checks if it has expired, and detects tampering.
+
+        Args:
+            token (str): The token to verify.
+
+        Returns:
+            bool: True if the token is valid and not expired, False otherwise.
+        """
+        try:
+            # Decode the token from Base64
+            decoded_data = base64.urlsafe_b64decode(token.encode())
+
+            # Split the decoded data into the expiry timestamp and the signature
+            expiry_timestamp = int(decoded_data[:-32].decode())  # First part is the timestamp
+            signature = decoded_data[-32:]  # Last 32 bytes are the HMAC signature
+
+            # Recreate the signature using the expiry timestamp and the secret key
+            expected_signature = hmac.new(self.SECRET_KEY, str(expiry_timestamp).encode(), hashlib.sha256).digest()
+
+            # Check if the signature matches (detect tampering)
+            if not hmac.compare_digest(signature, expected_signature):
+                print("Token has been tampered with!")
+                return False
+
+            # Check if the token has expired
+            if time.time() > expiry_timestamp:
+                print("Token has expired!")
+                return False
+
+            # Token is valid
+            return True
+
+        except Exception as e:
+            # Handle decoding errors or other issues
+            print(f"Invalid token: {e}")
+            return False
+
 
 if __name__ == "__main__":
     cls = PasswordUtility()
     print(cls)
+
+    # Generate a token that expires in 60 seconds
+    token_utility = TokenUtility('some_secret_key')
+    token = token_utility.generate_token(5)
+    print(f"Generated Token: {token}")
+
+    # Verify the token
+    is_valid = token_utility.verify_token(token)
+    print(f"Is token valid? {is_valid}")
+
+    time.sleep(5)
+    is_valid = token_utility.verify_token(token)
+    print(f"Is token valid after 5 seconds? {is_valid}")
+
