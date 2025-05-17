@@ -1,44 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="description" content="HCI-Blazer site" />
-  <meta name="author" content="Ong Zhi Xian" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HCI-Blazer Views</title>
-  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css" />
-  <link rel="stylesheet" href="css/normalize.css" />
-  <link rel="stylesheet" href="css/skeleton.css" />
-  <link rel="icon" type="image/png" href="images/favicon.png" />
-  <meta name="google-signin-client_id" content="923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com">
+    <meta charset="utf-8"/>
+    <meta name="description" content="HCI-Blazer site"/>
+    <meta name="author" content="Ong Zhi Xian"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>HCI-Blazer Views</title>
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="css/normalize.css"/>
+    <link rel="stylesheet" href="css/skeleton.css"/>
+    <link rel="icon" type="image/png" href="images/favicon.png"/>
+    <meta name="google-signin-client_id"
+          content="923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style type="text/css">
+        .hide {
+            display: none;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container">
-    <div class="row">
-      <div class="one-half column">
-        <h4>Inventory Report</h4>
-        <p>To get inventory list from API and display it here.</p>
+    <div class="container">
+        <div class="row" style="margin-top:1em">
+            <div class="one-half column">
+                <h1>HCI Blazer Views</h1>
 
-        <p>
-          <div class="g-signin2" data-onsuccess="onSignIn"></div>
+                
 
-        </p>
-      </div>
+            </div>
+        </div>
+
+        <div class="row" style="margin-top:1em">
+            
+
+            <section id="contentPanel" class="panel hide">
+
+                <div class="one-half column">
+
+                    <h3>Credential</h3>
+
+                    <table id="credentialTable">
+                        <caption>Logged in credential</caption>
+                        <tbody>
+                            <tr><th>Family Name</th><td class="family-name">aaa</td></tr>
+                            <tr><th>Given Name</th><td class="given-name">aaa</td></tr>
+                            <tr><th>Name</th><td class="name">aaa</td></tr>
+                            <tr><th>Email</th><td class="email">aaa</td></tr>
+                        </tbody>
+                    </table>
+
+                    <button class="button-primary logout">Log out</button>
+                </div>
+
+                <div class="one-half column">
+                    <h3>Reports</h3>
+
+                    <ul>
+                        <li>
+                            <a href="reports/inventory.html">Current Inventory</a>
+                        </li>
+                    </ul>
+                </div>
+
+            </section>
+
+            <section id="loginPanel" class="panel hide">
+
+                <div class="g_id_signin"
+                    data-type="standard"
+                    data-shape="rectangular"
+                    data-theme="outline"
+                    data-text="signin_with"
+                    data-size="large"
+                    data-logo_alignment="left">
+                </div>
+
+            </section>
+        </div>
+
     </div>
-  </div>
 
-  <script src="https://apis.google.com/js/platform.js?onload=init" async defer></script>
-  <script type="text/javascript" defer>
-    function init() {
-      gapi.auth2.init({
-        client_id: '923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com'
-      });
-    }
+    <script src="https://apis.google.com/js/platform.js?onload=init" async defer></script>
+    <script type="text/javascript" defer>
 
+        function LoginHandler() {
+            
+            this.CREDENTIAL_STORAGE_KEY = "hci_blazer_view_credential",
 
+            this.hasCredentialJwt = function() {
+                let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
+                return credentialJwt !== null;
+            }
 
+            this.storeCredential = function(credentialJwt) {
+                return localStorage.setItem(this.CREDENTIAL_STORAGE_KEY, credentialJwt);
+            }
 
-  </script>
+            this.getCredentialJwt = function() {
+                try {
+                    let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
+                    const base64Url = credentialJwt.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
+
+                    return JSON.parse(jsonPayload)
+                } catch (e) {
+                  return null;
+                }
+            }
+
+            this.logout = function(event) {
+                localStorage.removeItem(this.CREDENTIAL_STORAGE_KEY);
+            }
+        }
+
+        function UiHandler(loginHandler) {
+
+            // 
+            this.loginHandler = loginHandler;
+
+            // 
+            this.contentPanel = document.querySelector("section#contentPanel");
+            this.loginPanel = document.querySelector("section#loginPanel");
+            this.logoutButton = document.querySelector("button.logout");
+            
+            this.updateCredentialTable = function() {
+                let jwt = loginHandler.getCredentialJwt();
+                if (jwt !== null) { // Has credential
+                    contentPanel.querySelector('.family-name').innerText = jwt.family_name;
+                    contentPanel.querySelector('.given-name').innerText = jwt.given_name;
+                    contentPanel.querySelector('.name').innerText = jwt.name;
+                    contentPanel.querySelector('.email').innerText = jwt.email;
+                }
+            }
+
+            this.refreshDisplay = function() {
+                let hasCredentialJwt = loginHandler.hasCredentialJwt();
+                if (hasCredentialJwt) {
+                    this.updateCredentialTable();
+
+                    this.contentPanel.classList.remove('hide'); // Show content panel
+                    this.loginPanel.classList.add('hide');      // Hide login panel
+                } else {
+                    this.contentPanel.classList.add('hide');    // Hide content panel
+                    this.loginPanel.classList.remove('hide');   // Show login panel
+                }
+            }
+
+            this.setupEventListeners = function() {
+                this.logoutButton.addEventListener('click',  (e) => {
+                    this.loginHandler.logout();
+                    this.refreshDisplay();
+                });
+            }
+        }
+
+        ////////////////////////////////////////
+        // START
+
+        let loginHandler = new LoginHandler();
+        let uiHandler = new UiHandler(loginHandler);
+
+        function handleCredentialResponse(response) {
+            console.log("Encoded JWT ID token: " + response.credential);
+            //console.log("select_by: " + response.select_by);
+
+            loginHandler.storeCredential(response.credential);
+
+            uiHandler.refreshDisplay();
+        }
+
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     uiHandler.refreshDisplay();
+        // });
+
+        window.onload = function () {
+
+            google.accounts.id.initialize({
+                client_id: '923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com',
+                use_fedcm_for_prompt: true,
+                use_fedcm_for_button: true,
+                callback: handleCredentialResponse
+            });
+
+            google.accounts.id.renderButton(
+                document.querySelector(".g_id_signin"),
+                { theme: "outline", size: "large" }  // customization attributes
+            );
+
+            uiHandler.setupEventListeners(); // Setup event listeners
+            uiHandler.refreshDisplay();
+        };
+
+    </script>
 </body>
 </html>
