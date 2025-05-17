@@ -8,5 +8,5 @@ utility_types.py
 shared_message_queues.py
 shared_messages.py
 shared_data_repositories.py
-shared_configuration_mesages.py
+shared_configuration_messages.py
 shared_configuration.py

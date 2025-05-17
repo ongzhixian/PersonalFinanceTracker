@@ -401,6 +401,7 @@ class InventoryItemRepository(BaseRepository):
         return OperationResultMessage(False, 'No matching message handler')
 
     def get_all_inventory_item(self):
+        print('IN get_all_inventory_item')
         try:
             result = []
             scan_kwargs = {
@@ -408,7 +409,7 @@ class InventoryItemRepository(BaseRepository):
             }
             while True:
                 response = dynamodb_client.scan(**scan_kwargs)
-                # print('scan:', response)
+                print('scan:', response)
                 if 'Items' in response:
                     for item in response['Items']:
                         result.append(InventoryItemEntity(item).to_json_object())
@@ -431,9 +432,10 @@ class InventoryItemRepository(BaseRepository):
 if __name__ == "__main__":
     inventory_item_repository = InventoryItemRepository()
     operation_result_message = inventory_item_repository.get_all_inventory_item()
-    item_list = operation_result_message.data_object
-    print(len(item_list))
-    pdb.set_trace()
+    print(json.dumps(operation_result_message.__dict__))
+    # item_list = operation_result_message.data_object
+    # print(len(item_list))
+    # pdb.set_trace()
 
 
     # Create items script

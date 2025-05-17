@@ -56,6 +56,12 @@ class EndpointResponse(object):
             self.HTTP_OK_CODE,
             json.dumps(OperationResultMessage(is_success, return_message).__dict__)).to_dict()
 
+    def data(self, operation_result_message:OperationResultMessage) -> dict:
+        return ResponseMessage(
+            self.HTTP_OK_CODE,
+            json.dumps(operation_result_message.__dict__)
+        ).to_dict()
+
 endpoint_response = EndpointResponse()
 
 
@@ -110,6 +116,18 @@ repository = InventoryItemRepository()
 @endpoint_url('/hci-blazer/item', 'GET')
 def get_hci_blazer_item(event:dict, context):
     dump_api_gateway_event_context(event, context)
+
+    # event_body_json = __get_event_body_json(event)
+    # if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.ErrorMessage)
+
+    try:
+        operation_result = repository.get_all_inventory_item()
+
+        ep_response = endpoint_response.data(operation_result)
+
+        return ep_response
+    except Exception as err:
+        print(err)
 
 
 @endpoint_url('/hci-blazer/item', 'POST')
