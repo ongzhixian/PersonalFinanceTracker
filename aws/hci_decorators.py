@@ -2,7 +2,6 @@
 """
 
 import json
-import pdb
 
 def endpoint_url(relative_path:str, http_method:str):
     """A decorator that does nothing"""
@@ -26,13 +25,13 @@ def my_decorator(func):
     return wrapper
 
 def dump_api_gateway_event_context(event:dict, context):
-    ''' Prints the event and context that AWS API Gateway receives
+    """ Prints the event and context that AWS API Gateway receives
     Args:
         event (dict): The ID of the item to retrieve.
         context (str, optional): An optional query parameter.
     Returns:
         response (dict): object with status code and text message
-    '''
+    """
     print("[event]", event)
     print("[context]", context)
     return {
