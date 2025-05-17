@@ -10,14 +10,15 @@ Sections:
 
 """
 import json
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from os import environ
 from zoneinfo import ZoneInfo
 import boto3
 from botocore.exceptions import ClientError
 
 from hci_data_repositories import DynamoDbEntity, BaseRepository
-from hci_messages import OperationResultMessage, NewInventoryItemMessage, UpdateInventoryItemMessage, SuccessBorrowMessage
+from hci_messages import NewInventoryItemMessage, UpdateInventoryItemMessage
+from shared_messages import OperationResultMessage
 
 SINGAPORE_TIMEZONE = ZoneInfo("Asia/Singapore")
 
@@ -72,7 +73,8 @@ class InventoryItemEntity(DynamoDbEntity):
         }
         return item
 
-    def get_record_timestamp(self) -> datetime:
+    @staticmethod
+    def get_record_timestamp() -> datetime:
         # record_timestamp = datetime.now(timezone.utc).as timezone(SINGAPORE_TIMEZONE)
         record_timestamp = datetime.now(SINGAPORE_TIMEZONE)
         return record_timestamp
