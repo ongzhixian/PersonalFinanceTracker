@@ -28,8 +28,10 @@ class DynamoDbEntity(object):
             match k:
                 case 'S':
                     return v
-                case "N":
+                case 'N':
                     return float(v)
+                case 'NULL':
+                    return v
                 case _:
                     print(f'Unhandled DynamoDb attribute {k}')
                     return None
