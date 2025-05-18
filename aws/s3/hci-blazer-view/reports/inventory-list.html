@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="description" content="HCI-Blazer site"/>
+    <meta name="author" content="Ong Zhi Xian"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Inventory List- HCI-Blazer Views</title>
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="../css/normalize.css"/>
+    <link rel="stylesheet" href="../css/skeleton.css"/>
+    <link rel="icon" type="image/png" href="../images/favicon.png"/>
+    <meta name="google-signin-client_id" content="923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com">
+    
+    
+    <style type="text/css">
+        .hide {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="row" style="margin-top:1em">
+          <h1>HCI Blazer Views</h1>
+          
+        </div>
+
+        <div class="row">
+
+            <section id="contentPanel" class="panel hide">
+              <site-navigation-bar name="asd"></site-navigation-bar>
+
+              <div style="margin-top: 1em; float: right;">
+                <button class="button-primary logout">Log out <span class="credential name"></span></button>
+              </div>
+
+                <div class="" style="margin-top:1em">
+                    <h3>Inventory List</h3>
+
+                    <form>
+                      <div class="row">
+
+                        <div class="three columns">
+                          <label for="filterCriteriaInput">Filter Criteria</label>
+                          <select class="u-full-width" id="filterCriteriaInput">
+                            <option value="ITEM_CODE">Item Code</option>
+                            <option value="BORROWER">Borrower</option>
+                          </select>
+                        </div>
+
+                        <div class="six columns">
+                          <label for="filterTextInput">Item code</label>
+                          <input id="filterTextInput" class="u-full-width" type="text" placeholder="HS" >
+                        </div>
+                        <div class="six columns"></div>
+                      </div>
+
+                      <input class="button-primary" type="button" value="Filter">
+                      
+                    </form>
+
+                    <table id="inventoryTable">
+                      <thead>
+                        <tr>
+                          <th>Item Code</th>
+                          <th>Borrowed By</th>
+                          <th>Borrowed Date</th>
+                          <th>Due Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                        </tr>
+                      </tbody>
+
+                    </table>
+                    
+                </div>
+
+                
+                
+
+            </section>
+
+            <section id="loginPanel" class="panel hide">
+
+                <div class="g_id_signin"
+                    data-type="standard"
+                    data-shape="rectangular"
+                    data-theme="outline"
+                    data-text="signin_with"
+                    data-size="large"
+                    data-logo_alignment="left">
+                </div>
+
+            </section>
+        </div>
+
+    </div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="../components/greeting.js" async defer></script>
+    <script src="../components/siteNavigationBar.js" async defer></script>
+    <script type="text/javascript" defer>
+
+        function LoginHandler() {
+            
+            this.CREDENTIAL_STORAGE_KEY = "hci_blazer_view_credential",
+
+            this.hasCredentialJwt = function() {
+                let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
+                return credentialJwt !== null;
+            }
+
+            this.storeCredential = function(credentialJwt) {
+                return localStorage.setItem(this.CREDENTIAL_STORAGE_KEY, credentialJwt);
+            }
+
+            this.getCredentialJwt = function() {
+                try {
+                    let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
+                    const base64Url = credentialJwt.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
+
+                    return JSON.parse(jsonPayload)
+                } catch (e) {
+                  return null;
+                }
+            }
+
+            this.logout = function(event) {
+                localStorage.removeItem(this.CREDENTIAL_STORAGE_KEY);
+            }
+        }
+
+        function UiHandler(loginHandler) {
+
+            this.loginHandler = loginHandler;
+
+            this.contentPanel = document.querySelector("section#contentPanel");
+            this.loginPanel = document.querySelector("section#loginPanel");
+            this.logoutButton = document.querySelector("button.logout");
+            this.inventoryTable = document.getElementById("inventoryTable");
+            
+            this.updateCredentialElements = function() {
+                let jwt = loginHandler.getCredentialJwt();
+                if (jwt !== null) { // Has credential
+                    // contentPanel.querySelector('.family-name').innerText = jwt.family_name;
+                    // contentPanel.querySelector('.given-name').innerText = jwt.given_name;
+                    // contentPanel.querySelector('.name').innerText = jwt.name;
+                    // contentPanel.querySelector('.email').innerText = jwt.email;
+                    contentPanel.querySelector('.credential.name').innerText = jwt.name;
+                }
+            }
+
+            this.newCell = function(textContent) {
+              const cell = document.createElement('td');
+              cell.textContent = textContent;
+              return cell;
+            }
+
+
+            this.updateInventoryTable = async function() {
+              const url = "https://flikx8i3c2.execute-api.us-east-1.amazonaws.com/hci-blazer/item?page=1&page-size=10";
+              try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                  throw new Error(`Response status: ${response.status}`);
+                }
+
+                // json = OperationResultMessage
+                const json = await response.json();
+                console.log(json);
+
+                if (json.is_success) {
+                  let tbody = this.inventoryTable.getElementsByTagName('tbody')[0];
+                  tbody.replaceChildren();
+
+                  let inventoryItemList = json.data_object;
+                  // for (const element of inventoryItemList) {
+                  //   console.log(element);
+                  //   createInventoryItemTableRow(tbody, element);
+                  // }
+                  inventoryItemList.forEach(rowData => {
+                    const row = document.createElement('tr');
+                    
+                    row.appendChild(this.newCell(rowData.item_code));
+                    row.appendChild(this.newCell(rowData.borrow_by));
+                    row.appendChild(this.newCell(rowData.borrow_datetime));
+                    row.appendChild(this.newCell(rowData.due_datetime));
+
+                    tbody.appendChild(row);
+                  });
+
+                }
+
+              } catch (error) {
+                console.error(error.message);
+              }
+            }
+
+            this.refreshDisplay = function() {
+                let hasCredentialJwt = loginHandler.hasCredentialJwt();
+                if (hasCredentialJwt) {
+                    this.updateCredentialElements();
+
+                    this.updateInventoryTable();
+
+                    this.contentPanel.classList.remove('hide'); // Show content panel
+                    this.loginPanel.classList.add('hide');      // Hide login panel
+                } else {
+                    this.contentPanel.classList.add('hide');    // Hide content panel
+                    this.loginPanel.classList.remove('hide');   // Show login panel
+                }
+            }
+
+            this.setupEventListeners = function() {
+                this.logoutButton.addEventListener('click',  (e) => {
+                    this.loginHandler.logout();
+                    this.refreshDisplay();
+                });
+
+            }
+        }
+
+        ////////////////////////////////////////
+        // START
+
+        let loginHandler = new LoginHandler();
+        let uiHandler = new UiHandler(loginHandler);
+
+        function handleCredentialResponse(response) {
+            //console.log("Encoded JWT ID token: " + response.credential);
+            loginHandler.storeCredential(response.credential);
+            uiHandler.refreshDisplay();
+        }
+
+        window.onload = function () {
+
+            google.accounts.id.initialize({
+                client_id: '923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com',
+                use_fedcm_for_prompt: true,
+                use_fedcm_for_button: true,
+                callback: handleCredentialResponse
+            });
+
+            google.accounts.id.renderButton(
+                document.querySelector(".g_id_signin"),
+                { theme: "outline", size: "large" }  // customization attributes
+            );
+
+            //location.pathname
+            
+            uiHandler.setupEventListeners(); // Setup event listeners
+            uiHandler.refreshDisplay();
+            document.querySelectorAll('site-navigation-bar').forEach(element => element.setAttribute('name', location.pathname));
+        };
+
+    </script>
+</body>
+</html>
