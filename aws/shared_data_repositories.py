@@ -31,7 +31,7 @@ class DynamoDbEntity(object):
                 case 'N':
                     return float(v)
                 case 'NULL':
-                    return v
+                    return None if v == True else v
                 case _:
                     print(f'Unhandled DynamoDb attribute {k}')
                     return None
