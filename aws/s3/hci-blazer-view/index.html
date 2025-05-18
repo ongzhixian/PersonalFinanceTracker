@@ -13,7 +13,7 @@
     <meta name="google-signin-client_id"
           content="923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <style type="text/css">
+    <style>
         .hide {
             display: none;
         }
@@ -24,18 +24,14 @@
     <div class="container">
         <div class="row" style="margin-top:1em">
             <h1>HCI Blazer Views</h1>
-            
         </div>
 
         <div class="row">
             
-
             <section id="contentPanel" class="panel hide">
                 <site-navigation-bar name="asd"></site-navigation-bar>
 
                 <div  style="margin-top:1em">
-
-                
 
                 <div class="one-half column">
 
@@ -83,12 +79,12 @@
     </div>
 
     
-    <script src="../components/siteNavigationBar.js" async defer></script>
+    <script src="components/siteNavigationBar.js" async defer></script>
     <script type="text/javascript" defer>
 
         function LoginHandler() {
             
-            this.CREDENTIAL_STORAGE_KEY = "hci_blazer_view_credential",
+            this.CREDENTIAL_STORAGE_KEY = "hci_blazer_view_credential";
 
             this.hasCredentialJwt = function() {
                 let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
@@ -114,7 +110,7 @@
                 }
             }
 
-            this.logout = function(event) {
+            this.logout = function() {
                 localStorage.removeItem(this.CREDENTIAL_STORAGE_KEY);
             }
         }
@@ -132,10 +128,11 @@
             this.updateCredentialTable = function() {
                 let jwt = loginHandler.getCredentialJwt();
                 if (jwt !== null) { // Has credential
-                    contentPanel.querySelector('.family-name').innerText = jwt.family_name;
-                    contentPanel.querySelector('.given-name').innerText = jwt.given_name;
-                    contentPanel.querySelector('.name').innerText = jwt.name;
-                    contentPanel.querySelector('.email').innerText = jwt.email;
+                    const {family_name, given_name, name, email} = jwt;
+                    this.contentPanel.querySelector('.family-name').innerText = family_name;
+                    this.contentPanel.querySelector('.given-name').innerText = given_name;
+                    this.contentPanel.querySelector('.name').innerText = name;
+                    this.contentPanel.querySelector('.email').innerText = email;
                 }
             }
 
@@ -153,7 +150,7 @@
             }
 
             this.setupEventListeners = function() {
-                this.logoutButton.addEventListener('click',  (e) => {
+                this.logoutButton.addEventListener('click',  () => {
                     this.loginHandler.logout();
                     this.refreshDisplay();
                 });
@@ -182,10 +179,10 @@
         window.onload = function () {
 
             google.accounts.id.initialize({
-                client_id: '923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com',
-                use_fedcm_for_prompt: true,
-                use_fedcm_for_button: true,
-                callback: handleCredentialResponse
+                "client_id": '923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com',
+                "use_fedcm_for_prompt": true,
+                "use_fedcm_for_button": true,
+                "callback": handleCredentialResponse
             });
 
             google.accounts.id.renderButton(
