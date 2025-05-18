@@ -5,7 +5,7 @@
     <meta name="description" content="HCI-Blazer site"/>
     <meta name="author" content="Ong Zhi Xian"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Inventory List- HCI-Blazer Views</title>
+    <title>Inventory Query- HCI-Blazer Views</title>
     <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"/>
     <link rel="stylesheet" href="../css/normalize.css"/>
     <link rel="stylesheet" href="../css/skeleton.css"/>
@@ -28,16 +28,37 @@
             <site-navigation-bar name="asd"></site-navigation-bar>
 
             <div class="status bar" style="margin-top: 1em;">
-                <div style="grid-column: 1/3; align-self: center;"></div>
+                <div style="grid-column: 1/3; align-self: center;">Statistics last updated at <span
+                        class="statistics last-updated timestamp">---</span></div>
                 <div style="justify-self: end;">
                     <button class="button-primary logout">Log out <span class="credential name"></span></button>
                 </div>
             </div>
 
             <div class="" style="margin-top:1em">
-                <h3>Inventory List</h3>
+                <h3>Inventory Query</h3>
 
-                <p>As of <span class="inventory table last-updated timestamp">---</span></p>
+                <form>
+                    <div class="row">
+
+                        <div class="three columns">
+                            <label for="filterCriteriaInput">Filter Criteria</label>
+                            <select class="u-full-width" id="filterCriteriaInput">
+                                <option value="ITEM_CODE">Item Code</option>
+                                <option value="BORROWER">Borrower</option>
+                            </select>
+                        </div>
+
+                        <div class="six columns">
+                            <label for="filterTextInput">Item code</label>
+                            <input id="filterTextInput" class="u-full-width" type="text" placeholder="HS">
+                        </div>
+                        <div class="six columns"></div>
+                    </div>
+
+                    <input class="button-primary" type="button" value="Filter">
+
+                </form>
 
                 <table id="inventoryTable">
                     <thead>
@@ -84,7 +105,7 @@
 
     function LoginHandler() {
 
-        this.CREDENTIAL_STORAGE_KEY = "hci_blazer_view_credential";
+        this.CREDENTIAL_STORAGE_KEY = "hci_blazer_view_credential",
 
             this.hasCredentialJwt = function () {
                 let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
@@ -112,7 +133,7 @@
 
         this.getJwt = () => localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
 
-        this.logout = function () {
+        this.logout = function (event) {
             localStorage.removeItem(this.CREDENTIAL_STORAGE_KEY);
         }
     }
@@ -125,18 +146,10 @@
         this.loginPanel = document.querySelector("section#loginPanel");
         this.logoutButton = document.querySelector("button.logout");
         this.inventoryTable = document.getElementById("inventoryTable");
-        this.inventoryTableLastUpdated = document.querySelector(".inventory.table.timestamp.last-updated");
-
 
         this.updateCredentialElements = function () {
             let jwt = loginHandler.getCredentialJwt();
-            if (jwt !== null) { // Has credential
-                // contentPanel.querySelector('.family-name').innerText = jwt.family_name;
-                // contentPanel.querySelector('.given-name').innerText = jwt.given_name;
-                // contentPanel.querySelector('.name').innerText = jwt.name;
-                // contentPanel.querySelector('.email').innerText = jwt.email;
-                contentPanel.querySelector('.credential.name').innerText = jwt.name;
-            }
+            if (jwt !== null) contentPanel.querySelector('.credential.name').innerText = jwt.name;
         }
 
         this.newCell = function (textContent) {
@@ -159,8 +172,8 @@
                 console.log(json);
 
                 if (json.is_success) {
-                    //this.statisticsLastUpdated.innerText = sgpTimeString();
-                    this.inventoryTableLastUpdated.innerText = sgpTimeString();
+                    this.statisticsLastUpdated.innerText = sgpTimeString();
+
                     let tbody = this.inventoryTable.getElementsByTagName('tbody')[0];
                     tbody.replaceChildren();
 
@@ -179,7 +192,6 @@
 
                         tbody.appendChild(row);
                     });
-
                 }
 
             } catch (error) {
@@ -192,7 +204,7 @@
             if (hasCredentialJwt) {
                 this.updateCredentialElements();
 
-                this.updateInventoryTable();
+                //this.updateInventoryTable();
 
                 this.contentPanel.classList.remove('hide'); // Show content panel
                 this.loginPanel.classList.add('hide');      // Hide login panel

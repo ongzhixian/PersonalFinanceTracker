@@ -75,6 +75,7 @@ class SiteNavigationBar extends HTMLElement {
           <li><a href="/" class="${currentPage === '/' ? 'active' : ''}">Home</a></li>
           <li><a href="/reports/inventory-overview.html" class="${currentPage === '/reports/inventory-overview.html' ? 'active' : ''}">Inventory-Overview</a></li>
           <li><a href="/reports/inventory-list.html" class="${currentPage === '/reports/inventory-list.html' ? 'active' : ''}">Inventory-List</a></li>
+          <li><a href="/reports/inventory-query.html" class="${currentPage === '/reports/inventory-query.html' ? 'active' : ''}">Inventory-Query</a></li>
           <!--
           <li><a href="/reports/inventory.html" class="${currentPage === '/reports/inventory.html' ? 'active' : ''}" disabled>Due Soon</a></li>
           <li><a href="/reports/inventory.html" class="${currentPage === '/reports/inventory.html' ? 'active' : ''}">Outstanding</a></li>

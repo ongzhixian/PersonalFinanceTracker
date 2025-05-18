@@ -5,204 +5,198 @@
     <meta name="description" content="HCI-Blazer site"/>
     <meta name="author" content="Ong Zhi Xian"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Inventory - HCI-Blazer Views</title>
+    <meta name="google-signin-client_id"
+          content="923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com">
+    <title>Inventory Overview - HCI-Blazer Views</title>
     <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"/>
     <link rel="stylesheet" href="../css/normalize.css"/>
     <link rel="stylesheet" href="../css/skeleton.css"/>
+    <link rel="stylesheet" href="../css/site.css"/>
     <link rel="icon" type="image/png" href="../images/favicon.png"/>
-    <meta name="google-signin-client_id" content="923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com">
-    
-    
-    <style type="text/css">
+    <style></style>
+    <style>
         .hide {
             display: none;
         }
+
         .box {
-          border: 4px solid orchid;
-          text-align: center;
+            border: 4px solid #e0e0ce;
+            text-align: center;
         }
+
         .statistic header {
-          font-weight: bold;
-
+            font-weight: bold;
         }
+
         .statistic .counter.text {
-          font-size: 3.8rem;
+            font-size: 3.8rem;
 
         }
+
+        .inventory.statistics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-row-gap: 1.618em;
+            grid-column-gap: 1.618em;
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="row" style="margin-top:1em">
-          <h1>HCI Blazer Views</h1>
-        </div>
+<div class="container">
+    <div class="row" style="margin-top:1em">
 
-        <div class="row">
-
-            <section id="contentPanel" class="panel hide">
-              <site-navigation-bar></site-navigation-bar>
-
-              <div style="margin-top: 1em; float: right;">
-                <button class="button-primary logout">Log out <span class="credential name"></span></button>
-              </div>
-
-                <div class="" style="margin-top:1em">
-
-                    <h2>Inventory Overview</h2>
-
-                    <div class="row">
-                      <div class="one-third column">
-                        <div class="statistic box">
-                          <header>In Store</header>
-                          <div class="counter text">999</div>
-                        </div>
-                      </div>
-
-                      <div class="one-third column">
-                        <div class="statistic box">
-                          <header>Loan Out</header>
-                          <div class="counter text">999</div>
-                        </div>
-                      </div>
-
-                      <div class="one-third column">
-                        <div class="statistic box">
-                          <header>Total</header>
-                          <div class="counter text">999</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                </div>
-
-
-
-                <div class="" style="margin-top:2em">
-                  <h3>In Store Top-Level</h3>
-
-                    <div class="row">
-
-                      <div class="one-third column">
-                        <div class="statistic box">
-                          <header>SIZE A</header>
-                          <div class="counter text">999</div>
-                        </div>
-                      </div>
-
-                      <div class="one-third column">
-                        <div class="statistic box">
-                          <header>SIZE A</header>
-                          <div class="counter text">999</div>
-                        </div>
-                      </div>
-                      <div class="one-third column">
-                        <div class="statistic box">
-                          <header>SIZE A</header>
-                          <div class="counter text">999</div>
-                        </div>
-                      </div>
-                      <div class="one-third column">
-                        <div class="statistic box">
-                          <header>SIZE A</header>
-                          <div class="counter text">999</div>
-                        </div>
-                      </div>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-            <section id="loginPanel" class="panel hide">
-
-                <div class="g_id_signin"
-                    data-type="standard"
-                    data-shape="rectangular"
-                    data-theme="outline"
-                    data-text="signin_with"
-                    data-size="large"
-                    data-logo_alignment="left">
-                </div>
-
-            </section>
-        </div>
-
+        <h1>HCI Blazer Views</h1>
     </div>
 
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/platform.js?onload=init" async defer></script>
-    <script src="../components/greeting.js" async defer></script>
-    <script src="../components/siteNavigationBar.js" async defer></script>
-    <script type="text/javascript" defer>
+    <div class="row">
 
-        function LoginHandler() {
-            
-            this.CREDENTIAL_STORAGE_KEY = "hci_blazer_view_credential",
+        <section id="contentPanel" class="panel hide">
 
-            this.hasCredentialJwt = function() {
-                let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
-                return credentialJwt !== null;
-            }
+            <site-navigation-bar></site-navigation-bar>
 
-            this.storeCredential = function(credentialJwt) {
-                return localStorage.setItem(this.CREDENTIAL_STORAGE_KEY, credentialJwt);
-            }
+            <div class="status bar" style="margin-top: 1em;">
+                <div style="grid-column: 1/3; align-self: center;">
+<!--                    Statistics last updated at <span class="statistics last-updated timestamp">-&#45;&#45;</span>-->
+                </div>
+                <div style="justify-self: end;">
+                    <button class="button-primary logout">Log out <span class="credential name"></span></button>
+                </div>
+            </div>
 
-            this.getCredentialJwt = function() {
-                try {
-                    let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
-                    const base64Url = credentialJwt.split('.')[1];
-                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                    }).join(''));
+            <div class="" style="margin-top:1em">
 
-                    return JSON.parse(jsonPayload)
-                } catch (e) {
-                  return null;
-                }
-            }
+                <h2>Inventory Overview</h2>
 
-            this.logout = function(event) {
-                localStorage.removeItem(this.CREDENTIAL_STORAGE_KEY);
+                <p>As of <span class="statistics overview last-updated timestamp">---</span></p>
+
+                <div class="inventory statistics overview">
+                    <div class="statistic box">
+                        <header>In Store</header>
+                        <div class="counter text in-store">---</div>
+                    </div>
+
+                    <div class="statistic box">
+                        <header>Loan Out</header>
+                        <div class="counter text loaned-out">---</div>
+                    </div>
+
+                    <div class="statistic box">
+                        <header>Total</header>
+                        <div class="counter text total">---</div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="" style="margin-top:2em">
+                <h3>In Store (by size)</h3>
+
+                <p>As of <span class="statistics by-size last-updated timestamp">---</span></p>
+
+                <div class="inventory statistics by-size">
+                    <div class="statistic box">
+                        <header>Total</header>
+                        <div class="counter text">---</div>
+                    </div>
+
+                    <div class="statistic box">
+                        <header>Total</header>
+                        <div class="counter text">---</div>
+                    </div>
+
+                    <div class="statistic box">
+                        <header>Total</header>
+                        <div class="counter text">---</div>
+                    </div>
+
+                    <div class="statistic box">
+                        <header>Total</header>
+                        <div class="counter text">---</div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section id="loginPanel" class="panel hide">
+
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="outline"
+                 data-text="signin_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
+
+        </section>
+    </div>
+
+</div>
+
+<template id="statisticBox">
+    <div class="statistic box">
+        <header>Total</header>
+        <div class="counter text">999</div>
+    </div>
+</template>
+
+<script src="../js/site.js" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/platform.js?onload=init" async defer></script>
+<script src="../components/greeting.js" async defer></script>
+<script src="../components/siteNavigationBar.js" async defer></script>
+<script type="text/javascript" async defer>
+
+    function UiHandler(loginHandler) {
+
+        this.loginHandler = loginHandler;
+
+        this.contentPanel = document.querySelector("section#contentPanel");
+        this.loginPanel = document.querySelector("section#loginPanel");
+        this.logoutButton = document.querySelector("button.logout");
+        //this.inventoryTable = document.getElementById("inventoryTable");
+        this.inventoryStatistics = document.querySelector("div.inventory.statistics.overview");
+        this.inventoryBreakdownBySize = document.querySelector(".inventory.statistics.by-size");
+        this.statisticBoxTemplate = document.querySelector("#statisticBox");
+        this.statisticsOverviewLastUpdated = document.querySelector(".statistics.overview.timestamp.last-updated");
+        this.statisticsBySizeLastUpdated = document.querySelector(".statistics.by-size.timestamp.last-updated");
+
+        this.updateCredentialElements = function () {
+            let jwt = loginHandler.getCredentialJwt();
+            if (jwt !== null) { // Has credential
+                contentPanel.querySelector('.credential.name').innerText = jwt.name;
             }
         }
 
-        function UiHandler(loginHandler) {
-
-            this.loginHandler = loginHandler;
-
-            this.contentPanel = document.querySelector("section#contentPanel");
-            this.loginPanel = document.querySelector("section#loginPanel");
-            this.logoutButton = document.querySelector("button.logout");
-            this.inventoryTable = document.getElementById("inventoryTable");
-            
-            this.updateCredentialElements = function() {
-                let jwt = loginHandler.getCredentialJwt();
-                if (jwt !== null) { // Has credential
-                    // contentPanel.querySelector('.family-name').innerText = jwt.family_name;
-                    // contentPanel.querySelector('.given-name').innerText = jwt.given_name;
-                    // contentPanel.querySelector('.name').innerText = jwt.name;
-                    // contentPanel.querySelector('.email').innerText = jwt.email;
-                    contentPanel.querySelector('.credential.name').innerText = jwt.name;
-                }
-            }
-
-            this.newCell = function(textContent) {
-              const cell = document.createElement('td');
-              cell.textContent = textContent;
-              return cell;
-            }
+        this.newCell = function (textContent) {
+            const cell = document.createElement('td');
+            cell.textContent = textContent;
+            return cell;
+        }
 
 
-            this.updateInventoryTable = async function() {
-              const url = "https://flikx8i3c2.execute-api.us-east-1.amazonaws.com/hci-blazer/item?page=1&page-size=10";
-              try {
-                const response = await fetch(url);
+        this.updateInventoryStatistics = async function () {
+            const url = "https://flikx8i3c2.execute-api.us-east-1.amazonaws.com/hci-blazer/item?page=1&page-size=10";
+            try {
+
+                const jwt = this.loginHandler.getJwt();
+                if (jwt === null) return; // Do nothing
+
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${jwt}`
+                    }
+                });
+
                 if (!response.ok) {
-                  throw new Error(`Response status: ${response.status}`);
+                    throw new Error(`Response status: ${response.status}`);
                 }
 
                 // json = OperationResultMessage
@@ -210,89 +204,132 @@
                 console.log(json);
 
                 if (json.is_success) {
-                  let tbody = this.inventoryTable.getElementsByTagName('tbody')[0];
-                  tbody.replaceChildren();
+                    const fetchCompletionTimestamp = sgpTimeString();
+                    this.statisticsOverviewLastUpdated.innerText = fetchCompletionTimestamp;
+                    this.statisticsBySizeLastUpdated.innerText = fetchCompletionTimestamp;
+                    let item_list = json.data_object;
+                    // Things to find out from inventory list:
 
-                  let inventoryItemList = json.data_object;
-                  // for (const element of inventoryItemList) {
-                  //   console.log(element);
-                  //   createInventoryItemTableRow(tbody, element);
-                  // }
-                  inventoryItemList.forEach(rowData => {
-                    const row = document.createElement('tr');
-                    
-                    row.appendChild(this.newCell(rowData.item_code));
-                    row.appendChild(this.newCell(rowData.borrow_by));
-                    row.appendChild(this.newCell(rowData.borrow_datetime));
-                    row.appendChild(this.newCell(rowData.due_datetime));
+                    // For overview, we want to know how many:
+                    // 1. In store
+                    // 1. Loaned out
+                    // 1. In total
 
-                    tbody.appendChild(row);
-                  });
+                    let in_store    = item_list.filter((element) => {
+                        return element.borrow_by === null
+                    }).length;
+                    let loaned_out  = item_list.filter((element) => {
+                        return element.borrow_by !== null;
+                    }).length;
+                    let in_total    = item_list.length;
+
+                    console.log('in_store', in_store, 'loaned_out', loaned_out, 'in_total', in_total);
+                    this.inventoryStatistics.querySelector(".counter.in-store").innerText = in_store;
+                    this.inventoryStatistics.querySelector(".counter.loaned-out").innerText = loaned_out;
+                    this.inventoryStatistics.querySelector(".counter.total").innerText = in_total;
+
+                    // We also want to break down inventory by size
+                    // But there is no size attribute, so parse item_code
+                    // "HS(14) - L01" --> [SOME PREFIX] - <SIZE><SERIAL>
+                    const itemCodeRegex = /(?<prefix>\S+)\s*-\s*(?<size>\D+)(?<serial>\d+)/gm;
+                    let breakdown = item_list.reduce((acc, item) => {
+                        let item_code = item.item_code;
+
+                        let matchResult = itemCodeRegex.exec(item_code);
+                        if (matchResult === null) return acc;
+
+                        if (!(matchResult.groups.size in acc)) {
+                            acc[matchResult.groups.size] = 1;
+                        } else {
+                            acc[matchResult.groups.size] = acc[matchResult.groups.size] + 1;
+                        }
+                        return acc;
+                    }, {});
+
+                    // Update Inventory Breakdown by size
+                    this.inventoryBreakdownBySize.replaceChildren();
+                    const sizeDisplayOrderList = ['XL', 'S'];
+                    this.appendInventoryBreakdown(breakdown, sizeDisplayOrderList);
+
+                    // Display sizes not list in sizeDisplayOrderList
+                    let breakdownKeyList = Object.keys(breakdown);
+                    let sizeNotInSizeDisplayOrderList = breakdownKeyList.filter(val => !sizeDisplayOrderList.includes(val));
+                    this.appendInventoryBreakdown(breakdown, sizeNotInSizeDisplayOrderList);
 
                 }
 
-              } catch (error) {
+            } catch (error) {
                 console.error(error.message);
-              }
-            }
-
-            this.refreshDisplay = function() {
-                let hasCredentialJwt = loginHandler.hasCredentialJwt();
-                if (hasCredentialJwt) {
-                    this.updateCredentialElements();
-
-                    //this.updateInventoryTable();
-
-                    this.contentPanel.classList.remove('hide'); // Show content panel
-                    this.loginPanel.classList.add('hide');      // Hide login panel
-                } else {
-                    this.contentPanel.classList.add('hide');    // Hide content panel
-                    this.loginPanel.classList.remove('hide');   // Show login panel
-                }
-            }
-
-            this.setupEventListeners = function() {
-                this.logoutButton.addEventListener('click',  (e) => {
-                    this.loginHandler.logout();
-                    this.refreshDisplay();
-                });
-
             }
         }
 
-        ////////////////////////////////////////
-        // START
+        this.appendInventoryBreakdown = function(breakdown, sizeDisplayOrderList) {
+            for (let sizeDisplayOrder of sizeDisplayOrderList) {
+                console.log('sizeDisplayOrder', sizeDisplayOrder, 'has', breakdown[sizeDisplayOrder]);
 
-        let loginHandler = new LoginHandler();
-        let uiHandler = new UiHandler(loginHandler);
+                const clone = this.statisticBoxTemplate.content.cloneNode(true);
+                clone.querySelector('header').innerText = sizeDisplayOrder;
+                clone.querySelector('.counter').innerText = breakdown[sizeDisplayOrder];
 
-        function handleCredentialResponse(response) {
-            //console.log("Encoded JWT ID token: " + response.credential);
-            loginHandler.storeCredential(response.credential);
-            uiHandler.refreshDisplay();
+                this.inventoryBreakdownBySize.appendChild(clone);
+            }
         }
 
-        window.onload = function () {
+        this.refreshDisplay = function () {
+            let hasCredentialJwt = loginHandler.hasCredentialJwt();
+            if (hasCredentialJwt) {
+                this.updateCredentialElements();
 
-            google.accounts.id.initialize({
-                client_id: '923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com',
-                use_fedcm_for_prompt: true,
-                use_fedcm_for_button: true,
-                callback: handleCredentialResponse
+                this.updateInventoryStatistics();
+
+                this.contentPanel.classList.remove('hide'); // Show content panel
+                this.loginPanel.classList.add('hide');      // Hide login panel
+            } else {
+                this.contentPanel.classList.add('hide');    // Hide content panel
+                this.loginPanel.classList.remove('hide');   // Show login panel
+            }
+        }
+
+        this.setupEventListeners = function () {
+            this.logoutButton.addEventListener('click', () => {
+                this.loginHandler.logout();
+                this.refreshDisplay();
             });
+        }
+    }
 
-            google.accounts.id.renderButton(
-                document.querySelector(".g_id_signin"),
-                { theme: "outline", size: "large" }  // customization attributes
-            );
+    ////////////////////////////////////////
+    // START
 
-            //location.pathname
-            
-            uiHandler.setupEventListeners(); // Setup event listeners
-            uiHandler.refreshDisplay();
-            document.querySelectorAll('site-navigation-bar').forEach(element => element.setAttribute('name', location.pathname));
-        };
+    let loginHandler, uiHandler;
 
-    </script>
+    // document.addEventListener('DOMContentLoaded', function() {
+    //
+    //
+    // });
+
+    window.onload = function () {
+
+        google.accounts.id.initialize({
+            client_id: '923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com',
+            use_fedcm_for_prompt: true,
+            use_fedcm_for_button: true,
+            callback: handleCredentialResponse
+        });
+
+        google.accounts.id.renderButton(
+            document.querySelector(".g_id_signin"),
+            {theme: "outline", size: "large"}  // customization attributes
+        );
+
+        loginHandler = new LoginHandler();
+        uiHandler = new UiHandler(loginHandler);
+
+        uiHandler.setupEventListeners(); // Setup event listeners
+        uiHandler.refreshDisplay();
+        document.querySelectorAll('site-navigation-bar').forEach(element => element.setAttribute('name', location.pathname));
+    };
+
+</script>
 </body>
 </html>

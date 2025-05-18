@@ -1,0 +1,15 @@
+:root {
+    --color1: #ad343e;
+    --color2: #474747;
+    --color3: #f2af29;
+    --color4: #000000;
+    --color5: #e0e0ce;
+}
+.hide {
+    display: none;
+}
+
+.status.bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
