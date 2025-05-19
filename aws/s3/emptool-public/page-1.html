@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="description" content="PFT" />
+  <meta name="author" content="Ong Zhi Xian" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PFT</title>
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="css/normalize.css" />
+  <link rel="stylesheet" href="css/skeleton.css" />
+  <link rel="stylesheet" href="css/site.css" />
+  <link rel="icon" type="image/png" href="images/favicon.png" />
+
+  <script src="components/site-banner.js" async defer></script>
+  <script src="components/site-navigation-bar.js" async defer></script>
+  <script src="js/site.js"></script>
+</head>
+<body>
+
+  <div class="container">
+
+    <site-banner></site-banner>
+
+    <site-navigation-bar></site-navigation-bar>
+
+    &nbsp;
+
+    <div class="row">
+      <div class="one-half column">
+
+        <p>Page 1</p>
+
+        <!-- The above form looks like this -->
+        <form>
+
+          <div class="row">
+
+            <div class="six columns">
+              <label for="textInput">Text</label>
+              <input class="u-full-width" type="text" placeholder="Some text" id="textInput">
+            </div>
+
+            <div class="six columns"></div>
+          </div>
+
+          <input class="button-primary" type="button" value="Submit" id="submitButton">
+        </form>
+
+      </div>
+    </div>
+
+  </div><!-- END OF TOP-LEVEL CONTAINER -->
+
+<script>
+  const textInput = document.getElementById('textInput');
+  const submitButton = document.getElementById('submitButton');
+
+  function submitButtonClickHandler(e) {
+    console.log('Entered text', textInput.value);
+  }
+
+  document.addEventListener('DOMContentLoaded', (event) => {
+    // Add event listeners
+    submitButton.addEventListener('click', submitButtonClickHandler);
+  });
+
+</script>
+</body>
+</html>
