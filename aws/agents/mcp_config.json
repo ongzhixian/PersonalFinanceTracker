@@ -1,0 +1,12 @@
+{
+    "default": {
+        "applicable_transport_type": "stdio|sse",
+        "transport_type": "stdio"
+    }, 
+    "api_key": {
+        "a": {
+            "id": "ss",
+            "sd": "IPRlSxk0RK9tK7LbHTydU58yinZjcyW9a5rgoE6L"
+        }
+    }
+}
