@@ -19,6 +19,10 @@ class DynamoDbEntity(object):
         return {'S': value}
 
     @staticmethod
+    def dynamodb_number_value(value: str):
+        return {'N': value}
+
+    @staticmethod
     def dynamodb_boolean_value(value:bool):
         return {'B': value}
 

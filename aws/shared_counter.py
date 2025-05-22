@@ -143,28 +143,44 @@ class IncrementCounterEntity(CounterEntity):
         record_timestamp = self.get_record_timestamp()
 
         self.id = increment_counter_message.id
-        self.value = increment_counter_message.value
 
         self.record_update_by = increment_counter_message.user_code
         self.record_update_datetime = record_timestamp
 
-    def update_expression(self):
-        return 'ADD #value :incr_value, SET #record_update_by :record_update_by, SET #record_update_datetime :record_update_datetime'
+    def __update_expression(self):
+        return 'ADD #value :incr_value SET #record_update_by = :record_update_by, #record_update_datetime = :record_update_datetime'
 
-    def expression_attribute_names(self):
+    def __update_expression_attribute_names(self):
         return {
-
             '#value': 'value',
             '#record_update_by': 'record_update_by',
             '#record_update_datetime': 'record_update_datetime',
         }
 
-    def expression_attribute_values(self):
+    def __update_expression_attribute_values(self):
         return {
-            ':incr_value': {'N': '1'},
-            ':record_update_by': {'S': self.record_update_by},
-            ':record_update_datetime': {'S': self.record_update_datetime},
+            ':incr_value': self.dynamodb_number_value('1'),
+            ':record_update_by': self.dynamodb_string_value(self.record_update_by),
+            ':record_update_datetime': self.dynamodb_string_value(self.record_update_datetime.isoformat())
         }
+
+
+    def update_transact_item(self, table_name:str):
+        return {
+            'Update': {
+                'TableName': table_name,
+                'Key': {'id': {'S': self.id}},
+                'UpdateExpression': self.__update_expression(),
+                'ExpressionAttributeNames': self.__update_expression_attribute_names(),
+                'ExpressionAttributeValues': self.__update_expression_attribute_values(),
+                'ConditionExpression': 'attribute_exists(id)'
+            }
+        }
+
+    def to_transact_items(self, table_name:str):
+        transact_items = []
+        transact_items.append(self.update_transact_item(table_name))
+        return transact_items
 
 
 # REPOSITORY CLASSES
@@ -205,32 +221,27 @@ class CounterRepository(BaseRepository):
 
     def update_counter(self, increment_counter_message:IncrementCounterMessage):
         entity = IncrementCounterEntity(increment_counter_message)
-        update_item_kwargs = {
-            'TableName': self._TABLE_NAME,
-            'Key': {'id': {'S': increment_counter_message.id} },
-            'UpdateExpression': entity.update_expression,
-            'ExpressionAttributeNames':entity.expression_attribute_names,
-            'ExpressionAttributeValues': entity.expression_attribute_values,
-            'ReturnConsumedCapacity': 'TOTAL',
-            'ConditionExpression': 'attribute_not_exists(id)'
-        }
         try:
-            response = dynamodb_client.update_item(**update_item_kwargs)
-            # print('put_item:', response)
+            # Note: We cannot mix SET, REMOVE, ADD, DELETE in Dynamodb update expression
+            #       But we can mix them in a UPDATE transact item!
+            response = dynamodb_client.transact_write_items(TransactItems=entity.to_transact_items(self._TABLE_NAME))
+            print('update_item:', response)
             return OperationResultMessage(True)
         except ClientError as client_error:
             error = client_error.response['Error'] if 'Error' in client_error.response else None
             if error is None: return OperationResultMessage(False, client_error.response)
             error_code = error['Code'] if 'Code' in error else None
+            print('error', error)
             match error_code:
-                case 'ConditionalCheckFailedException':
+                case 'TransactionCanceledException':
                     return OperationResultMessage(
                         operation_is_successful=False,
-                        message=f"Error code: {error_code}, ConditionExpression: {update_item_kwargs['ConditionExpression']}",
-                        data_object=increment_counter_message)
+                        message=f"Error code: {error_code}, Error message: {error['Message']}",
+                        data_object=client_error.response['CancellationReasons'])
                 case _:
                     return OperationResultMessage(False, error)
-
+        except Exception as exception:
+            print(exception)
 
 # TESTs
 
@@ -239,15 +250,16 @@ def test_counter_repository():
         'successful-job', 'failed-job', 'test-counter', 'running-job',
         'pending-job', 'completed-job', 'testCounter1'
     ]
-    counter_list = ['testCounter1', 'testCounter2']
-    for counter_name in counter_list:
-        message = ResertCounterMessage(
-            id=counter_name,
-            description='TEST COUNTER',
-            user_code = 'SYSTEM_TEST')
-        counter_repository = CounterRepository()
-        operation_result_message = counter_repository.resert_counter(message)
-        print('Updated:', counter_name)
+    counter_list = ['testCounter1']
+
+    counter_repository = CounterRepository()
+    # for counter_name in counter_list:
+    #     message = ResertCounterMessage(
+    #         id=counter_name,
+    #         description='TEST COUNTER',
+    #         user_code = 'SYSTEM_TEST')
+    #     operation_result_message = counter_repository.resert_counter(message)
+    #     print('Updated:', counter_name)
 
     # print(operation_result_message)
     message = IncrementCounterMessage(
