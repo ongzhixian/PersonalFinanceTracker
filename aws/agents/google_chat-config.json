@@ -1,0 +1,8 @@
+{
+    "secrets": {
+        "file-path": "%APPDATA%/Microsoft/UserSecrets/tech-notes-press/secrets-development.json",
+        "gemini-ai-api-secret-key": "hci_blazer_gemini_api_key",
+        "gemini-model": "gemini-2.0-flash"
+    },
+    "__notes__": {}
+}
