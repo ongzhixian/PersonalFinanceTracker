@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="description" content="UCM" />
+  <meta name="description" content="PFT" />
   <meta name="author" content="Ong Zhi Xian" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>UCM</title>
@@ -31,35 +31,20 @@
 
         <p>Web application for managing user credentials and memberships.</p>
 
+        
+        <p style="color:var(--color5)">Some GENERIC text 1</p>
+        <p style="color:var(--color4)">Some GENERIC text 1</p>
+        <p style="color:var(--color3)">Some GENERIC text 1</p>
+        <p style="color:var(--color2)">Some GENERIC text 1</p>
+        <p style="color:var(--color1)">Some GENERIC text 1</p>
+
+
       </div>
     </div>
 
   </div><!-- END OF TOP-LEVEL CONTAINER -->
 
 <script>
-  let loginHandler, uiHandler;
-  function UiHandler(loginHandler) {
-    
-    this.loginHandler = loginHandler;
-
-    this.refreshDisplay = function() {
-      let hasCredentialJwt = loginHandler.hasCredentialJwt();
-      if (hasCredentialJwt) {
-        // this.updateCredentialTable();
-        // this.contentPanel.classList.remove('hide'); // Show content panel
-        // this.loginPanel.classList.add('hide');      // Hide login panel
-      } else {
-        // this.contentPanel.classList.add('hide');    // Hide content panel
-        // this.loginPanel.classList.remove('hide');   // Show login panel
-      }
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function() {
-      loginHandler = new LoginHandler();
-      uiHandler = new UiHandler(loginHandler);
-      uiHandler.refreshDisplay();
-  });
 
 </script>
 </body>

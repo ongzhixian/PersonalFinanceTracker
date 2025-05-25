@@ -36,7 +36,7 @@ class SiteBanner extends HTMLElement {
         font-weight: 300;
     }
 </style>
-<h1>Test</h1>`;
+<h1>UCM</h1>`;
     }
 
 }

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="description" content="UCM"/>
+    <meta name="author" content="Ong Zhi Xian"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>UCM</title>
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="css/normalize.css"/>
+    <link rel="stylesheet" href="css/skeleton.css"/>
+    <link rel="stylesheet" href="css/site.css"/>
+    <link rel="icon" type="image/png" href="images/favicon.png"/>
+
+    <script src="components/site-banner.js" async defer></script>
+    <script src="components/site-navigation-bar.js" async defer></script>
+    <script src="js/site.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+    <site-banner></site-banner>
+
+    <site-navigation-bar></site-navigation-bar>
+
+    <div class="row">
+
+        <h2>Credentials</h2>
+
+        <section id="credentialTable">
+          <table >
+              <tbody>
+              <tr>
+                  <th>Username</th>
+                  <td>Some username</td>
+              </tr>
+              <tr>
+                  <th>Last logged in</th>
+                  <td>2025</td>
+              </tr>
+              </tbody>
+          </table>
+
+          <p>
+            <button class="button-primary" id="logoutButton">Log out</button> 
+          </p>
+        </section>
+        
+
+        <form id="loginForm">
+            <div class="row">
+                <div class="six columns">
+                    <label for="usernameInput">Username</label>
+                    <input class="u-full-width" type="text" placeholder="Email" id="usernameInput">
+                </div>
+            </div>
+            <div class="row">
+                <div class="six columns">
+                    <label for="passwordInput">Password</label>
+                    <input class="u-full-width" type="password" placeholder="Password" id="passwordInput">
+                </div>
+            </div>
+
+            <input class="button-primary" type="button" value="Validate Credential" id="validateCredentialButton" />
+        </form>
+
+
+    </div>
+
+</div><!-- END OF TOP-LEVEL CONTAINER -->
+
+<script>
+    let loginHandler, uiHandler;
+
+    // Define UI elements
+    // this.validateCredentialButton = document.querySelector("#validateCredentialButton");
+    let pageElements = {
+      credentialTable : document.getElementById("credentialTable"),
+      loginForm : document.getElementById("loginForm"),
+      validateCredentialButton : document.getElementById("validateCredentialButton"),
+      logoutButton : document.getElementById("logoutButton")
+    }
+
+    function UiHandler(loginHandler) {
+
+      this.loginHandler = loginHandler;
+
+      this.validateCredential = function(e) {
+        console.info('Validate credential.');
+        this.loginHandler.storeCredential('SOME-CREDENTIAL');
+        this.refreshDisplay();
+      }
+
+      this.logoutCredentials = function(e) {
+        console.info('Logout.');
+        this.loginHandler.logout();
+        this.refreshDisplay();
+      }
+
+
+      this.setupEventListeners = function() {
+        pageElements.validateCredentialButton.addEventListener('click', (e) => this.validateCredential(e));
+        pageElements.logoutButton.addEventListener('click', (e) => this.logoutCredentials(e));
+      }
+
+      this.credentialTable = function(displayMode) {
+        if (displayMode === 'show') {
+          console.debug('Show -- credentialTable');
+          pageElements.credentialTable.classList.remove('hide');
+        } else {
+          console.debug('Hide -- credentialTable');
+          pageElements.credentialTable.classList.add('hide');
+        }
+      }
+
+      this.loginForm = function(displayMode) {
+        if (displayMode === 'show') {
+          console.debug('Show -- loginForm');
+          pageElements.loginForm.classList.remove('hide');
+        } else {
+          console.debug('Hide -- loginForm');
+          pageElements.loginForm.classList.add('hide');
+        }
+      }
+      
+      this.refreshDisplay = function() {
+        let hasCredentialJwt = loginHandler.hasCredentialJwt();
+        if (hasCredentialJwt) {
+          this.credentialTable('show');
+          this.loginForm('hide');
+        } else {
+          this.credentialTable('hide');
+          this.loginForm('show');
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loginHandler = new LoginHandler();
+        uiHandler = new UiHandler(loginHandler);
+        uiHandler.setupEventListeners();
+        uiHandler.refreshDisplay();
+    });
+
+</script>
+</body>
+</html>

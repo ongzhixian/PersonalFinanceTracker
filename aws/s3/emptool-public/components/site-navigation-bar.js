@@ -36,27 +36,28 @@ class SiteNavigationBar extends HTMLElement {
         font-weight: 300;
     }
     nav {
-        background-color: aliceblue;
+        background-color: #1282a2;
         display: flex;
         justify-items: center;
         justify-content: center;
         gap: 1em;
         padding:1em;
+        margin-bottom:1em;
     }
     nav a {
         padding: 0.8rem 1.6rem;
         border-radius: 1em;
         text-decoration: none;
-        color: orchid;
+        color: #fefcfb;
     }
     nav a:hover {
-        color:blue;
+        color: #fff275;
     }
 </style>
 <nav>
   <div><a href="/">Home</a></div>
-  <div><a href="/page-1.html">Page 1</a></div>
-  <div><a href="/page-2.html">Page 2</a></div>
+  <div><a href="/user-credentials.html">User Credentials</a></div>
+  <div><a href="/memberships.html">Memberships</a></div>
 </nav>`;
     }
 

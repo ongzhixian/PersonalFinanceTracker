@@ -1,2 +1,21 @@
-/* 
-*/
+:root {
+    --color1: #fefcfb;
+    --color2: #1282a2;
+    --color3: #034078;
+    --color4: #001f54;
+    --color5: #0a1128;
+
+    --color6: #fff275;
+    --color7: #ff8c42;
+    --color8: #ff3c38;
+    --color9: #a23e48;
+}
+
+body {
+    background-color: var(--color1);
+    color: var(--color5);
+}
+
+.hide {
+    display: none;
+}

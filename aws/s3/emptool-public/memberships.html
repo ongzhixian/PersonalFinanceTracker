@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="description" content="UCM"/>
+    <meta name="author" content="Ong Zhi Xian"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>UCM</title>
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="css/normalize.css"/>
+    <link rel="stylesheet" href="css/skeleton.css"/>
+    <link rel="stylesheet" href="css/site.css"/>
+    <link rel="icon" type="image/png" href="images/favicon.png"/>
+
+    <script src="components/site-banner.js" async defer></script>
+    <script src="components/site-navigation-bar.js" async defer></script>
+    <script src="js/site.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+    <site-banner></site-banner>
+
+    <site-navigation-bar></site-navigation-bar>
+
+    &nbsp;
+    <h2>Membership list</h2>
+    &nbsp;
+    <table>
+        <caption>Membership list - page 1 of 4</caption>
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Group Name</th>
+            <th>Status</th>
+            <th>Effective Dates</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>1</td>
+            <td>2</td>
+            <td>3</td>
+            <td>4</td>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>2</td>
+            <td>3</td>
+            <td>4</td>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>2</td>
+            <td>3</td>
+            <td>4</td>
+        </tr>
+        </tbody>
+        <tfoot>
+        <tr>
+            <td colspan="4">
+                <div style="display:flex; justify-content: space-between;">
+                    <div class="left">
+                        Page 1 of 4
+                    </div>
+                    <div class="right">
+                        <a href="#">01</a>
+                        <a href="#">02</a>
+                        <a href="#">03</a>
+                        <a href="#">04</a>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        </tfoot>
+    </table>
+
+    <div class="row">
+        <div class="one-half column">
+
+            <p>Page 1</p>
+
+            <!-- The above form looks like this -->
+            <form>
+
+                <div class="row">
+
+                    <div class="six columns">
+                        <label for="textInput">Text</label>
+                        <input class="u-full-width" type="text" placeholder="Some text" id="textInput">
+                    </div>
+
+                    <div class="six columns"></div>
+                </div>
+
+                <input class="button-primary" type="button" value="Submit" id="submitButton">
+            </form>
+
+        </div>
+    </div>
+
+</div><!-- END OF TOP-LEVEL CONTAINER -->
+
+<script>
+    const textInput = document.getElementById('textInput');
+    const submitButton = document.getElementById('submitButton');
+
+    function submitButtonClickHandler(e) {
+      console.log('Entered text', textInput.value);
+    }
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+      // Add event listeners
+      submitButton.addEventListener('click', submitButtonClickHandler);
+    });
+
+</script>
+</body>
+</html>
