@@ -9,4 +9,8 @@ $content = git diff --name-only | ForEach-Object { Join-Path $repo_root_path $_ 
 [System.IO.File]::WriteAllLines($out_file_path, $content, $encoding)
 
 $content = git ls-files --others --exclude-standard --full-name | Where-Object {$_ -notlike "*$diff_file_name*"} | ForEach-Object { Join-Path $repo_root_path $_ }
-[System.IO.File]::AppendAllLines($out_file_path, [string[]]$content, $encoding)
+if ($null -ne $content) {
+    [System.IO.File]::AppendAllLines($out_file_path, [string[]]$content, $encoding)
+}
+
+# python.exe .\shared_note.py
