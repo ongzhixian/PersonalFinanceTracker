@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="description" content="PFT"/>
+    <meta name="author" content="Ong Zhi Xian"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>PFT</title>
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="css/normalize.css"/>
+    <link rel="stylesheet" href="css/skeleton.css"/>
+    <link rel="stylesheet" href="css/site.css"/>
+    <link rel="icon" type="image/png" href="images/favicon.png"/>
+
+    <script src="components/site-banner.js" async defer></script>
+    <script src="components/site-navigation-bar.js" async defer></script>
+    <script src="js/site.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+    <site-banner></site-banner>
+
+    <site-navigation-bar></site-navigation-bar>
+
+    <div class="row">
+
+        <h2>Configurations</h2>
+
+        <div id="json-editor" style="width: 80rem; height: 32rem; border: 1px dashed grey;"></div>
+
+        <section style="margin-top:1rem">
+            <button id="formatButton">Format</button>
+            &nbsp;
+            <button id="saveButton">Save</button>
+            &nbsp;
+            <button id="loadButton">Load</button>
+        </section>
+
+    </div>
+
+</div><!-- END OF TOP-LEVEL CONTAINER -->
+
+<!-- <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
+
+<script>
+    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+        const editor = monaco.editor.create(document.getElementById('json-editor'), {
+            value: '{\n  "name": "Example",\n  "age": 25\n}',
+            language: 'json',
+            theme: 'vs',
+            automaticLayout: true,
+            tabSize: 4,
+            insertSpaces: true,
+            detectIndentation: false
+        });
+
+        document.getElementById('formatButton').addEventListener('click', function() {
+            editor.getAction('editor.action.formatDocument').run();
+        });
+    });
+</script>
+
+<script>
+    const textInput = document.getElementById('textInput');
+    const submitButton = document.getElementById('submitButton');
+
+    function submitButtonClickHandler(e) {
+      console.log('Entered text', textInput.value);
+    }
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+      // Add event listeners
+      submitButton.addEventListener('click', submitButtonClickHandler);
+    });
+
+</script>
+</body>
+</html>
