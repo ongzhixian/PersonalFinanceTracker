@@ -37,13 +37,13 @@ endpoint_response = EndpointResponse()
 
 ## Authentication
 
-@endpoint_url('/ucm/authenticate-ticket', 'POST')
-def post_ucm_authenticate_ticket(event:dict, context):
+@endpoint_url('/ucm/authentication-ticket', 'POST')
+def post_ucm_authentication_ticket(event:dict, context):
     """Authenticate credentials to get an authentication ticket to use with app
     Use case:
         (authentication)
     """
-    dump_api_gateway_event_context(event, context)
+    return dump_api_gateway_event_context(event, context)
 
 
 ## User Credential
@@ -54,7 +54,7 @@ def get_ucm_user_credential(event:dict, context):
     Use case:
         (list user credentials)
     """
-    dump_api_gateway_event_context(event, context)
+    return dump_api_gateway_event_context(event, context)
 
 
 ## Membership
@@ -65,7 +65,7 @@ def get_ucm_membership(event:dict, context):
     Use case:
         (list memberships)
     """
-    dump_api_gateway_event_context(event, context)
+    return dump_api_gateway_event_context(event, context)
 
 
 # from hci_inventory_item import InventoryItemRepository
