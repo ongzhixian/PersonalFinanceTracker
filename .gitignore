@@ -409,3 +409,4 @@ temp-layer/
 aws/diagrams/*.png
 
 *client-key.json
+diff-to-notes-filelist.txt
