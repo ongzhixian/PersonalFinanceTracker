@@ -43,10 +43,10 @@
           </table>
 
           <p>
-            <button class="button-primary" id="logoutButton">Log out</button> 
+            <button class="button-primary" id="logoutButton">Log out</button>
           </p>
         </section>
-        
+
 
         <form id="loginForm">
             <div class="row">
@@ -63,6 +63,7 @@
             </div>
 
             <input class="button-primary" type="button" value="Validate Credential" id="validateCredentialButton" />
+            &nbsp;<a href="login-registration.html">register</a>
         </form>
 
 
@@ -86,9 +87,38 @@
 
       this.loginHandler = loginHandler;
 
-      this.validateCredential = function(e) {
+      this.validateCredential = async function(e) {
         console.info('Validate credential.');
-        this.loginHandler.storeCredential('SOME-CREDENTIAL');
+
+        const endpointUrl = 'https://7pps9elf11.execute-api.us-east-1.amazonaws.com/authentication-ticket';
+
+        const apiRequestHeaders = new Headers();
+        apiRequestHeaders.append("Content-Type", "application/json");
+
+        const usernameInput = pageElements.loginForm.querySelector('#usernameInput')
+        const passwordInput = pageElements.loginForm.querySelector('#passwordInput');
+
+        try {
+          const response = await fetch(endpointUrl, {
+            method: "POST",
+            headers: apiRequestHeaders,
+            body: JSON.stringify({
+              username: usernameInput.value,
+              password: passwordInput.value,
+            })
+          });
+
+          console.log('RECEIVED RESPONSE', response);
+          if (response.ok) {
+            let responseJson = await response.json();
+            console.log('Response JSON:', responseJson);
+            if (responseJson.is_success)
+                this.loginHandler.storeCredential(responseJson.data_object.token);
+          }
+        } catch (error) {
+          console.error(error.message);
+        }
+
         this.refreshDisplay();
       }
 
@@ -97,7 +127,6 @@
         this.loginHandler.logout();
         this.refreshDisplay();
       }
-
 
       this.setupEventListeners = function() {
         pageElements.validateCredentialButton.addEventListener('click', (e) => this.validateCredential(e));
@@ -123,7 +152,7 @@
           pageElements.loginForm.classList.add('hide');
         }
       }
-      
+
       this.refreshDisplay = function() {
         let hasCredentialJwt = loginHandler.hasCredentialJwt();
         if (hasCredentialJwt) {
@@ -136,11 +165,21 @@
       }
     }
 
+
+    function initializeForm() {
+      const usernameInput = pageElements.loginForm.querySelector('#usernameInput')
+      const passwordInput = pageElements.loginForm.querySelector('#passwordInput');
+      usernameInput.value = 'testuser3';
+      passwordInput.value = 'testpass3';
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         loginHandler = new LoginHandler();
         uiHandler = new UiHandler(loginHandler);
         uiHandler.setupEventListeners();
         uiHandler.refreshDisplay();
+
+        initializeForm();
     });
 
 </script>
