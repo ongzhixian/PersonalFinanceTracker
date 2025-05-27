@@ -336,3 +336,18 @@ def test_api():
 if __name__ == '__main__':
     main()
     #test_api()
+
+"""
+# CORS Issues
+	
+Access to fetch at 'https://7pps9elf11.execute-api.us-east-1.amazonaws.com/user-credential' 
+from origin 'http://localhost:9100' has been blocked by CORS policy: 
+Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. 
+If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
+
+FIX:
+In the API Gateway Cross-Origin Resource Sharing (CORS) settings, add:
+Access-Control-Allow-Origin:	'http://localhost:9100'
+Access-Control-Allow-Methods:	'*'
+Access-Control-Allow-Headers:	'content-type', 'authorization'
+"""
