@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="description" content="UCM"/>
+    <meta name="author" content="Ong Zhi Xian"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>UCM</title>
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="css/normalize.css"/>
+    <link rel="stylesheet" href="css/skeleton.css"/>
+    <link rel="stylesheet" href="css/site.css"/>
+    <link rel="icon" type="image/png" href="images/favicon.png"/>
+
+    <script src="components/site-banner.js" async defer></script>
+    <script src="components/site-navigation-bar.js" async defer></script>
+    <script src="js/site.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+    <site-banner></site-banner>
+
+    <site-navigation-bar></site-navigation-bar>
+
+    <div class="row">
+
+        <h2></h2>
+
+        <form id="loginRegistrationForm">
+            <div class="row">
+                <div class="six columns">
+                    <label for="usernameInput">Username</label>
+                    <input class="u-full-width" type="text" placeholder="Username (email)" id="usernameInput" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="six columns">
+                    <label for="passwordInput">Password</label>
+                    <input class="u-full-width" type="password" placeholder="Password" id="passwordInput" />
+                </div>
+            </div>
+
+            <input class="button-primary" type="button" value="Register" id="registerButton" />
+        </form>
+
+
+    </div>
+
+</div><!-- END OF TOP-LEVEL CONTAINER -->
+
+<script>
+    let loginHandler, uiHandler;
+
+    // Define UI elements
+    let page = {
+      loginRegistrationForm : document.getElementById("loginRegistrationForm"),
+      registerButton : document.getElementById("registerButton"),
+    }
+
+    function UiHandler(loginHandler) {
+
+      this.loginHandler = loginHandler;
+
+      this.registerLogin = async function(e) {
+        console.warn('TODO registerLogin.');
+        const endpointUrl = 'https://7pps9elf11.execute-api.us-east-1.amazonaws.com/user-credential';
+
+        const apiRequestHeaders = new Headers();
+        apiRequestHeaders.append("Content-Type", "application/json");
+        apiRequestHeaders.append("Authorization", "SIMPLE SOME_AUTH_TOKEN");
+
+        const usernameInput = page.loginRegistrationForm.querySelector('#usernameInput')
+        const passwordInput = page.loginRegistrationForm.querySelector('#passwordInput');
+
+        try {
+          const response = await fetch(endpointUrl, {
+            method: "POST",
+            headers: apiRequestHeaders,
+            body: JSON.stringify({
+              username: usernameInput.value,
+              password: passwordInput.value,
+            })
+          });
+
+          console.log('RECEIVED RESPONSE', response);
+          if (response.ok) {
+           let responseJson = await response.json();
+           console.log('Response JSON:', responseJson);
+          }
+        } catch (error) {
+          console.error(error.message);
+        }
+        
+        //this.loginHandler.storeCredential('SOME-CREDENTIAL');
+        this.refreshDisplay();
+      }
+
+      this.setupEventListeners = function() {
+        page.registerButton.addEventListener('click', (e) => this.registerLogin(e));
+      }
+
+      this.loginRegistrationForm = function(displayMode) {
+        if (displayMode === 'show') {
+          console.debug('Show -- loginForm');
+          page.loginForm.classList.remove('hide');
+        } else {
+          console.debug('Hide -- loginForm');
+          page.loginForm.classList.add('hide');
+        }
+      }
+      
+      this.refreshDisplay = function() {
+      }
+    }
+
+    function initializeForm() {
+      const usernameInput = page.loginRegistrationForm.querySelector('#usernameInput')
+      const passwordInput = page.loginRegistrationForm.querySelector('#passwordInput');
+      usernameInput.value = 'testuser4';
+      passwordInput.value = 'testpass4';
+      
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loginHandler = new LoginHandler();
+        uiHandler = new UiHandler(loginHandler);
+        uiHandler.setupEventListeners();
+        uiHandler.refreshDisplay();
+
+        initializeForm();
+    });
+
+</script>
+</body>
+</html>
