@@ -60,12 +60,18 @@ class EndpointResponse(object):
     def __init__(self):
         self.HTTP_OK_CODE = 200
         self.HTTP_BAD_REQUEST_CODE = 400
+        self.HTTP_FORBIDDEN = 401
 
     # def response(self, http_code:int, body_text:str) -> dict:
     #     return {
     #         'statusCode': http_code,
     #         'body': json.dumps(body_text)
     #     }
+
+    def forbidden(self) -> dict:
+        return ResponseMessage(
+            self.HTTP_FORBIDDEN,
+            body='').to_dict()
 
     def bad_request(self, text_message:str) -> dict:
         return ResponseMessage(
@@ -92,12 +98,12 @@ class EventBodyJson(object):
             data_object (dict|none): Data object result of parsing event object
             error_message (str|none): An error message to indicate where parsing failed
         """
-        self.DataObject = data_object
-        self.ErrorMessage = error_message
-        self.is_invalid = self.DataObject is None
+        self.data_object = data_object
+        self.error_message = error_message
+        self.is_invalid = self.data_object is None
 
     def __str__(self):
-        return f"is_invalid:{not self.is_invalid}, ErrorMessage:{self.ErrorMessage}, DataObject:{self.DataObject}"
+        return f"is_invalid:{self.is_invalid}, ErrorMessage:{self.error_message}, DataObject:{self.data_object}"
 
     @staticmethod
     def get_event_body_json(event: dict):
@@ -113,6 +119,36 @@ class EventBodyJson(object):
             return EventBodyJson(data_object=json.loads(event['body']))
         except json.decoder.JSONDecodeError:
             return EventBodyJson(error_message='`body` is invalid json')
+
+
+class EventHeadersJson(object):
+    def __init__(self, data_object: dict | None = None):
+        self.data_object = data_object
+
+    @staticmethod
+    def get_event_headers_json(event: dict):
+        """Parses an API Gateway event object to return EventJsonBody
+        Args:
+            event (dict): Event object received from API Gateway
+        Returns:
+            EventHeadersJson: Result from parsing event arg
+        """
+        if 'headers' not in event:
+            return EventHeadersJson(error_message='`headers` not found in context')
+        try:
+            return EventHeadersJson(data_object=json.loads(event['headers']))
+        except json.decoder.JSONDecodeError:
+            return EventHeadersJson(error_message='`headers` is invalid json')
+
+    def get_authorization_header(event):
+        if 'headers' not in event:
+            return None
+        try:
+            json_obj = json.loads(event['headers'])
+            return json_obj['authorization'] if 'authorization' in json_obj else None
+        except json.decoder.JSONDecodeError:
+            return None
+
 
 
 # Example
