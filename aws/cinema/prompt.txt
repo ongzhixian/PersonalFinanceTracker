@@ -1,0 +1,38 @@
+Design
+
+Object: Write a cinema booking management application in Python.
+
+When application start, it should prompt user for input movie title and seating map.
+Input should be in in the format of [Title] [Row] [SeatsPerRow] format.
+The max number of rows is 26 (A to Z with A being furthest from screen.
+The max number of seats per row is 50.
+Example of input is:
+```
+Please define movie title and seat map in [Title] [Row] [SeatsPerRow] format
+> Inception 8 10
+```
+
+
+
+After entering the required input, application should display main menu in the following format:
+```
+Welcome
+[1] Book tickets for Inception (80 seats available)
+[2] Check bookings
+[3] Exit
+Please enter your selection:
+>
+```
+
+Workflow for booking tickets:
+1. User input desired number of tickets to book.
+2. If there are insufficient seats, prompt user for input again.
+3. After seats are allocated, a booking id should be generated displayed along with number of tickets booked and a seating map showing default selected seats. Seating map should differentiate seats currently booked
+from existing bookings.
+
+Seats allocation follow these rules:
+1. Start from furthest row from screen.
+2. Start from middle-most column.
+3. When a row cannot accomodate number of tickets, it should overflow to the next row closer to screen.
+
+Generate unit tests for all code.
