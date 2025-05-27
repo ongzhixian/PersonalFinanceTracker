@@ -5,21 +5,19 @@ Sections:
     END-POINT RELATED STUFF
     END POINTS
 """
-import json
-from os import environ
 
 from shared_lambda import (
     endpoint_url,
     dump_api_gateway_event_context,
     EndpointResponse,
-    EventBodyJson)
-
-# from hci_decorators import endpoint_url, dump_api_gateway_event_context
-# from hci_messages import HciMessageService
-# from hci_message_queues import HciMessageQueue
-
-# hci_message_service = HciMessageService()
-# hci_message_queue = HciMessageQueue()
+    EventBodyJson,
+    EventHeadersJson)
+from shared_messages import OperationResultMessage
+from shared_user_credential_messages import AddUserCredentialMessage, AuthenticateUserCredentialMessage
+from shared_user_credential import UserCredentialRepository
+from shared_configuration import ConfigurationRepository
+from utility_types import TokenUtility
+from shared_token_service import SharedTokenService
 
 # AWS PROFILE SETUP
 
@@ -30,12 +28,33 @@ from shared_lambda import (
 
 # GENERAL HTTP-RELATED STUFF
 
-endpoint_response = EndpointResponse()
-
-
 # END POINTS
 
+endpoint_response = EndpointResponse()
+
+shared_token_service = SharedTokenService()
+
 ## Authentication
+
+# def generate_token():
+#     configuration_repository = ConfigurationRepository()
+#     operation_result_message = configuration_repository.get_configuration('UCM_SECRETS')
+#     if 'content' not in operation_result_message.data_object: return None
+#     content = operation_result_message.data_object['content']
+#
+#     if 'authentication_token' not in content: return None
+#     authentication_token = content['authentication_token']
+#
+#     if 'value' not in authentication_token: return None
+#     secret_key =  authentication_token['value']
+#     token_utility = TokenUtility(secret_key)
+#     new_token = token_utility.generate_token(60 * 60)
+#     return new_token
+#
+# class SharedTokenService(object):
+#     def __init__(self):
+#         pass
+
 
 @endpoint_url('/ucm/authentication-ticket', 'POST')
 def post_ucm_authentication_ticket(event:dict, context):
@@ -43,7 +62,35 @@ def post_ucm_authentication_ticket(event:dict, context):
     Use case:
         (authentication)
     """
-    return dump_api_gateway_event_context(event, context)
+    dump_api_gateway_event_context(event, context)
+
+    # Validation
+
+    # EventHeadersJson.get_event_headers_json(event)
+    authorization_header = EventHeadersJson.get_authorization_header(event)
+    if authorization_header is None:
+        return endpoint_response.forbidden()
+
+    event_body_json = EventBodyJson.get_event_body_json(event)
+    if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
+
+    authenticate_user_credential_message = AuthenticateUserCredentialMessage.create_from_dict(event_body_json.data_object)
+    if authenticate_user_credential_message is None: return endpoint_response.bad_request('Invalid authenticate user credential message')
+
+    # Repository action
+
+    repository = UserCredentialRepository()
+    operation_result_message = repository.authenticate_user_credential(authenticate_user_credential_message)
+
+    return_message = f'{authenticate_user_credential_message.username} added successfully' if operation_result_message.is_success else f'{authenticate_user_credential_message.username} fail to add'
+
+    token = shared_token_service.generate_token()
+    return endpoint_response.data(OperationResultMessage(
+        operation_is_successful=operation_result_message.is_success,
+        message=return_message,
+        data_object={
+            'token' : token
+        }))
 
 
 ## User Credential
@@ -56,6 +103,45 @@ def get_ucm_user_credential(event:dict, context):
     """
     return dump_api_gateway_event_context(event, context)
 
+@endpoint_url('/ucm/user-credential', 'POST')
+def post_ucm_user_credential(event:dict, context):
+    """Create user credentials if validation passes
+    Use case:
+        (create user credential)
+    """
+    dump_api_gateway_event_context(event, context)
+
+    # Validation
+
+    authorization_header = None
+    if 'headers' in event:
+        headers = event['headers']
+        if 'authorization' in headers:
+            authorization_header = headers['authorization']
+
+    event_body_json = EventBodyJson.get_event_body_json(event)
+    if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
+
+    add_user_credential_message = AddUserCredentialMessage.create_from_dict(event_body_json.data_object)
+    if add_user_credential_message is None: return endpoint_response.bad_request('Invalid add user credential message')
+
+    # Repository action
+
+    repository = UserCredentialRepository()
+    operation_result = repository.add_user_credential(add_user_credential_message)
+
+    return_message = f'{add_user_credential_message.username} added successfully' if operation_result.is_success else f'{add_user_credential_message.username} fail to add'
+    return endpoint_response.ok(operation_result.is_success, return_message)
+
+    # operation_result_message = OperationResultMessage(
+    #     operation_is_successful=True,
+    #     message='User credential added.',
+    #     data_object= {
+    #         'username': 'simu',
+    #         'status': 'ok'
+    #     })
+    # return endpoint_response.data(operation_result_message)
+
 
 ## Membership
 
@@ -66,6 +152,20 @@ def get_ucm_membership(event:dict, context):
         (list memberships)
     """
     return dump_api_gateway_event_context(event, context)
+
+
+
+## Configuration
+
+@endpoint_url('/ucm/configuration', 'GET')
+def get_ucm_configuration(event:dict, context):
+    """Get configuration
+    Use case:
+        (get configuration)
+    """
+    return dump_api_gateway_event_context(event, context)
+
+
 
 
 # from hci_inventory_item import InventoryItemRepository
