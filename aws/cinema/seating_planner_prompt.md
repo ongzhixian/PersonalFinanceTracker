@@ -1,3 +1,37 @@
+Given:
+
+```shared_data_models.py
+from dataclasses import dataclass, field
+from typing import List, Tuple
+
+@dataclass
+class Seat:
+    """
+    Represents a single seat in the seating plan.
+    'O' for available, 'X' for booked, 'P' for proposed.
+    """
+    row: int
+    col: int
+    status: str = 'O'
+
+@dataclass
+class ProposedBooking:
+    """
+    Represents a temporary proposed booking with a unique ID and the seats involved.
+    """
+    booking_id: str
+    seats: List[Tuple[int, int]] = field(default_factory=list)
+
+@dataclass
+class SeatingPlan:
+    """
+    Represents the complete seating plan with a title and the seat statuses.
+    """
+    title: str
+    plan: List[List[str]]
+```
+
+```seating_planner.py
 import uuid
 from typing import List, Tuple, Dict, Optional
 from shared_data_models import Seat, ProposedBooking, SeatingPlan # Import SeatingPlan
@@ -29,11 +63,10 @@ class SeatingPlanner:
     def get_seating_plan(self) -> SeatingPlan: # Modified return type
         """
         Returns the current state of the seating plan as a SeatingPlan dataclass.
-        'O' for available, 'X' for booked. Includes the count of available seats.
+        'O' for available, 'X' for booked.
         """
         current_plan_status = [[seat.status for seat in row] for row in self._seating_plan]
-        available_count = sum(row.count('O') for row in current_plan_status)
-        return SeatingPlan(title=self.title, plan=current_plan_status, available_seats_count=available_count)
+        return SeatingPlan(title=self.title, plan=current_plan_status)
 
     def get_proposed_seating_plan(self, number_of_seats: int, start_seat: Optional[Tuple[int, int]] = None) -> Tuple[
             str, List[List[str]]]:
@@ -129,3 +162,9 @@ class SeatingPlanner:
             del self._proposed_bookings[booking_id]
             return True
         return False
+```
+
+Modify the SeatingPlan class someway that indicates number of available seats for booking in the seating plan.
+
+Code should have typing and follow SOLID principles.
+Write unit tests for code in a separate file.

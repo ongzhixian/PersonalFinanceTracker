@@ -1,3 +1,6 @@
+Given the following Python code:
+
+```shared_data_models.py
 # console_ui.py
 from typing import List, Tuple, Dict, Any
 from shared_data_models import SeatingPlan # Import SeatingPlan
@@ -52,13 +55,11 @@ class ConsoleUi:
             except IndexError:
                 print("Invalid format. Please ensure you provide a title, number of rows, and seats per row.")
 
-    def menu_prompt(self, seating_plan: SeatingPlan) -> int:
+    def menu_prompt(self, movie_title: str, available_seats: int, seating_plan: List[List[str]]) -> int:
         """
         Displays the main menu and prompts the user for their selection.
         Includes movie title and available seats in the booking option.
         """
-        movie_title: str = seating_plan.title
-        available_seats: int = seating_plan.available_seats_count
         print("\nWelcome")
         print(f"1. Book tickets for {movie_title} ({available_seats} seats available)")
         print("2. Check bookings")
@@ -155,3 +156,11 @@ class ConsoleUi:
         Displays a generic message to the user.
         """
         print(f"\n{message}")
+```
+
+Modify the menu_prompt function to :
+
+menu_prompt(self, seating_plan: SeatingPlan) -> int:
+
+Code should have typing and follow SOLID principles.
+Write unit tests for code in a separate file.
