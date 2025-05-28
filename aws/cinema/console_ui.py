@@ -1,4 +1,3 @@
-# console_ui.py
 from typing import List, Tuple, Dict, Any
 from shared_data_models import SeatingPlan # Import SeatingPlan
 
@@ -149,6 +148,14 @@ class ConsoleUi:
         response: str = input(
             "Confirm booking? (type 'confirm' to accept, or press Enter to decline and try again): ").strip().lower()
         return response
+
+    def booking_id_prompt(self) -> str:
+        """
+        Prompts the user for a booking ID.
+        Returns the user's input.
+        """
+        booking_id: str = input("\nEnter booking id, or enter blank to go back to main menu:\n> ").strip()
+        return booking_id
 
     def display_message(self, message: str) -> None:
         """

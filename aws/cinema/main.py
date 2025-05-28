@@ -15,7 +15,7 @@ def main():
     seating_planner = SeatingPlanner(title, number_of_rows, seats_per_row)
     while True:
         seating_plan = seating_planner.get_seating_plan()
-        console_ui.display_seating_map(seating_plan)
+        #console_ui.display_seating_map(seating_plan)
         user_selection = console_ui.menu_prompt(seating_plan)
 
         if user_selection == 1:
@@ -30,8 +30,10 @@ def main():
                 if response == '':
                     break
         if user_selection == 2:
-            confirmed_booking_map = seating_planner.get_seating_plan()
-            console_ui.display_seating_map(confirmed_booking_map)
+            booking_id = console_ui.booking_id_prompt()
+            if len(booking_id.strip()) > 0:
+                seating_plan = seating_planner.get_seating_plan(booking_id)
+                console_ui.display_seating_map(seating_plan)
         if user_selection == 3:
             exit(0)
 

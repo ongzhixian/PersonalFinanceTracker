@@ -26,9 +26,11 @@ class ProposedBooking:
 class SeatingPlan:
     """
     Represents the complete seating plan with a title and the seat statuses.
+    Includes the number of available seats.
     """
     title: str
     plan: List[List[str]]
+    available_seats_count: int
 ```
 
 ```seating_planner.py
@@ -63,10 +65,11 @@ class SeatingPlanner:
     def get_seating_plan(self) -> SeatingPlan: # Modified return type
         """
         Returns the current state of the seating plan as a SeatingPlan dataclass.
-        'O' for available, 'X' for booked.
+        'O' for available, 'X' for booked. Includes the count of available seats.
         """
         current_plan_status = [[seat.status for seat in row] for row in self._seating_plan]
-        return SeatingPlan(title=self.title, plan=current_plan_status)
+        available_count = sum(row.count('O') for row in current_plan_status)
+        return SeatingPlan(title=self.title, plan=current_plan_status, available_seats_count=available_count)
 
     def get_proposed_seating_plan(self, number_of_seats: int, start_seat: Optional[Tuple[int, int]] = None) -> Tuple[
             str, List[List[str]]]:
@@ -164,7 +167,13 @@ class SeatingPlanner:
         return False
 ```
 
-Modify the SeatingPlan class someway that indicates number of available seats for booking in the seating plan.
+Modify the get_seating_plan function as follows:
+
+def get_seating_plan(self, booking_id:str|None = None) -> SeatingPlan
+
+If booking_id is None, return SeatingPlan that shows available and booked seats.
+
+If booking_id is defined, return SeatingPlan that shows available and booked seats and seats belonging to booking_id.
 
 Code should have typing and follow SOLID principles.
 Write unit tests for code in a separate file.

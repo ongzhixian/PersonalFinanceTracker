@@ -1,6 +1,8 @@
+# seating_planner.py
 import uuid
 from typing import List, Tuple, Dict, Optional
-from shared_data_models import Seat, ProposedBooking, SeatingPlan # Import SeatingPlan
+from shared_data_models import Seat, ProposedBooking, SeatingPlan
+
 
 class SeatingPlanner:
     """
@@ -26,17 +28,30 @@ class SeatingPlanner:
         ]
         self._proposed_bookings: Dict[str, ProposedBooking] = {}  # Stores ProposedBooking objects by booking_id
 
-    def get_seating_plan(self) -> SeatingPlan: # Modified return type
+    def get_seating_plan(self, booking_id: str | None = None) -> SeatingPlan:
         """
         Returns the current state of the seating plan as a SeatingPlan dataclass.
-        'O' for available, 'X' for booked. Includes the count of available seats.
+        'O' for available, 'X' for booked. If booking_id is provided,
+        seats for that proposed booking are marked as 'P'. Includes the count of available seats.
         """
-        current_plan_status = [[seat.status for seat in row] for row in self._seating_plan]
+        current_plan_status = self._get_current_seating_plan_status_map()
         available_count = sum(row.count('O') for row in current_plan_status)
+
+        if booking_id:
+            if booking_id not in self._proposed_bookings:
+                raise ValueError(f"Booking ID '{booking_id}' not found in proposed bookings.")
+
+            proposed_booking = self._proposed_bookings[booking_id]
+            # Create a copy to mark 'P' without affecting the actual proposed map in _seating_plan
+            plan_with_proposed = [row[:] for row in current_plan_status]
+            for r, c in proposed_booking.seats:
+                plan_with_proposed[r][c] = 'P'
+            return SeatingPlan(title=self.title, plan=plan_with_proposed, available_seats_count=available_count)
+
         return SeatingPlan(title=self.title, plan=current_plan_status, available_seats_count=available_count)
 
     def get_proposed_seating_plan(self, number_of_seats: int, start_seat: Optional[Tuple[int, int]] = None) -> Tuple[
-            str, List[List[str]]]:
+        str, List[List[str]]]:
         """
         Proposes a seating arrangement for the given number of seats.
         Attempts to find consecutive seats. If start_seat is provided,
@@ -49,7 +64,7 @@ class SeatingPlanner:
         if number_of_seats <= 0:
             raise ValueError("Number of seats must be a positive integer.")
 
-        proposed_map = self._get_current_seating_plan_status_map() # Get a fresh status map
+        proposed_map = self._get_current_seating_plan_status_map()  # Get a fresh status map
         booked_seat_coords: List[Tuple[int, int]] = []
         booking_id = str(uuid.uuid4())  # Generate a unique ID for the proposed booking
 
@@ -58,7 +73,8 @@ class SeatingPlanner:
             start_row, start_col = start_seat
             if 0 <= start_row < self.num_rows and 0 <= start_col < self.seats_per_row:
                 if self._check_and_mark_seats(proposed_map, start_row, start_col, number_of_seats, booked_seat_coords):
-                    self._proposed_bookings[booking_id] = ProposedBooking(booking_id=booking_id, seats=booked_seat_coords)
+                    self._proposed_bookings[booking_id] = ProposedBooking(booking_id=booking_id,
+                                                                          seats=booked_seat_coords)
                     return booking_id, proposed_map
             return "", []  # Could not book from start_seat
         else:
@@ -67,7 +83,8 @@ class SeatingPlanner:
                 for c in range(self.seats_per_row - number_of_seats + 1):
                     booked_seat_coords.clear()  # Clear for new attempt
                     if self._check_and_mark_seats(proposed_map, r, c, number_of_seats, booked_seat_coords):
-                        self._proposed_bookings[booking_id] = ProposedBooking(booking_id=booking_id, seats=booked_seat_coords)
+                        self._proposed_bookings[booking_id] = ProposedBooking(booking_id=booking_id,
+                                                                              seats=booked_seat_coords)
                         return booking_id, proposed_map
             return "", []  # No consecutive seats found
 
@@ -78,7 +95,7 @@ class SeatingPlanner:
         return [[seat.status for seat in row] for row in self._seating_plan]
 
     def _check_and_mark_seats(self, current_map: List[List[str]], start_row: int, start_col: int,
-                                  num_seats: int, booked_seats_list: List[Tuple[int, int]]) -> bool:
+                              num_seats: int, booked_seats_list: List[Tuple[int, int]]) -> bool:
         """
         Helper method to check availability and mark seats in a proposed map.
         Marks seats as 'P' (Proposed).
@@ -86,7 +103,7 @@ class SeatingPlanner:
         for i in range(num_seats):
             col_to_check = start_col + i
             if not (0 <= start_row < self.num_rows and 0 <= col_to_check < self.seats_per_row) or \
-                    self._seating_plan[start_row][col_to_check].status == 'X': # Check actual seating plan status
+                    self._seating_plan[start_row][col_to_check].status == 'X':  # Check actual seating plan status
                 return False  # Seat is out of bounds or already taken in the real plan
             current_map[start_row][col_to_check] = 'P'  # Mark as proposed in the proposed map
             booked_seats_list.append((start_row, col_to_check))
@@ -107,7 +124,7 @@ class SeatingPlanner:
         # Verify all proposed seats are still available ('O') in the actual plan
         for r, c in seats_to_book:
             if not (0 <= r < self.num_rows and 0 <= c < self.seats_per_row) or \
-               self._seating_plan[r][c].status == 'X':
+                    self._seating_plan[r][c].status == 'X':
                 # Some seats were taken while proposal was being considered or invalid
                 del self._proposed_bookings[booking_id]
                 return False
