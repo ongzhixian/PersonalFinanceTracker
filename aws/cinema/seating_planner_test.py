@@ -5,6 +5,113 @@ from console_ui import ConsoleUi
 from seating_planner import SeatingPlanner
 import main  # Import main to test the main function
 
+class TestSeatingPlanner(unittest.TestCase):
+
+    def setUp(self):
+        self.planner = SeatingPlanner("Test Event", 3, 5)  # 3 rows, 5 seats per row
+
+    def test_initialization(self):
+        self.assertEqual(self.planner.title, "Test Event")
+        self.assertEqual(self.planner.num_rows, 3)
+        self.assertEqual(self.planner.seats_per_row, 5)
+        expected_plan = [['O', 'O', 'O', 'O', 'O'],
+                         ['O', 'O', 'O', 'O', 'O'],
+                         ['O', 'O', 'O', 'O', 'O']]
+        self.assertEqual(self.planner.get_seating_plan(), expected_plan)
+        self.assertEqual(self.planner._proposed_bookings, {})
+
+    def test_initialization_invalid_inputs(self):
+        with self.assertRaises(ValueError):
+            SeatingPlanner("", 3, 5)
+        with self.assertRaises(ValueError):
+            SeatingPlanner("Test", 0, 5)
+        with self.assertRaises(ValueError):
+            SeatingPlanner("Test", 3, -1)
+
+    def test_get_seating_plan(self):
+        plan = self.planner.get_seating_plan()
+        self.assertEqual(len(plan), 3)
+        self.assertEqual(len(plan[0]), 5)
+        self.assertEqual(plan[0][0], 'O')
+
+    def test_get_proposed_seating_plan_success(self):
+        booking_id, proposed_map = self.planner.get_proposed_seating_plan(2)
+        self.assertIsNotNone(booking_id)
+        self.assertEqual(proposed_map[0][0], 'P')
+        self.assertEqual(proposed_map[0][1], 'P')
+        self.assertIn(booking_id, self.planner._proposed_bookings)
+        self.assertEqual(len(self.planner._proposed_bookings[booking_id]), 2)
+
+    def test_get_proposed_seating_plan_no_space(self):
+        # Book all seats in the first row
+        for i in range(5):
+            self.planner._seating_plan[0][i] = 'X'
+
+        # Try to book 5 seats, should not find in first row
+        booking_id, proposed_map = self.planner.get_proposed_seating_plan(5)
+        self.assertIsNotNone(booking_id)  # Should find in the second row
+        self.assertEqual(proposed_map[1][0], 'P')
+        self.assertEqual(proposed_map[1][4], 'P')
+        self.assertIn(booking_id, self.planner._proposed_bookings)
+
+        # Try to book more seats than available in a row
+        booking_id, proposed_map = self.planner.get_proposed_seating_plan(6)
+        self.assertEqual(booking_id, "")
+        self.assertEqual(proposed_map, [])
+
+        # Book all seats
+        for r in range(3):
+            for c in range(5):
+                self.planner._seating_plan[r][c] = 'X'
+        booking_id, proposed_map = self.planner.get_proposed_seating_plan(1)
+        self.assertEqual(booking_id, "")
+        self.assertEqual(proposed_map, [])
+
+    def test_get_proposed_seating_plan_with_start_seat_success(self):
+        booking_id, proposed_map = self.planner.get_proposed_seating_plan(2, start_seat=(1, 2))
+        self.assertIsNotNone(booking_id)
+        self.assertEqual(proposed_map[1][2], 'P')
+        self.assertEqual(proposed_map[1][3], 'P')
+
+    def test_get_proposed_seating_plan_with_start_seat_fail(self):
+        # Book a seat to block the proposed start
+        self.planner._seating_plan[1][3] = 'X'
+        booking_id, proposed_map = self.planner.get_proposed_seating_plan(2, start_seat=(1, 2))
+        self.assertEqual(booking_id, "")
+        self.assertEqual(proposed_map, [])
+
+        # Start seat out of bounds
+        booking_id, proposed_map = self.planner.get_proposed_seating_plan(1, start_seat=(9, 9))
+        self.assertEqual(booking_id, "")
+        self.assertEqual(proposed_map, [])
+
+    def test_confirm_proposed_seating_map_success(self):
+        booking_id, proposed_map = self.planner.get_proposed_seating_plan(2)
+        initial_plan = self.planner.get_seating_plan()
+
+        confirmed = self.planner.confirm_proposed_seating_map(booking_id, proposed_map)
+        self.assertTrue(confirmed)
+        self.assertEqual(self.planner._seating_plan[0][0], 'X')
+        self.assertEqual(self.planner._seating_plan[0][1], 'X')
+        self.assertNotIn(booking_id, self.planner._proposed_bookings)
+
+    def test_confirm_proposed_seating_map_invalid_id(self):
+        proposed_map = self.planner.get_seating_plan()  # Dummy map
+        confirmed = self.planner.confirm_proposed_seating_map("non-existent-id", proposed_map)
+        self.assertFalse(confirmed)
+
+    def test_confirm_proposed_seating_map_conflict(self):
+        booking_id, proposed_map = self.planner.get_proposed_seating_plan(2)
+        # Simulate another booking taking one of the proposed seats
+        self.planner._seating_plan[0][0] = 'X'
+
+        confirmed = self.planner.confirm_proposed_seating_map(booking_id, proposed_map)
+        self.assertFalse(confirmed)
+        # Assert that the actual seating plan is not changed by the failed confirmation
+        self.assertEqual(self.planner._seating_plan[0][0], 'X')
+        self.assertEqual(self.planner._seating_plan[0][1], 'O')  # Should remain 'O'
+        self.assertNotIn(booking_id, self.planner._proposed_bookings)  # Should be removed
+
 
 # Unit test for the main function
 class TestMainFunction(unittest.TestCase):
