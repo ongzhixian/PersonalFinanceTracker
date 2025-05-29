@@ -1,8 +1,7 @@
-# seating_planner.py
 import uuid
+import string
 from typing import List, Tuple, Dict, Optional
 from shared_data_models import Seat, ProposedBooking, SeatingPlan
-
 
 class SeatingPlanner:
     """
@@ -22,127 +21,140 @@ class SeatingPlanner:
         self.title: str = title
         self.num_rows: int = num_rows
         self.seats_per_row: int = seats_per_row
-        # Initialize seating plan with 'O' for available seats using Seat objects
         self._seating_plan: List[List[Seat]] = [
             [Seat(r, c, 'O') for c in range(self.seats_per_row)] for r in range(self.num_rows)
         ]
-        self._proposed_bookings: Dict[str, ProposedBooking] = {}  # Stores ProposedBooking objects by booking_id
+        self._confirmed_bookings: Dict[str, List[Tuple[int, int]]] = {}  # booking_id -> list of (row, col)
 
-    def get_seating_plan(self, booking_id: str | None = None) -> SeatingPlan:
+    def get_seating_plan(self, booking_id: Optional[str] = None) -> SeatingPlan:
         """
         Returns the current state of the seating plan as a SeatingPlan dataclass.
-        'O' for available, 'X' for booked. If booking_id is provided,
-        seats for that proposed booking are marked as 'P'. Includes the count of available seats.
+        If booking_id is provided, seats for that booking are marked as 'P'.
         """
-        current_plan_status = self._get_current_seating_plan_status_map()
+        current_plan_status = [[seat.status for seat in row] for row in self._seating_plan]
         available_count = sum(row.count('O') for row in current_plan_status)
 
         if booking_id:
-            if booking_id not in self._proposed_bookings:
-                raise ValueError(f"Booking ID '{booking_id}' not found in proposed bookings.")
-
-            proposed_booking = self._proposed_bookings[booking_id]
-            # Create a copy to mark 'P' without affecting the actual proposed map in _seating_plan
+            if booking_id not in self._confirmed_bookings:
+                raise ValueError(f"Booking ID '{booking_id}' not found in confirmed bookings.")
             plan_with_proposed = [row[:] for row in current_plan_status]
-            for r, c in proposed_booking.seats:
-                plan_with_proposed[r][c] = 'P'
+            for r, c in self._confirmed_bookings[booking_id]:
+                # Only mark as 'P' if not already booked (should not happen, but for safety)
+                if plan_with_proposed[r][c] == 'X':
+                    plan_with_proposed[r][c] = 'P'
             return SeatingPlan(title=self.title, plan=plan_with_proposed, available_seats_count=available_count)
 
         return SeatingPlan(title=self.title, plan=current_plan_status, available_seats_count=available_count)
 
-    def get_proposed_seating_plan(self, number_of_seats: int, start_seat: Optional[Tuple[int, int]] = None) -> Tuple[
-        str, List[List[str]]]:
-        """
-        Proposes a seating arrangement for the given number of seats.
-        Attempts to find consecutive seats. If start_seat is provided,
-        it attempts to book from there. Otherwise, it finds the first
-        available block.
+    def _seat_label_to_indices(self, seat_label: str) -> Tuple[int, int]:
+        if not seat_label or len(seat_label) < 2:
+            raise ValueError("Invalid seat label format.")
+        row_char = seat_label[0].upper()
+        if row_char not in string.ascii_uppercase:
+            raise ValueError("Invalid row character in seat label.")
+        row = ord(row_char) - ord('A')
+        try:
+            col = int(seat_label[1:]) - 1
+        except ValueError:
+            raise ValueError("Invalid column number in seat label.")
+        if not (0 <= row < self.num_rows and 0 <= col < self.seats_per_row):
+            raise ValueError("Seat label out of range.")
+        return row, col
 
-        Returns a tuple of (booking_id, proposed_seating_map).
-        If no seats can be found, an empty string and an empty list are returned for the map.
+    def _find_centermost_available_seats(self, row: int, num_seats: int) -> List[Tuple[int, int]]:
+        available = [c for c, seat in enumerate(self._seating_plan[row]) if seat.status == 'O']
+        if len(available) < num_seats:
+            return []
+        center = self.seats_per_row // 2
+        best_block = None
+        min_dist = None
+        for i in range(len(available) - num_seats + 1):
+            block = available[i:i+num_seats]
+            block_center = sum(block) / num_seats
+            dist = abs(block_center - center)
+            if min_dist is None or dist < min_dist:
+                min_dist = dist
+                best_block = block
+        if best_block is not None:
+            return [(row, c) for c in best_block]
+        return []
+
+    def book_seats(self, number_of_seats: int, start_seat: Optional[str] = None) -> str:
+        """
+        Book seats on seating plan.
+
+        Args:
+            number_of_seats (int): number of seats to book on seating plan
+            start_seat (str|None): If start_seat is not given, book centermost available seats in each row
+                                   starting from the furthest from the screen. If given, start booking from
+                                   start_seat, moving right in the same row, then continue as above if needed.
+
+        Returns:
+            booking_id (str): Booking id for the group of seats booked.
         """
         if number_of_seats <= 0:
             raise ValueError("Number of seats must be a positive integer.")
 
-        proposed_map = self._get_current_seating_plan_status_map()  # Get a fresh status map
-        booked_seat_coords: List[Tuple[int, int]] = []
-        booking_id = str(uuid.uuid4())  # Generate a unique ID for the proposed booking
+        seats_to_book: List[Tuple[int, int]] = []
+        rows_order = list(range(self.num_rows - 1, -1, -1))  # Furthest from screen first
 
         if start_seat:
-            # Attempt to book from a specific start seat
-            start_row, start_col = start_seat
-            if 0 <= start_row < self.num_rows and 0 <= start_col < self.seats_per_row:
-                if self._check_and_mark_seats(proposed_map, start_row, start_col, number_of_seats, booked_seat_coords):
-                    self._proposed_bookings[booking_id] = ProposedBooking(booking_id=booking_id,
-                                                                          seats=booked_seat_coords)
-                    return booking_id, proposed_map
-            return "", []  # Could not book from start_seat
-        else:
-            # Find the first available consecutive block
-            for r in range(self.num_rows):
-                for c in range(self.seats_per_row - number_of_seats + 1):
-                    booked_seat_coords.clear()  # Clear for new attempt
-                    if self._check_and_mark_seats(proposed_map, r, c, number_of_seats, booked_seat_coords):
-                        self._proposed_bookings[booking_id] = ProposedBooking(booking_id=booking_id,
-                                                                              seats=booked_seat_coords)
-                        return booking_id, proposed_map
-            return "", []  # No consecutive seats found
+            row, col = self._seat_label_to_indices(start_seat)
+            # Book as many as possible to the right in this row
+            for c in range(col, self.seats_per_row):
+                if self._seating_plan[row][c].status == 'O':
+                    seats_to_book.append((row, c))
+                    if len(seats_to_book) == number_of_seats:
+                        break
+                else:
+                    break  # Stop at first unavailable seat
+            # Remove this row from further consideration if not enough seats booked
+            if row in rows_order:
+                rows_order.remove(row)
 
-    def _get_current_seating_plan_status_map(self) -> List[List[str]]:
-        """
-        Helper method to get a fresh map of seat statuses from the current seating plan.
-        """
-        return [[seat.status for seat in row] for row in self._seating_plan]
+        # If more seats needed, continue in other rows, centermost available seats
+        seats_needed = number_of_seats - len(seats_to_book)
+        for r in rows_order:
+            if seats_needed <= 0:
+                break
+            centermost = self._find_centermost_available_seats(r, seats_needed)
+            if centermost:
+                seats_to_book.extend(centermost)
+                seats_needed = number_of_seats - len(seats_to_book)
 
-    def _check_and_mark_seats(self, current_map: List[List[str]], start_row: int, start_col: int,
-                              num_seats: int, booked_seats_list: List[Tuple[int, int]]) -> bool:
-        """
-        Helper method to check availability and mark seats in a proposed map.
-        Marks seats as 'P' (Proposed).
-        """
-        for i in range(num_seats):
-            col_to_check = start_col + i
-            if not (0 <= start_row < self.num_rows and 0 <= col_to_check < self.seats_per_row) or \
-                    self._seating_plan[start_row][col_to_check].status == 'X':  # Check actual seating plan status
-                return False  # Seat is out of bounds or already taken in the real plan
-            current_map[start_row][col_to_check] = 'P'  # Mark as proposed in the proposed map
-            booked_seats_list.append((start_row, col_to_check))
-        return True
+        if len(seats_to_book) < number_of_seats:
+            raise ValueError("Not enough seats available to fulfill the booking.")
 
-    def confirm_proposed_seating_map(self, booking_id: str) -> bool:
-        """
-        Confirms a previously proposed seating arrangement.
-        If the booking_id is valid and the seats are still available,
-        it marks them as booked ('X') in the actual seating plan.
-        """
-        if booking_id not in self._proposed_bookings:
-            return False  # Invalid booking ID
-
-        proposed_booking = self._proposed_bookings[booking_id]
-        seats_to_book = proposed_booking.seats
-
-        # Verify all proposed seats are still available ('O') in the actual plan
-        for r, c in seats_to_book:
-            if not (0 <= r < self.num_rows and 0 <= c < self.seats_per_row) or \
-                    self._seating_plan[r][c].status == 'X':
-                # Some seats were taken while proposal was being considered or invalid
-                del self._proposed_bookings[booking_id]
-                return False
-
-        # Mark seats as 'X' in the actual seating plan
+        # Book the seats
         for r, c in seats_to_book:
             self._seating_plan[r][c].status = 'X'
 
-        # Clean up the proposed booking
-        del self._proposed_bookings[booking_id]
-        return True
+        booking_id = str(uuid.uuid4())
+        self._confirmed_bookings[booking_id] = seats_to_book
 
-    def cancel_proposed_seating_map(self, booking_id: str) -> bool:
+        return booking_id
+
+    def unbook_seats(self, booking_id: str) -> str:
         """
-        Cancels a previously proposed seating arrangement, removing it from
-        the proposed bookings. This does not affect the actual seating plan.
+        Make seats for the given booking_id available again.
+
+        Args:
+            booking_id (str): Booking ID of seats to make available.
+
+        Returns:
+            str: The booking_id if successful.
+
+        Raises:
+            ValueError: If booking_id is not found.
         """
-        if booking_id in self._proposed_bookings:
-            del self._proposed_bookings[booking_id]
-            return True
-        return False
+        if booking_id not in self._confirmed_bookings:
+            raise ValueError(f"Booking ID '{booking_id}' not found.")
+
+        seats_to_unbook = self._confirmed_bookings[booking_id]
+        for row, col in seats_to_unbook:
+            if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
+                if self._seating_plan[row][col].status == 'X':
+                    self._seating_plan[row][col].status = 'O'
+                # If seat is not 'X', we silently skip (could log if needed)
+        del self._confirmed_bookings[booking_id]
+        return booking_id

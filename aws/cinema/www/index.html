@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Test</title>
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="css/site.css" />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <script src="js/webcomponents.js" async defer></script>
+  </head>
+  <body>
+
+    <h1 class="center">Test</h1>
+
+    <section class="seating-plan">
+      <canvas id="seatingPlanCanvas"></canvas>
+    </section>
+
+    <seating-booking-panel></seating-booking-panel>
+
+    <section id="seatingPlanDefinition" class="flex-panel">
+      <div class="flex-panel">
+        <label for="titleInput" class="center">Title</label>
+        <input type="text" id="titleInput" class="center"  />
+      </div>
+
+      <div class="grid seating-plan-definition">
+        <label for="numberOfRowsInput">Number of rows</label>
+        <input type="text" id="numberOfRowsInput" class="center" />
+
+        <label for="seatsPerRowInput">Col per row</label>
+        <input type="text" id="seatsPerRowInput" class="center" />
+      </div>
+
+      <div class="action flex-panel horizontal">
+        <button id="createDefinitionButton" title="Create seating plan">Create</button>
+        <button id="setDefinitionButton" title="Set seating plan">Set</button>
+      </div>
+
+    </section>
+
+    <section id="bookingPanel" class="flex-panel">
+
+      <div class="flex-panel">
+        <label for="titleInput" class="center">Title</label>
+        <input type="text" id="titleDisplay" class="center" disabled value="SOMETITLE" />
+      </div>
+
+      <div class="grid booking">
+        <label for="numberOfSeatsToBookInput">Number of seats to book</label>
+        <input type="text" id="numberOfSeatsToBookInput" />
+
+        <label for="startSeatInput">Start seat</label>
+        <input type="text" id="startSeatInput" />
+      </div>
+
+      <div class="action flex-panel horizontal">
+        <button id="getSeatingPlanButton">Get</button>
+        &nbsp;
+        <button id="bookSeatsButton">Book</button>
+      </div>
+
+    </section>
+
+
+
+  <script>
+    function ApiHelper() {
+      this.apiBaseUrl = "http://localhost:9201";
+      this.httpRequestHeaders = new Headers();
+      this.httpRequestHeaders.append("Content-Type", "application/json");
+
+      this.create_seating_plan = async function(title, numberOfRows, seatsPerRow) {
+        const response = await fetch(`${this.apiBaseUrl}/seating-plan`, {
+          method: "POST",
+          headers: this.httpRequestHeaders,
+          body: JSON.stringify({
+            title: title,
+            numberOfRows: numberOfRows,
+            seatsPerRow: seatsPerRow,
+          })
+        });
+        if (!response.ok) {
+          console.log(response.body);
+        }
+        let response_json = await response.json();
+        console.log('response_json', response_json);
+      } // END OF this.get_seating_plan
+
+      this.get_seating_plan = async function(title) {
+        const response = await fetch(`${this.apiBaseUrl}/seating-plan/${title}`, {
+          method: "GET",
+          headers: this.httpRequestHeaders
+        });
+        if (!response.ok) {
+          console.log(response.body);
+        }
+        let response_json = await response.json();
+        console.log('response_json', response_json);
+        drawPlanWithLabels(response_json.data.plan, 'seatingPlanCanvas');
+      } // END OF this.get_seating_plan
+
+      this.book_seats = async function(title, numberOfSeatsToBook) {
+        const response = await fetch(`${this.apiBaseUrl}/seating-plan/${title}`, {
+          method: "PATCH",
+          headers: this.httpRequestHeaders,
+          body: JSON.stringify({
+            title: title,
+            numberOfSeatsToBook: 4
+          })
+        });
+        if (!response.ok) {
+          console.log(response.body);
+        }
+        let response_json = await response.json();
+        console.log('response_json', response_json);
+      } // END OF this.get_seating_plan
+    }
+
+    function drawPlanWithLabels(plan, canvasOrId, cellSize = 60) {
+      // Get canvas element
+      let canvas = typeof canvasOrId === 'string' ? document.getElementById(canvasOrId) : canvasOrId;
+      if (!canvas) throw new Error('Canvas not found');
+      const ctx = canvas.getContext('2d');
+      const rows = plan.length;
+      const cols = plan[0].length;
+
+      // Calculate extra space for labels and screen
+      const labelMargin = cellSize; // for row labels and column numbers
+      const screenMargin = cellSize * 1.2; // for "SCREEN" label
+
+      // Set canvas size
+      canvas.width = labelMargin + cols * cellSize;
+      canvas.height = screenMargin + rows * cellSize + labelMargin;
+
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw "SCREEN" label
+      ctx.font = `${cellSize * 0.6}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#222';
+      ctx.fillText(
+              'S C R E E N',
+              labelMargin + (cols * cellSize) / 2,
+              screenMargin / 2
+      );
+
+      // Draw grid with row labels (from bottom to top)
+      for (let row = 0; row < rows; row++) {
+        const y = screenMargin + row * cellSize;
+        // Row label (A, B, C, ...)
+        const labelChar = String.fromCharCode(65 + (rows - 1 - row));
+        ctx.font = `${cellSize * 0.6}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#222';
+        ctx.fillText(labelChar, labelMargin / 2, y + cellSize / 2);
+
+        // Draw cells
+        for (let col = 0; col < cols; col++) {
+          let val = plan[row][col];
+          let color;
+          switch (val) {
+            case 'O': color = '#fff'; break;
+            case 'P': color = '#4caf50'; break;
+            case 'X': color = '#f44336'; break;
+            default: color = '#ccc';
+          }
+          // Draw cell
+          ctx.fillStyle = color;
+          ctx.fillRect(labelMargin + col * cellSize, y, cellSize, cellSize);
+          // Draw border
+          ctx.strokeStyle = '#000';
+          ctx.strokeRect(labelMargin + col * cellSize, y, cellSize, cellSize);
+          // Draw the letter
+          ctx.fillStyle = '#000';
+          ctx.font = `${cellSize * 0.5}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(val, labelMargin + col * cellSize + cellSize / 2, y + cellSize / 2);
+        }
+      }
+
+      // Draw column numbers below grid
+      ctx.font = `${cellSize * 0.6}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#222';
+      for (let col = 0; col < cols; col++) {
+        ctx.fillText(
+                (col + 1).toString(),
+                labelMargin + col * cellSize + cellSize / 2,
+                screenMargin + rows * cellSize + labelMargin / 2
+        );
+      }
+    }
+
+    const apiHelper = new ApiHelper();
+
+    document.addEventListener('DOMContentLoaded', function(e) {
+      const page = {
+        createDefinitionButton : document.getElementById('createDefinitionButton'),
+        setDefinitionButton : document.getElementById('setDefinitionButton'),
+        getSeatingPlanButton : document.getElementById('getSeatingPlanButton'),
+        bookSeatsButton : document.getElementById('bookSeatsButton'),
+
+        titleInput : document.getElementById('titleInput'),
+        numberOfRowsInput : document.getElementById('numberOfRowsInput'),
+        seatsPerRowInput : document.getElementById('seatsPerRowInput'),
+        state: {
+          displayPanel: '',
+          seatingPlanTitle: ''
+        }
+      };
+
+      // Set some values to initialize field for easy debugging
+      page.titleInput.value = 'SOMETITLE';
+      page.numberOfRowsInput.value = '3';
+      page.seatsPerRowInput.value = '6';
+
+      page.createDefinitionButton.addEventListener('click', (event) => {
+        let title = page.titleInput.value,
+        numberOfRowsInput = page.numberOfRowsInput.value, seatsPerRowInput = page.seatsPerRowInput.value;
+        console.info('Creating seating plan', {
+          title: title,
+          numberOfRowsInput: numberOfRowsInput,
+          seatsPerRowInput: seatsPerRowInput
+        });
+        //apiHelper.create_seating_plan(title, numberOfRowsInput, seatsPerRowInput);
+      });
+
+      page.setDefinitionButton.addEventListener('click', (event) => {
+        let title = page.titleInput.value,
+            numberOfRowsInput = page.numberOfRowsInput.value,
+            seatsPerRowInput = page.seatsPerRowInput.value;
+
+        console.info('Setting seating plan', {
+          title: title,
+          numberOfRowsInput: numberOfRowsInput,
+          seatsPerRowInput: seatsPerRowInput
+        });
+      });
+
+      page.getSeatingPlanButton.addEventListener('click', (event) => {
+        let title = page.titleInput.value;
+        apiHelper.get_seating_plan(title);
+
+      });
+
+      page.bookSeatsButton.addEventListener('click', (event) => {
+        let title = page.titleInput.value;
+        apiHelper.book_seats(title, 4);
+      });
+
+    });
+  </script>
+  </body>
+</html>

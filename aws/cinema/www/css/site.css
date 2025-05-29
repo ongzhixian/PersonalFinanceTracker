@@ -1,0 +1,92 @@
+:root {
+    --color1: #fefefe;
+    --color2: #d7d4d8;
+    --color3: #1f181b;
+    --color4: #0a506b;
+    --color5: #e84890;
+    --color6: #3ec4b6;
+
+    --background-color: var(--color1);
+    --text-color: var(--color3);
+    --header-color: var(--color4);
+}
+
+body {
+    font-size: 1.3em;
+    font-weight: 400;
+    font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+h1,h2,h3,h4,h5,h6,label {
+    color: var(--color4);
+    font-weight: 360;
+}
+
+button {
+    font-size: 1.3em;
+    font-weight: 400;
+    font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background-color: var(--color6);
+    border: outset var(--color6);
+    color: var(--color1);
+    padding: 0.36rem;
+    min-width: 8rem;
+    cursor: pointer;
+}
+
+button:hover {
+    border: inset var(--color6);
+    color: var(--color1);
+}
+
+input {
+    font-size: 1.3em;
+    font-weight: 400;
+    font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding: 0.36rem;
+}
+
+input.center, label.center, h1.center {
+    text-align: center;
+}
+
+label {
+    /*font-weight: 100;*/
+}
+
+section.seating-plan {
+    display: flex;
+    justify-content: center;
+}
+
+
+.flex-panel {
+    display: flex;
+    flex-direction: column;
+    margin: 1rem;
+    gap: .6rem;
+}
+
+.flex-panel.horizontal {
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+
+
+.grid {
+    display: grid;
+}
+
+.grid.seating-plan-definition, .grid.booking {
+    grid-template-columns: 1fr 5rem;
+    align-items: center;
+    width: max-content;
+    gap: .6rem 1rem;
+    align-self: center;
+}
+
+.hide {
+    display: none !important;
+}

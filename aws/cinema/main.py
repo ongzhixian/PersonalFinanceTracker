@@ -20,15 +20,27 @@ def main():
 
         if user_selection == 1:
             number_of_seats_to_book = console_ui.number_of_seats_to_book_prompt(seating_plan)
+            start_seat = None
             while True:
-                (booking_id, proposed_seating_map) = seating_planner.get_proposed_seating_plan(number_of_seats_to_book,start_seat=None)
-                console_ui.display_seating_map(proposed_seating_map)
+                booking_id = seating_planner.book_seats(number_of_seats_to_book, start_seat=start_seat)
+                seating_plan = seating_planner.get_seating_plan(booking_id)
+                console_ui.display_seating_map(seating_plan)
                 response = console_ui.confirm_proposed_seating_map_prompt()
-                if response == 'confirm':
-                    seating_planner.confirm_proposed_seating_map(booking_id, proposed_seating_map)
-                    break
                 if response == '':
+                    print('booking_id', booking_id)
                     break
+                start_seat = response
+                seating_planner.unbook_seats(booking_id)
+
+                # Original
+                # (booking_id, proposed_seating_map) = seating_planner.get_proposed_seating_plan(number_of_seats_to_book,start_seat=None)
+                # console_ui.display_seating_map(proposed_seating_map)
+                # response = console_ui.confirm_proposed_seating_map_prompt()
+                # if response == 'confirm':
+                #     seating_planner.confirm_proposed_seating_map(booking_id, proposed_seating_map)
+                #     break
+                # if response == '':
+                #     break
         if user_selection == 2:
             booking_id = console_ui.booking_id_prompt()
             if len(booking_id.strip()) > 0:

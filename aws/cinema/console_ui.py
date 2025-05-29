@@ -89,9 +89,10 @@ class ConsoleUi:
     def display_seating_map(self, seating_plan: SeatingPlan) -> None:
         """
         Displays the current seating map in the specified format.
-        '.' for available, '#' for booked.
+        '.' for available, '#' for booked, 'P' for proposed.
+        Rows are labeled A (nearest to screen) to Z (furthest).
         """
-        seating_map = seating_plan.plan
+        seating_map: List[List[str]] = seating_plan.plan
         if not seating_map or not seating_map[0]:
             print("\nSeating plan is empty.")
             return
@@ -100,11 +101,7 @@ class ConsoleUi:
         num_cols: int = len(seating_map[0])
 
         # Calculate footer width for centering "S C R E E N"
-        # Each column takes 3 characters (e.g., '1  ', '10 ')
-        # Add 3 for the row label part (e.g., 'A  ')
-        footer_parts: List[str] = []
-        for i in range(num_cols):
-            footer_parts.append(str(i + 1).ljust(3))
+        footer_parts: List[str] = [str(i + 1).ljust(3) for i in range(num_cols)]
         footer_str: str = "   " + "".join(footer_parts)  # 3 spaces for row label offset
         footer_width: int = len(footer_str)
 
@@ -114,10 +111,8 @@ class ConsoleUi:
         print("\n" + " " * screen_padding + screen_header)
         print("-" * footer_width)
 
-        # Rows are labeled A to Z, with A nearest to the screen and Z furthest (as per the example)
-        # The prompt says Z nearest to the screen, but the example shows A nearest to the screen.
-        # Following the example (A nearest to the screen, Z nearest to the screen)
-        for i in range(num_rows - 1, -1, -1):  # Iterate from last row (Z) to first row (A)
+        # Iterate from first row (A) to last row (Z)
+        for i in range(num_rows):
             row_label: str = chr(65 + i)  # A=0, B=1, ...
             row_display: str = f"{row_label} "
             for seat in seating_map[i]:
@@ -126,19 +121,13 @@ class ConsoleUi:
                 elif seat == 'X':
                     row_display += "#  "  # Booked seat
                 elif seat == 'P':
-                    row_display += "P  " # Proposed seat
+                    row_display += "P  "  # Proposed seat
                 else:
                     row_display += f"{seat}  "  # For any other custom marker if implemented
             print(row_display)
 
         # Print column numbers (footer)
         print("  " + " ".join([str(i + 1).ljust(2) for i in range(num_cols)]))
-
-        # Adjust footer to match the example's column spacing (each column 3 characters)
-        footer_numbers = []
-        for i in range(num_cols):
-            footer_numbers.append(str(i + 1).ljust(3))  # Each number left-justified in 3 spaces
-
 
     def confirm_proposed_seating_map_prompt(self) -> str:
         """
