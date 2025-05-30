@@ -1,182 +1,91 @@
+# test_seating_planner.py
+
 import unittest
+import sqlite3
+from typing import List, Tuple
 from seating_planner import SeatingPlanner
-from shared_data_models import SeatingPlan
+from booking_repository import BookingRepository
+from shared_data_models import Seat, SeatingPlan
+from app_configuration import AppConfiguration
 
 class TestSeatingPlanner(unittest.TestCase):
-
     def setUp(self):
-        self.planner = SeatingPlanner("Test Venue", 3, 5)
+        # Use in-memory SQLite DB for isolation
+        self.connection = sqlite3.connect(":memory:")
+        self.repository = BookingRepository(connection=self.connection)
+        self.config = AppConfiguration()
+        self.planner = SeatingPlanner(
+            title="TestPlan",
+            num_rows=5,
+            seats_per_row=5,
+            config=self.config,
+            repository=self.repository
+        )
 
-    def test_initialization(self):
-        self.assertEqual(self.planner.title, "Test Venue")
-        self.assertEqual(self.planner.num_rows, 3)
-        self.assertEqual(self.planner.seats_per_row, 5)
-        # Check initial seating plan
-        expected_plan = [
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O']
-        ]
-        returned_seating_plan = self.planner.get_seating_plan()
-        self.assertIsInstance(returned_seating_plan, SeatingPlan)
-        self.assertEqual(returned_seating_plan.title, "Test Venue")
-        self.assertEqual(returned_seating_plan.plan, expected_plan)
+    def tearDown(self):
+        self.connection.close()
 
-    def test_initialization_invalid_inputs(self):
+    def test_book_seats_success(self):
+        booking_id = self.planner.book_seats(3)
+        self.assertIn(booking_id, self.planner._confirmed_bookings)
+        plan = self.planner.get_seating_plan()
+        booked_count = sum(
+            seat.status == self.planner.status_map["BOOKED"]
+            for row in plan.plan for seat in row
+        )
+        self.assertEqual(booked_count, 3)
+
+    def test_book_seats_with_start_seat(self):
+        booking_id = self.planner.book_seats(2, start_seat="A1")
+        self.assertIn(booking_id, self.planner._confirmed_bookings)
+        seats = self.planner._confirmed_bookings[booking_id]
+        self.assertEqual(seats[0], (0, 0))
+
+    def test_cancel_booking_success(self):
+        booking_id = self.planner.book_seats(2)
+        self.planner.cancel_booking(booking_id)
+        self.assertNotIn(booking_id, self.planner._confirmed_bookings)
+        plan = self.planner.get_seating_plan()
+        booked_count = sum(
+            seat.status == self.planner.status_map["BOOKED"]
+            for row in plan.plan for seat in row
+        )
+        self.assertEqual(booked_count, 0)
+
+    def test_cancel_booking_invalid(self):
         with self.assertRaises(ValueError):
-            SeatingPlanner("", 3, 5)  # Empty title
-        with self.assertRaises(ValueError):
-            SeatingPlanner("Test Venue", 0, 5)  # Zero rows
-        with self.assertRaises(ValueError):
-            SeatingPlanner("Test Venue", 3, -1)  # Negative seats per row
+            self.planner.cancel_booking("nonexistent")
 
-    def test_get_seating_plan(self):
-        # Already tested in initialization, but good to have a dedicated one
-        expected_plan_status = [
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O']
-        ]
-        returned_seating_plan = self.planner.get_seating_plan()
-        self.assertIsInstance(returned_seating_plan, SeatingPlan)
-        self.assertEqual(returned_seating_plan.title, "Test Venue")
-        self.assertEqual(returned_seating_plan.plan, expected_plan_status)
-
-    def test_get_proposed_seating_plan_no_start_seat(self):
-        # Propose 3 seats
-        booking_id, proposed_map = self.planner.get_proposed_seating_plan(3)
-        self.assertIsNotNone(booking_id)
-        self.assertEqual(len(proposed_map), 3)
-        self.assertEqual(len(proposed_map[0]), 5)
-
-        # Expected map with 'P' for proposed seats
-        expected_proposed_map = [
-            ['P', 'P', 'P', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O']
-        ]
-        self.assertEqual(proposed_map, expected_proposed_map)
-
-        # Ensure the actual seating plan is unchanged before confirmation
-        actual_plan = self.planner.get_seating_plan().plan
-        self.assertEqual(actual_plan, [
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O']
-        ])
-        self.assertIn(booking_id, self.planner._proposed_bookings)
-        self.assertEqual(self.planner._proposed_bookings[booking_id].seats, [(0, 0), (0, 1), (0, 2)])
-
-
-    def test_get_proposed_seating_plan_with_start_seat(self):
-        # Propose 2 seats starting at (1, 1)
-        booking_id, proposed_map = self.planner.get_proposed_seating_plan(2, (1, 1))
-        self.assertIsNotNone(booking_id)
-
-        expected_proposed_map = [
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'P', 'P', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O']
-        ]
-        self.assertEqual(proposed_map, expected_proposed_map)
-        self.assertIn(booking_id, self.planner._proposed_bookings)
-        self.assertEqual(self.planner._proposed_bookings[booking_id].seats, [(1, 1), (1, 2)])
-
-    def test_get_proposed_seating_plan_not_enough_seats(self):
-        # Fill some seats to make it harder to find
-        booking_id_1, _ = self.planner.get_proposed_seating_plan(3, (0, 0))
-        self.planner.confirm_proposed_seating_map(booking_id_1)
-
-        # Try to find 4 seats, which won't fit in the first row anymore
-        booking_id, proposed_map = self.planner.get_proposed_seating_plan(4)
-        self.assertIsNotNone(booking_id)
-        self.assertEqual(len(proposed_map), 3)
-        self.assertEqual(len(proposed_map[0]), 5)
-
-        expected_proposed_map = [
-            ['X', 'X', 'X', 'O', 'O'], # Existing booked seats
-            ['P', 'P', 'P', 'P', 'O'], # New proposed seats
-            ['O', 'O', 'O', 'O', 'O']
-        ]
-        self.assertEqual(proposed_map, expected_proposed_map)
-        self.assertIn(booking_id, self.planner._proposed_bookings)
-        self.assertEqual(self.planner._proposed_bookings[booking_id].seats, [(1, 0), (1, 1), (1, 2), (1, 3)])
-
-    def test_get_proposed_seating_plan_no_space(self):
+    def test_book_seats_not_enough(self):
         # Book all seats
-        for r in range(self.planner.num_rows):
-            booking_id, _ = self.planner.get_proposed_seating_plan(self.planner.seats_per_row, (r, 0))
-            self.planner.confirm_proposed_seating_map(booking_id)
-
-        # Try to propose 1 seat
-        booking_id, proposed_map = self.planner.get_proposed_seating_plan(1)
-        self.assertEqual(booking_id, "")
-        self.assertEqual(proposed_map, [])
-
-    def test_get_proposed_seating_plan_invalid_number_of_seats(self):
+        for _ in range(5):
+            self.planner.book_seats(5)
         with self.assertRaises(ValueError):
-            self.planner.get_proposed_seating_plan(0)
+            self.planner.book_seats(1)
+
+    def test_get_seating_plan_with_proposed(self):
+        booking_id = self.planner.book_seats(2)
+        plan = self.planner.get_seating_plan(booking_id)
+        proposed_count = sum(
+            seat.status == self.planner.status_map["PROPOSED"]
+            for row in plan.plan for seat in row
+        )
+        self.assertEqual(proposed_count, 2)
+
+    def test_seat_label_to_indices(self):
+        self.assertEqual(self.planner._seat_label_to_indices("A1"), (0, 0))
+        self.assertEqual(self.planner._seat_label_to_indices("E5"), (4, 4))
         with self.assertRaises(ValueError):
-            self.planner.get_proposed_seating_plan(-1)
+            self.planner._seat_label_to_indices("Z1")
+        with self.assertRaises(ValueError):
+            self.planner._seat_label_to_indices("A0")
+        with self.assertRaises(ValueError):
+            self.planner._seat_label_to_indices("")
 
-    def test_get_proposed_seating_plan_start_seat_out_of_bounds(self):
-        booking_id, proposed_map = self.planner.get_proposed_seating_plan(2, (5, 0))
-        self.assertEqual(booking_id, "")
-        self.assertEqual(proposed_map, [])
-
-        booking_id, proposed_map = self.planner.get_proposed_seating_plan(2, (0, 10))
-        self.assertEqual(booking_id, "")
-        self.assertEqual(proposed_map, [])
-
-    def test_confirm_proposed_seating_map(self):
-        booking_id, _ = self.planner.get_proposed_seating_plan(2, (0, 0))
-        self.assertTrue(self.planner.confirm_proposed_seating_map(booking_id))
-
-        expected_plan = [
-            ['X', 'X', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O']
-        ]
-        self.assertEqual(self.planner.get_seating_plan().plan, expected_plan)
-        self.assertNotIn(booking_id, self.planner._proposed_bookings)
-
-    def test_confirm_proposed_seating_map_invalid_id(self):
-        self.assertFalse(self.planner.confirm_proposed_seating_map("invalid-id"))
-
-    def test_confirm_proposed_seating_map_seats_taken(self):
-        booking_id_1, _ = self.planner.get_proposed_seating_plan(2, (0, 0))
-        booking_id_2, _ = self.planner.get_proposed_seating_plan(1, (0, 0)) # Propose same seat
-
-        # Confirm the first booking, making the seat unavailable
-        self.assertTrue(self.planner.confirm_proposed_seating_map(booking_id_1))
-
-        # Try to confirm the second booking, which should now fail
-        self.assertFalse(self.planner.confirm_proposed_seating_map(booking_id_2))
-
-        # The seat (0,0) should be 'X' from the first booking, and the second proposed booking should be gone
-        expected_plan = [
-            ['X', 'X', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O']
-        ]
-        self.assertEqual(self.planner.get_seating_plan().plan, expected_plan)
-        self.assertNotIn(booking_id_2, self.planner._proposed_bookings)
-
-    def test_cancel_proposed_seating_map(self):
-        booking_id, _ = self.planner.get_proposed_seating_plan(2, (0, 0))
-        self.assertTrue(self.planner.cancel_proposed_seating_map(booking_id))
-        self.assertNotIn(booking_id, self.planner._proposed_bookings)
-
-        # Seating plan should remain unchanged
-        expected_plan = [
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O'],
-            ['O', 'O', 'O', 'O', 'O']
-        ]
-        self.assertEqual(self.planner.get_seating_plan().plan, expected_plan)
-
-    def test_cancel_proposed_seating_map_invalid_id(self):
-        self.assertFalse(self.planner.cancel_proposed_seating_map("non-existent-id"))
+    def test_repository_clear_all_bookings(self):
+        booking_id = self.planner.book_seats(2)
+        self.repository.clear_all_bookings()
+        self.assertFalse(self.repository.booking_exists(self.planner.title, booking_id))
 
 if __name__ == '__main__':
     unittest.main()
