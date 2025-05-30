@@ -1,0 +1,25 @@
+{
+  "application": {
+    "name": "TEST_APP",
+    "version": "1.0.1"
+  },
+  "booking_settings": {
+    "booking_id_prefix": "BK"
+  },
+  "seat_statuses": {
+    "available": "O",
+    "booked": "B",
+    "proposed": "P"
+  },
+  "seat_status_symbols": {
+    "AVAILABLE": ".",
+    "BOOKED": "#",
+    "PROPOSED": "P"
+  },
+  "database_settings": {
+    "seating_planner": {
+      "type": "sqlite",
+      "file_path": "seating_planner.db"
+    }
+  }
+}
