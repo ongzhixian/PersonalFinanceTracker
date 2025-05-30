@@ -1,8 +1,9 @@
 Given the following Python code:
 
 ```console_ui.py
-from typing import List, Tuple, Dict, Any
-from shared_data_models import SeatingPlan # Import SeatingPlan
+from typing import Any, Dict, List, Tuple, Optional
+from shared_data_models import SeatingPlan, SeatStatus
+from app_configuration import AppConfiguration
 
 class ConsoleUi:
     """
@@ -11,6 +12,13 @@ class ConsoleUi:
     Adheres to the Single Responsibility Principle.
     """
 
+    def __init__(self, config: AppConfiguration, seat_status: Optional[SeatStatus] = None) -> None:
+        """
+        Initializes ConsoleUi with a reference to AppConfiguration and SeatStatus.
+        """
+        self._config = config
+        self._seat_status = seat_status or SeatStatus(config)
+
     def application_start_prompt(self) -> Tuple[str, int, int]:
         """
         Prompts the user for initial application details in a specific format:
@@ -18,7 +26,6 @@ class ConsoleUi:
         Validates the input for maximum rows (26) and seats per row (50).
         Rows are labeled from A to Z with Z nearest to the screen.
         """
-        print("\n--- Seating Planner Setup ---")
         while True:
             user_input: str = input(
                 "\nPlease define movie title and seating map in [Title] [Row] [SeatsPerRow] format:\n> ").strip()
@@ -58,10 +65,12 @@ class ConsoleUi:
         """
         Displays the main menu and prompts the user for their selection.
         Includes movie title and available seats in the booking option.
+        Displays application name from configuration.
         """
+        app_name: str = self._config.get("application:name", default="Application")
         movie_title: str = seating_plan.title
         available_seats: int = seating_plan.available_seats_count
-        print("\nWelcome")
+        print(f"\nWelcome to {app_name}")
         print(f"1. Book tickets for {movie_title} ({available_seats} seats available)")
         print("2. Check bookings")
         print("3. Exit")
@@ -75,26 +84,41 @@ class ConsoleUi:
             except ValueError:
                 print("Invalid input. Please enter a number.")
 
-    def number_of_seats_to_book_prompt(self, seating_plan: SeatingPlan) -> int:
+    def number_of_seats_to_book_prompt(self, seating_plan: SeatingPlan) -> Optional[int]:
         """
         Prompts the user for the number of seats they wish to book.
+        Input validation rules:
+        1. If the number of seats is greater than the number of available seats for booking,
+           pinpoint error and prompt user again.
+        2. User can input empty string to end prompt.
+        Returns:
+            int: Number of seats to book, or None if user cancels (inputs empty string).
         """
         self.display_seating_map(seating_plan)
+        available_seats: int = seating_plan.available_seats_count
         while True:
+            user_input: str = input("Enter the number of seats to book (or press Enter to cancel): ").strip()
+            if user_input == "":
+                return None  # User chose to cancel
             try:
-                num_seats: int = int(input("Enter the number of seats to book: "))
+                num_seats: int = int(user_input)
                 if num_seats <= 0:
-                    raise ValueError
+                    print("Invalid input. Please enter a positive integer for the number of seats.")
+                    continue
+                if num_seats > available_seats:
+                    print(f"Cannot book {num_seats} seats. Only {available_seats} seats are available.")
+                    continue
                 return num_seats
             except ValueError:
                 print("Invalid input. Please enter a positive integer for the number of seats.")
 
     def display_seating_map(self, seating_plan: SeatingPlan) -> None:
         """
-        Displays the current seating map in the specified format.
-        '.' for available, '#' for booked.
+        Displays the current seating map with each seat symbol aligned
+        with the first digit of its corresponding footer column number.
+        Rows are displayed in reverse order (Z nearest to the screen at the top).
         """
-        seating_map = seating_plan.plan
+        seating_map: List[List[str]] = seating_plan.plan
         if not seating_map or not seating_map[0]:
             print("\nSeating plan is empty.")
             return
@@ -102,71 +126,82 @@ class ConsoleUi:
         num_rows: int = len(seating_map)
         num_cols: int = len(seating_map[0])
 
-        # Calculate footer width for centering "S C R E E N"
-        # Each column takes 3 characters (e.g., '1  ', '10 ')
-        # Add 3 for the row label part (e.g., 'A  ')
-        footer_parts: List[str] = []
-        for i in range(num_cols):
-            footer_parts.append(str(i + 1).ljust(3))
-        footer_str: str = "   " + "".join(footer_parts)  # 3 spaces for row label offset
-        footer_width: int = len(footer_str)
+        # Determine the width for each seat column (max 2 digits for column numbers)
+        col_width: int = max(len(str(num_cols)), 2)
 
+        # Center "S C R E E N" above the seating map
+        total_width: int = 2 + num_cols * (col_width + 1) - 1  # 2 for row label, +1 for space between seats
         screen_header: str = "S C R E E N"
-        screen_padding: int = (footer_width - len(screen_header)) // 2
-
+        screen_padding: int = max((total_width - len(screen_header)) // 2, 0)
         print("\n" + " " * screen_padding + screen_header)
-        print("-" * footer_width)
+        print("-" * total_width)
 
-        # Rows are labeled A to Z, with A nearest to the screen and Z furthest (as per the example)
-        # The prompt says Z nearest to the screen, but the example shows A nearest to the screen.
-        # Following the example (A nearest to the screen, Z nearest to the screen)
-        for i in range(num_rows - 1, -1, -1):  # Iterate from last row (Z) to first row (A)
-            row_label: str = chr(65 + i)  # A=0, B=1, ...
+        # Fetch status-symbol mapping from config
+        status_symbols: Dict[str, str] = self._config.get("seat_status_symbols", default={})
+        status = self._seat_status
+
+        # Map status values to config keys
+        status_value_to_config_key = {
+            status.AVAILABLE: "AVAILABLE",
+            status.BOOKED: "BOOKED",
+            status.PROPOSED: "PROPOSED",
+        }
+
+        def format_seat_symbol(seat: str) -> str:
+            config_key = status_value_to_config_key.get(seat, str(seat))
+            symbol = status_symbols.get(config_key, str(seat))
+            return symbol.ljust(col_width)
+
+        # Helper to get row label for reversed order
+        def get_row_label(index: int) -> str:
+            """Returns the row label (A-Z), with Z at index 0, A at index num_rows-1."""
+            return chr(65 + (num_rows - 1 - index))
+
+        # Print each row in reverse order
+        for i in range(num_rows):
+            row_index = num_rows - 1 - i  # reversed index
+            row = seating_map[row_index]
+            row_label: str = get_row_label(i)
             row_display: str = f"{row_label} "
-            for seat in seating_map[i]:
-                if seat == 'O':
-                    row_display += ".  "  # Available seat
-                elif seat == 'X':
-                    row_display += "#  "  # Booked seat
-                elif seat == 'P':
-                    row_display += "P  " # Proposed seat
-                else:
-                    row_display += f"{seat}  "  # For any other custom marker if implemented
+            seat_symbols = [format_seat_symbol(seat) for seat in row]
+            row_display += " ".join(seat_symbols)
             print(row_display)
 
-        # Print column numbers (footer)
-        print("  " + " ".join([str(i + 1).ljust(2) for i in range(num_cols)]))
+        # Print column numbers (footer), aligned with seat symbols
+        footer = "  "  # 2 spaces for row label
+        footer_numbers = [
+            str(col_num + 1).ljust(col_width) for col_num in range(num_cols)
+        ]
+        footer += " ".join(footer_numbers)
+        print(footer)
 
-        # Adjust footer to match the example's column spacing (each column 3 characters)
-        footer_numbers = []
-        for i in range(num_cols):
-            footer_numbers.append(str(i + 1).ljust(3))  # Each number left-justified in 3 spaces
-
-
-    def confirm_proposed_seating_map_prompt(self) -> str:
+    def confirm_seating_map_prompt(self) -> str:
         """
         Asks the user to confirm or reject the proposed seating map.
-        Returns 'confirm' or an empty string.
+        Returns 'confirm' or an empty string or a seating position.
         """
         response: str = input(
-            "Confirm booking? (type 'confirm' to accept, or press Enter to decline and try again): ").strip().lower()
+            "Enter blank to accept seat selection, or enter new seating position: ").strip().lower()
         return response
 
-    def display_message(self, message: str) -> None:
+    def booking_id_prompt(self) -> str:
         """
-        Displays a generic message to the user.
+        Prompts the user for a booking ID.
+        Returns the user's input.
         """
-        print(f"\n{message}")
-```
-
-Add booking_id_prompt function that displays the prompt:
+        booking_id: str = input("\nEnter booking id, or enter blank to go back to main menu:\n> ").strip()
+        return booking_id
 
 ```
-Enter booking id, or enter blank to go back to main menu:
-> 
-```
 
-Returns user input.
 
+Update display_seating_map function as follows:
+
+Reverse the order of row labels only.
+
+Code should follow best practices.
+Code should use design patterns whenever possible.
 Code should have typing and follow SOLID principles.
 Write unit tests for code in a separate file.
+Prioritize readability and maintainability.
+Identify illogical constructs if any.
