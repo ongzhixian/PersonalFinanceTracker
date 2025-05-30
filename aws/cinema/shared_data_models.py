@@ -1,31 +1,52 @@
 # shared_data_models.py
-from dataclasses import dataclass, field
-from typing import List, Tuple
 
-@dataclass
+from dataclasses import dataclass
+from enum import Enum, auto
+from typing import List, Dict, Any
+
+from app_configuration import AppConfiguration
+
+
+class MenuOption(Enum):
+    BOOK_SEATS = auto()
+    VIEW_BOOKING = auto()
+    EXIT = auto()
+
+
+class SeatStatus:
+    """
+    Encapsulates seat status codes, loaded from configuration.
+    """
+    AVAILABLE: str = "O"
+    BOOKED: str = "B"
+    PROPOSED: str = "P"
+
+    @staticmethod
+    def from_config(config: AppConfiguration) -> "SeatStatus":
+        statuses: Dict[str, Any] = config.get("seat_statuses", {})
+        status = SeatStatus()
+        status.AVAILABLE = statuses.get("available", "O")
+        status.BOOKED = statuses.get("booked", "B")
+        status.PROPOSED = statuses.get("proposed", "P")
+        return status
+
+
+@dataclass(frozen=True)
 class Seat:
     """
     Represents a single seat in the seating plan.
-    'O' for available, 'X' for booked, 'P' for proposed.
     """
     row: int
     col: int
-    status: str = 'O'
+    status: str
 
-@dataclass
-class ProposedBooking:
-    """
-    Represents a temporary proposed booking with a unique ID and the seats involved.
-    """
-    booking_id: str
-    seats: List[Tuple[int, int]] = field(default_factory=list)
 
-@dataclass
+@dataclass(frozen=True)
 class SeatingPlan:
     """
     Represents the complete seating plan with a title and the seat statuses.
     Includes the number of available seats.
     """
     title: str
-    plan: List[List[str]]
+    plan: List[List[Seat]]
     available_seats_count: int
