@@ -1,3 +1,72 @@
+You are a world class software engineer.
+Given Python code:
+
+```app_configuration
+AppConfiguration: Thread-safe singleton class providing access to application configuration.
+AppConfiguration.__init__: Initializes the application configuration using a file or dictionary.
+AppConfiguration.reload: Reloads configuration if loaded from a file.
+AppConfiguration.get: Retrieves a configuration value using a colon-separated path.
+AppConfiguration.contains: Checks if a configuration key exists.
+AppConfiguration.reset_instance: Resets the singleton instance.
+```
+
+```main.py
+from app_configuration import AppConfiguration
+from console_ui import ConsoleUi
+# from seating_planner import SeatingPlanner
+
+def main():
+    """
+    Main function to run the seating planner application.
+   Orchestrates interactions between ConsoleUi and SeatingPlanner.
+    """
+    app_configuration = AppConfiguration('./app_configuration.json')
+    console_ui = ConsoleUi(app_configuration)
+
+if __name__ == '__main__':
+    main()
+
+```
+
+You are an extremely picky code reviewer.
+Review code and provide a fully refactored and optimized code.
+Refactored code should not need further changes should you review it again.
+
+Code should follow best practices.
+Code should use design patterns whenever possible.
+Code should have typing and follow SOLID principles.
+Refactored code should prefer Protocol over ABC unless there is good reason
+Code should be easily testable using unittest.
+Prioritize readability and maintainability.
+Identify illogical constructs and poor names if any.
+Add any missing error handling.
+Add any missing docstrings.
+
+If code Final, Polished Code (No Further Review Needed)
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Given:
 
 ```seating_planner.py

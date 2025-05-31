@@ -13,11 +13,12 @@ Design document for this application.
 - main.py
 
 - seating_planner.py
-- shared_data_models.py
+- ✅ shared_data_models.py
 
 - Unit tests
   - ✅ test_app_configuration.py
   - ✅ test_app_logging.py
+  - ✅ test_shared_data_models.py
 
 ## File: app_configuration.py
 
