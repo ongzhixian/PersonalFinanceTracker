@@ -4,22 +4,24 @@ Design document for this application.
 
 # Files / Modules
 
-app_configuration.py
-app_logging.py
+- Utilities
+  - ✅ app_configuration.py 
+  - ✅ app_logging.py
 
-console_ui.py
-fastapi_main.py
-main.py
+- console_ui.py
+- fastapi_main.py
+- main.py
 
-seating_planner.py
-shared_data_models.py
+- seating_planner.py
+- shared_data_models.py
 
-test_app_configuration.py
-test_app_logging.py
+- Unit tests
+  - ✅ test_app_configuration.py
+  - ✅ test_app_logging.py
 
+## File: app_configuration.py
 
-
-# File: app_configuration.py
+![app_configuration.py class diagram](docs/app_configuration.png "app_configuration.py class diagram")
 
 ConfigurationError: Custom exception for configuration-related errors.
 
@@ -42,6 +44,8 @@ AppConfiguration.reset_instance: Resets the singleton instance.
 
 # File: app_logging.py
 
+![app_logging.py class diagram](docs/app_logging.png "app_logging.py class diagram")
+
 LoggingService: Defines a protocol for a logging service that retrieves a logger instance.
 
 LoggerConfig: Manages the configuration and setup of logger instances, ensuring proper logging levels and handlers.
@@ -53,7 +57,21 @@ LoggerConfig.\_default_stream_handler(): Returns a default StreamHandler with a 
 SingletonLogger: Implements a thread-safe singleton pattern to provide a single logger instance across multiple threads.
 SingletonLogger.get_logger(): Provides access to the single logger instance, ensuring only one is created.
 
+# File: shared_data_models.py
 
+![shared_data_models.py class diagram](docs/shared_data_models.png "shared_data_models.py class diagram")
+
+MenuOption – Defines possible user actions in the booking system.
+
+SeatStatus – Holds seat status codes dynamically loaded from configuration.
+SeatStatus.from_config(config) – Initializes seat statuses using a configuration object.
+
+Seat – Represents a single seat with row, column, and status attributes.
+Seat.is_available(seat_status) – Checks if a seat is available based on a given seat status.
+
+SeatingPlan – Represents a structured seating plan with a list of seats and available seat count.
+SeatingPlan.__post_init__() – Ensures the seating plan has valid data integrity.
+SeatingPlan.get_available_seats(seat_status) – Retrieves all seats marked as available.
 
 
 --- END-OF-FILE
