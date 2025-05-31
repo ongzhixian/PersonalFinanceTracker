@@ -13,9 +13,9 @@ class LoggingService(Protocol):
 class LoggerConfig:
     """Handles the configuration and management of logger instances."""
 
-    def __init__(self, name: str = "app_logger",
-                 level: int = logging.INFO,
-                 handlers: Optional[List[logging.Handler]] = None) -> None:
+    VALID_LEVELS = {logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL}
+
+    def __init__(self, name: str = "app_logger", level: int = logging.INFO, handlers: Optional[List[logging.Handler]] = None) -> None:
         """
         Initializes the logger configuration.
 
@@ -24,8 +24,8 @@ class LoggerConfig:
             level (int): Logging level.
             handlers (Optional[List[logging.Handler]]): List of logging handlers.
         """
-        self.name: str = name
-        self.level: int = level
+        self.name: str = name if name.strip() else "default_logger"  # ✅ Enforce a default name if empty
+        self.level: int = level if level in self.VALID_LEVELS else logging.INFO
         self.handlers: List[logging.Handler] = handlers or [self._default_stream_handler()]
         self.logger: logging.Logger = self._configure_logger()
 
