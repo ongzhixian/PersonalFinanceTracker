@@ -1,0 +1,53 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\app_configuration.puml
+
+@startuml
+!theme toy
+
+title Application Configuration Class Diagram
+
+class ConfigurationError extends Exception {
+    .. Methods ..
+}
+
+class SingletonMeta << (M, #FFDD00) metaclass >> {
+    - _instances: Dict[Type, Any]
+    - _lock: threading.Lock
+    -- Methods --
+    + __call__(cls, *args, **kwargs): Any
+    + reset_instance(cls): None
+}
+
+class ConfigLoader {
+    - _file_path: str
+    - _lock: threading.RLock
+    - _config: Dict[str, Any]
+    -- Methods --
+    + __init__(file_path: str): None
+    + reload(): None
+    + config: Dict[str, Any] <<property>>
+}
+
+class AppConfiguration {
+    - _loader: ConfigLoader
+    - _lock: threading.RLock
+    -- Methods --
+    + __init__(configuration_json_file_path: str): None
+    + reload(): None
+    + get(path: str, default: Optional[T], raise_on_missing: bool): Optional[T]
+    + contains(path: str): bool
+    + {static} reset_instance(): None
+}
+
+SingletonMeta <|-- AppConfiguration
+
+AppConfiguration *-- ConfigLoader
+
+ConfigurationError <.. ConfigLoader
+ConfigurationError <.. AppConfiguration
+
+footer
+Caption: This diagram illustrates the structure and relationships of the classes involved in the application's configuration management system.
+It highlights the Singleton pattern for `AppConfiguration` and its dependency on `ConfigLoader` for file operations.
+end footer
+
+@enduml
