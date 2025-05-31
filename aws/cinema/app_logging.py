@@ -3,66 +3,74 @@ import threading
 from typing import Optional, Protocol, List
 
 
-class ILoggingService(Protocol):
-    """Protocol defining a logging service for dependency injection."""
+class LoggingService(Protocol):
+    """Protocol defining the structure of a logging service."""
 
     def get_logger(self) -> logging.Logger:
         """Retrieves a logger instance."""
 
 
 class LoggerConfig:
-    """Handles logger configuration with extendable handlers."""
+    """Handles the configuration and management of logger instances."""
 
-    def __init__(self, name: str = "app_logger", level: int = logging.INFO, handlers: Optional[List[logging.Handler]] = None):
+    def __init__(self, name: str = "app_logger",
+                 level: int = logging.INFO,
+                 handlers: Optional[List[logging.Handler]] = None) -> None:
         """
         Initializes the logger configuration.
 
         Args:
-            name (str): Logger name.
+            name (str): Name of the logger.
             level (int): Logging level.
-            handlers (Optional[List[logging.Handler]]): List of handlers.
+            handlers (Optional[List[logging.Handler]]): List of logging handlers.
         """
-        self.name = name
-        self.level = level
-        self.handlers = handlers or [self._create_stream_handler()]
-        self.logger = self._configure_logger()
+        self.name: str = name
+        self.level: int = level
+        self.handlers: List[logging.Handler] = handlers or [self._default_stream_handler()]
+        self.logger: logging.Logger = self._configure_logger()
 
     def _configure_logger(self) -> logging.Logger:
-        """Creates and configures a logger instance."""
+        """Creates and configures the logger instance."""
         logger = logging.getLogger(self.name)
         logger.setLevel(self.level)
 
-        if not logger.hasHandlers():
+        if not logger.handlers:
             for handler in self.handlers:
-                self._add_handler_if_not_exists(logger, handler)
+                self._add_unique_handler(logger, handler)
 
         return logger
 
     @staticmethod
-    def _add_handler_if_not_exists(logger: logging.Logger, handler: logging.Handler) -> None:
-        """Adds a handler to the logger if it doesn't already exist."""
-        if all(not isinstance(existing_handler, type(handler)) for existing_handler in logger.handlers):
+    def _add_unique_handler(logger: logging.Logger, handler: logging.Handler) -> None:
+        """
+        Adds a handler to the logger if it's not already added.
+
+        Args:
+            logger (logging.Logger): Logger instance.
+            handler (logging.Handler): Logging handler to add.
+        """
+        if not any(isinstance(existing_handler, type(handler)) for existing_handler in logger.handlers):
             logger.addHandler(handler)
 
     @staticmethod
-    def _create_stream_handler() -> logging.StreamHandler:
-        """Creates a StreamHandler with standardized formatting."""
+    def _default_stream_handler() -> logging.StreamHandler:
+        """Creates a default StreamHandler with standardized formatting."""
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         return handler
 
 
-class AppLogger(ILoggingService):
-    """Thread-safe Singleton Logger."""
+class SingletonLogger(LoggingService):
+    """Singleton Logger with thread safety."""
 
     _instance: Optional[logging.Logger] = None
-    _singleton_lock = threading.Lock()
+    _lock = threading.Lock()
 
     @classmethod
     def get_logger(cls) -> logging.Logger:
         """Retrieves the singleton logger instance."""
         if cls._instance is None:
-            with cls._singleton_lock:
+            with cls._lock:
                 if cls._instance is None:  # Ensures only one instance is created
                     cls._instance = LoggerConfig().logger
 
@@ -71,9 +79,9 @@ class AppLogger(ILoggingService):
 
 # Example Usage
 if __name__ == "__main__":
-    logger = AppLogger.get_logger()
-    try:
-        logger.info("Logger is configured and running!")
-    except Exception as e:
-        logger.error(f"Logging failed: {e}")
+    logger = SingletonLogger.get_logger()
 
+    try:
+        logger.info("Logger successfully initialized!")
+    except Exception as error:
+        logger.exception("Unexpected logging failure", exc_info=error)
