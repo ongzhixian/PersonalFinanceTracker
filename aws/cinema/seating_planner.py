@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict, Optional
 
 from app_configuration import AppConfiguration
 from booking_repository import IBookingRepository, BookingRepository, BookingRepositoryError
-from shared_data_models import Seat, SeatingPlan, SeatStatusEnum
+from shared_data_models import Seat, SeatingPlan, SeatStatus
 
 
 class SeatingPlanner:
@@ -34,16 +34,17 @@ class SeatingPlanner:
         self.num_rows: int = num_rows
         self.seats_per_row: int = seats_per_row
         self.config = config or AppConfiguration()
-        self.status_map = SeatStatusEnum.from_config(self.config)
+        self.status_map = SeatStatus.from_config(self.config)
 
         self._seating_plan: List[List[Seat]] = self._initialize_seating_plan()
         self._repository: IBookingRepository = repository or BookingRepository(db_path)
         self._confirmed_bookings: Dict[str, List[Tuple[int, int]]] = self._repository.load_all_bookings(self.title)
         self._apply_bookings_to_plan()
 
+
     def _initialize_seating_plan(self) -> List[List[Seat]]:
         return [
-            [Seat(r, c, self.status_map["AVAILABLE"]) for c in range(self.seats_per_row)]
+            [Seat(r, c, self.status_map.AVAILABLE) for c in range(self.seats_per_row)]
             for r in range(self.num_rows)
         ]
 
@@ -54,7 +55,7 @@ class SeatingPlanner:
         for seats in self._confirmed_bookings.values():
             for row, col in seats:
                 if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
-                    self._seating_plan[row][col] = Seat(row, col, self.status_map["BOOKED"])
+                    self._seating_plan[row][col] = Seat(row, col, self.status_map.BOOKED)
 
     def get_seating_plan(self, booking_id: Optional[str] = None) -> Optional[SeatingPlan]:
         """
@@ -67,7 +68,7 @@ class SeatingPlanner:
             for row in self._seating_plan
         ]
         available_count = sum(
-            seat.status == self.status_map["AVAILABLE"]
+            seat.status == self.status_map.AVAILABLE
             for row in plan_copy for seat in row
         )
 
@@ -76,8 +77,8 @@ class SeatingPlanner:
                 return None
             for r, c in self._confirmed_bookings[booking_id]:
                 seat = plan_copy[r][c]
-                if seat.status == self.status_map["BOOKED"]:
-                    plan_copy[r][c] = Seat(r, c, self.status_map["PROPOSED"])
+                if seat.status == self.status_map.BOOKED:
+                    plan_copy[r][c] = Seat(r, c, self.status_map.PROPOSED)
             return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
 
         return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
@@ -114,7 +115,7 @@ class SeatingPlanner:
         if start_seat:
             row, col = self._seat_label_to_indices(start_seat)
             for c in range(col, self.seats_per_row):
-                if self._seating_plan[row][c].status == self.status_map["AVAILABLE"]:
+                if self._seating_plan[row][c].status == self.status_map.AVAILABLE:
                     seats_to_book.append((row, c))
                     if len(seats_to_book) == number_of_seats:
                         break
@@ -127,7 +128,7 @@ class SeatingPlanner:
         for r in rows_order:
             if seats_needed <= 0:
                 break
-            available = [c for c, seat in enumerate(self._seating_plan[r]) if seat.status == self.status_map["AVAILABLE"]]
+            available = [c for c, seat in enumerate(self._seating_plan[r]) if seat.status == self.status_map.AVAILABLE]
             while seats_needed > 0 and available:
                 max_block_size = min(seats_needed, len(available))
                 found_block = False
@@ -157,16 +158,16 @@ class SeatingPlanner:
 
         # Update in-memory plan
         for r, c in seats_to_book:
-            self._seating_plan[r][c] = Seat(r, c, self.status_map["BOOKED"])
+            self._seating_plan[r][c] = Seat(r, c, self.status_map.BOOKED)
 
         booking_id = str(uuid.uuid4())
         self._confirmed_bookings[booking_id] = seats_to_book
         try:
-            self._repository.add_booking(self.title, booking_id, seats_to_book)
+            self._repository.save_booking(self.title, booking_id, seats_to_book)
         except BookingRepositoryError as e:
             # Rollback in-memory state
             for r, c in seats_to_book:
-                self._seating_plan[r][c] = Seat(r, c, self.status_map["AVAILABLE"])
+                self._seating_plan[r][c] = Seat(r, c, self.status_map.AVAILABLE)
             del self._confirmed_bookings[booking_id]
             raise e
         return booking_id
@@ -181,15 +182,15 @@ class SeatingPlanner:
         seats_to_unbook = self._confirmed_bookings[booking_id]
         for row, col in seats_to_unbook:
             if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
-                if self._seating_plan[row][col].status == self.status_map["BOOKED"]:
-                    self._seating_plan[row][col] = Seat(row, col, self.status_map["AVAILABLE"])
+                if self._seating_plan[row][col].status == self.status_map.BOOKED:
+                    self._seating_plan[row][col] = Seat(row, col, self.status_map.AVAILABLE)
         del self._confirmed_bookings[booking_id]
         try:
             self._repository.delete_booking(self.title, booking_id)
         except BookingRepositoryError as e:
             # Rollback in-memory state
             for row, col in seats_to_unbook:
-                self._seating_plan[row][col] = Seat(row, col, self.status_map["BOOKED"])
+                self._seating_plan[row][col] = Seat(row, col, self.status_map.BOOKED)
             self._confirmed_bookings[booking_id] = seats_to_unbook
             raise e
         return booking_id

@@ -1,247 +1,49 @@
 Given:
 
-```booking_repository.py
-import sqlite3
-from typing import Sequence, Tuple, Dict, Iterator, List
-from contextlib import contextmanager
-from abc import ABC, abstractmethod
-
-DEFAULT_DB_PATH = "seating_planner.db"
-
-
-class BookingRepositoryError(Exception):
-    """Custom exception for BookingRepository errors."""
-
-
-class IBookingRepository(ABC):
-    """Repository interface for bookings."""
-
-    @abstractmethod
-    def save_booking(self, seating_plan_title: str, booking_id: str, seats: Sequence[Tuple[int, int]]) -> None:
-        pass
-
-    @abstractmethod
-    def delete_booking(self, seating_plan_title: str, booking_id: str) -> None:
-        pass
-
-    @abstractmethod
-    def load_all_bookings(self, seating_plan_title: str) -> Dict[str, List[Tuple[int, int]]]:
-        pass
-
-    @abstractmethod
-    def booking_exists(self, seating_plan_title: str, booking_id: str) -> bool:
-        pass
-
-    @abstractmethod
-    def clear_all_bookings(self) -> None:
-        pass
-
-
-class BookingRepository(IBookingRepository):
-    """
-    Handles persistence of bookings to a SQLite3 database.
-    Responsible for all DB operations.
-    Bookings are associated with a seating plan title.
-    """
-
-    def __init__(self, db_path: str = DEFAULT_DB_PATH):
-        self._db_path = db_path
-        self._init_db()
-
-    @contextmanager
-    def _get_connection(self) -> Iterator[sqlite3.Connection]:
-        conn = None
-        try:
-            conn = sqlite3.connect(self._db_path)
-            conn.row_factory = sqlite3.Row
-            yield conn
-        except sqlite3.DatabaseError as e:
-            raise BookingRepositoryError(f"Database error: {e}") from e
-        finally:
-            if conn is not None:
-                conn.close()
-
-    def _init_db(self) -> None:
-        with self._get_connection() as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS bookings (
-                    seating_plan_title TEXT NOT NULL,
-                    booking_id TEXT NOT NULL,
-                    row INTEGER NOT NULL,
-                    col INTEGER NOT NULL,
-                    PRIMARY KEY (seating_plan_title, booking_id, row, col)
-                )
-            """)
-            conn.commit()
-
-    def save_booking(
-        self,
-        seating_plan_title: str,
-        booking_id: str,
-        seats: Sequence[Tuple[int, int]]
-    ) -> None:
-        """
-        Save a booking for a given seating plan title.
-        Raises BookingRepositoryError on failure.
-        """
-        if not seats:
-            raise ValueError("Seats list cannot be empty.")
-
-        try:
-            with self._get_connection() as conn:
-                conn.executemany(
-                    """
-                    INSERT INTO bookings (seating_plan_title, booking_id, row, col)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    [(seating_plan_title, booking_id, row, col) for row, col in seats]
-                )
-                conn.commit()
-        except sqlite3.IntegrityError as e:
-            raise BookingRepositoryError(f"Booking already exists or constraint failed: {e}") from e
-        except sqlite3.DatabaseError as e:
-            raise BookingRepositoryError(f"Database error: {e}") from e
-
-    def delete_booking(self, seating_plan_title: str, booking_id: str) -> None:
-        """
-        Delete a booking for a given seating plan title.
-        Raises BookingRepositoryError if booking does not exist.
-        """
-        try:
-            with self._get_connection() as conn:
-                cur = conn.execute(
-                    """
-                    DELETE FROM bookings
-                    WHERE seating_plan_title = ? AND booking_id = ?
-                    """,
-                    (seating_plan_title, booking_id)
-                )
-                conn.commit()
-                if cur.rowcount == 0:
-                    raise BookingRepositoryError("No such booking to delete.")
-        except sqlite3.DatabaseError as e:
-            raise BookingRepositoryError(f"Database error: {e}") from e
-
-    def load_all_bookings(self, seating_plan_title: str) -> Dict[str, List[Tuple[int, int]]]:
-        """
-        Load all bookings for a given seating plan title.
-        Returns a dict mapping booking_id to list of (row, col).
-        Raises BookingRepositoryError on failure.
-        """
-        try:
-            with self._get_connection() as conn:
-                rows = conn.execute(
-                    """
-                    SELECT booking_id, row, col
-                    FROM bookings
-                    WHERE seating_plan_title = ?
-                    """,
-                    (seating_plan_title,)
-                ).fetchall()
-        except sqlite3.DatabaseError as e:
-            raise BookingRepositoryError(f"Database error: {e}") from e
-
-        bookings: Dict[str, List[Tuple[int, int]]] = {}
-        for row in rows:
-            bookings.setdefault(row["booking_id"], []).append((row["row"], row["col"]))
-        return bookings
-
-    def booking_exists(self, seating_plan_title: str, booking_id: str) -> bool:
-        """
-        Check if a booking exists for the given seating plan title and booking_id.
-        """
-        try:
-            with self._get_connection() as conn:
-                cur = conn.execute(
-                    """
-                    SELECT 1 FROM bookings
-                    WHERE seating_plan_title = ? AND booking_id = ?
-                    LIMIT 1
-                    """,
-                    (seating_plan_title, booking_id)
-                )
-                return cur.fetchone() is not None
-        except sqlite3.DatabaseError as e:
-            raise BookingRepositoryError(f"Database error: {e}") from e
-
-    def clear_all_bookings(self) -> None:
-        """
-        Utility method for tests: clear all bookings.
-        """
-        try:
-            with self._get_connection() as conn:
-                conn.execute("DELETE FROM bookings")
-                conn.commit()
-        except sqlite3.DatabaseError as e:
-            raise BookingRepositoryError(f"Database error: {e}") from e
-
+```app_configuration
+AppConfiguration: Thread-safe singleton class providing access to application configuration.
+AppConfiguration.__init__: Initializes the application configuration using a file or dictionary.
+AppConfiguration.reload: Reloads configuration if loaded from a file.
+AppConfiguration.get: Retrieves a configuration value using a colon-separated path.
+AppConfiguration.contains: Checks if a configuration key exists.
+AppConfiguration.reset_instance: Resets the singleton instance.
 ```
 
-```shared_data_models.py
-# shared_data_models.py
+```booking_repository
+BookingRepositoryError: Custom exception for booking-related errors.
 
-from dataclasses import dataclass
-from enum import Enum, auto
-from typing import List, Dict, Any
+IBookingRepository: Protocol interface defining booking operations.
 
-from app_configuration import AppConfiguration
+BookingRepository: Implements booking persistence in an SQLite database.
+BookingRepository._init_db(): Initializes the bookings table in the database.
+BookingRepository.save_booking(): Saves a booking with a list of seat coordinates.
+BookingRepository.delete_booking(): Deletes a booking by its ID.
+BookingRepository.load_all_bookings(): Loads all bookings for a specific seating plan.
+BookingRepository.booking_exists(): Checks if a booking exists in the database.
+BookingRepository.clear_all_bookings(): Removes all bookings, mainly for testing purposes.
+```
 
+```shared_data_models
+SeatStatus – Holds seat status codes dynamically loaded from configuration.
+SeatStatus.from_config(config) – Initializes seat statuses using a configuration object.
 
-class MenuOption(Enum):
-    BOOK_SEATS = auto()
-    VIEW_BOOKING = auto()
-    EXIT = auto()
+Seat – Represents a single seat with row, column, and status attributes.
+Seat.is_available(seat_status) – Checks if a seat is available based on a given seat status.
 
-
-class SeatStatus:
-    """
-    Encapsulates seat status codes, loaded from configuration.
-    """
-    AVAILABLE: str = "O"
-    BOOKED: str = "B"
-    PROPOSED: str = "P"
-
-    @staticmethod
-    def from_config(config: AppConfiguration) -> "SeatStatus":
-        statuses: Dict[str, Any] = config.get("seat_statuses", {})
-        status = SeatStatus()
-        status.AVAILABLE = statuses.get("available", "O")
-        status.BOOKED = statuses.get("booked", "B")
-        status.PROPOSED = statuses.get("proposed", "P")
-        return status
-
-
-@dataclass(frozen=True)
-class Seat:
-    """
-    Represents a single seat in the seating plan.
-    """
-    row: int
-    col: int
-    status: str
-
-
-@dataclass(frozen=True)
-class SeatingPlan:
-    """
-    Represents the complete seating plan with a title and the seat statuses.
-    Includes the number of available seats.
-    """
-    title: str
-    plan: List[List[Seat]]
-    available_seats_count: int
-
+SeatingPlan – Represents a structured seating plan with a list of seats and available seat count.
+SeatingPlan.__post_init__() – Ensures the seating plan has valid data integrity.
+SeatingPlan.get_available_seats(seat_status) – Retrieves all seats marked as available.
 ```
 
 ```seating_planner.py
-# seating_planner.py
-
-import uuid
 import string
+import uuid
 from typing import List, Tuple, Dict, Optional
-from shared_data_models import Seat, SeatingPlan, SeatStatus
-from booking_repository import IBookingRepository, BookingRepository, BookingRepositoryError
+
 from app_configuration import AppConfiguration
+from booking_repository import IBookingRepository, BookingRepository, BookingRepositoryError
+from shared_data_models import Seat, SeatingPlan, SeatStatus
+
 
 class SeatingPlanner:
     """
@@ -270,7 +72,7 @@ class SeatingPlanner:
         self.num_rows: int = num_rows
         self.seats_per_row: int = seats_per_row
         self.config = config or AppConfiguration()
-        self.status = SeatStatus.from_config(self.config)
+        self.status_map = SeatStatus.from_config(self.config)
 
         self._seating_plan: List[List[Seat]] = self._initialize_seating_plan()
         self._repository: IBookingRepository = repository or BookingRepository(db_path)
@@ -279,7 +81,7 @@ class SeatingPlanner:
 
     def _initialize_seating_plan(self) -> List[List[Seat]]:
         return [
-            [Seat(r, c, self.status.AVAILABLE) for c in range(self.seats_per_row)]
+            [Seat(r, c, self.status_map["AVAILABLE"]) for c in range(self.seats_per_row)]
             for r in range(self.num_rows)
         ]
 
@@ -290,12 +92,12 @@ class SeatingPlanner:
         for seats in self._confirmed_bookings.values():
             for row, col in seats:
                 if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
-                    self._seating_plan[row][col] = Seat(row, col, self.status.BOOKED)
+                    self._seating_plan[row][col] = Seat(row, col, self.status_map["BOOKED"])
 
     def get_seating_plan(self, booking_id: Optional[str] = None) -> Optional[SeatingPlan]:
         """
         Returns the current seating plan.
-        If booking_id is provided, marks those seats as 'proposed' (self.status.PROPOSED).
+        If booking_id is provided, marks those seats as 'proposed' (self.status_map["PROPOSED"]).
         If booking_id does not exist, returns None.
         """
         plan_copy: List[List[Seat]] = [
@@ -303,7 +105,7 @@ class SeatingPlanner:
             for row in self._seating_plan
         ]
         available_count = sum(
-            seat.status == self.status.AVAILABLE
+            seat.status == self.status_map["AVAILABLE"]
             for row in plan_copy for seat in row
         )
 
@@ -312,8 +114,8 @@ class SeatingPlanner:
                 return None
             for r, c in self._confirmed_bookings[booking_id]:
                 seat = plan_copy[r][c]
-                if seat.status == self.status.BOOKED:
-                    plan_copy[r][c] = Seat(r, c, self.status.PROPOSED)
+                if seat.status == self.status_map["BOOKED"]:
+                    plan_copy[r][c] = Seat(r, c, self.status_map["PROPOSED"])
             return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
 
         return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
@@ -350,7 +152,7 @@ class SeatingPlanner:
         if start_seat:
             row, col = self._seat_label_to_indices(start_seat)
             for c in range(col, self.seats_per_row):
-                if self._seating_plan[row][c].status == self.status.AVAILABLE:
+                if self._seating_plan[row][c].status == self.status_map["AVAILABLE"]:
                     seats_to_book.append((row, c))
                     if len(seats_to_book) == number_of_seats:
                         break
@@ -363,7 +165,7 @@ class SeatingPlanner:
         for r in rows_order:
             if seats_needed <= 0:
                 break
-            available = [c for c, seat in enumerate(self._seating_plan[r]) if seat.status == self.status.AVAILABLE]
+            available = [c for c, seat in enumerate(self._seating_plan[r]) if seat.status == self.status_map["AVAILABLE"]]
             while seats_needed > 0 and available:
                 max_block_size = min(seats_needed, len(available))
                 found_block = False
@@ -393,16 +195,16 @@ class SeatingPlanner:
 
         # Update in-memory plan
         for r, c in seats_to_book:
-            self._seating_plan[r][c] = Seat(r, c, self.status.BOOKED)
+            self._seating_plan[r][c] = Seat(r, c, self.status_map["BOOKED"])
 
         booking_id = str(uuid.uuid4())
         self._confirmed_bookings[booking_id] = seats_to_book
         try:
-            self._repository.save_booking(self.title, booking_id, seats_to_book)
+            self._repository.add_booking(self.title, booking_id, seats_to_book)
         except BookingRepositoryError as e:
             # Rollback in-memory state
             for r, c in seats_to_book:
-                self._seating_plan[r][c] = Seat(r, c, self.status.AVAILABLE)
+                self._seating_plan[r][c] = Seat(r, c, self.status_map["AVAILABLE"])
             del self._confirmed_bookings[booking_id]
             raise e
         return booking_id
@@ -417,53 +219,40 @@ class SeatingPlanner:
         seats_to_unbook = self._confirmed_bookings[booking_id]
         for row, col in seats_to_unbook:
             if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
-                if self._seating_plan[row][col].status == self.status.BOOKED:
-                    self._seating_plan[row][col] = Seat(row, col, self.status.AVAILABLE)
+                if self._seating_plan[row][col].status == self.status_map["BOOKED"]:
+                    self._seating_plan[row][col] = Seat(row, col, self.status_map["AVAILABLE"])
         del self._confirmed_bookings[booking_id]
         try:
             self._repository.delete_booking(self.title, booking_id)
         except BookingRepositoryError as e:
             # Rollback in-memory state
             for row, col in seats_to_unbook:
-                self._seating_plan[row][col] = Seat(row, col, self.status.BOOKED)
+                self._seating_plan[row][col] = Seat(row, col, self.status_map["BOOKED"])
             self._confirmed_bookings[booking_id] = seats_to_unbook
             raise e
         return booking_id
 
 ```
 
-Perform a code review to fix and refactor code.
+
+You are an extremely picky code reviewer.
+Review code and provide a fully refactored and optimized code.
+Refactored code should not need further changes should you review it again.
 
 Code should follow best practices.
 Code should use design patterns whenever possible.
 Code should have typing and follow SOLID principles.
-Write unit tests for code in a separate file using unittest.
+Code should be easily testable using unittest.
 Prioritize readability and maintainability.
 Identify illogical constructs and poor names if any.
 Add any missing error handling.
+Add any missing docstrings.
 
+2.
+Refactored code should not need further changes should you review it again.
 
-
-Update get_seating_plan function as follows:
-
-If booking_id is provided, return None if booking_id does not exist.
-
-
-Code should follow best practices.
-Code should use design patterns whenever possible.
-Code should have typing and follow SOLID principles.
-Write unit tests for code in a separate file.
-Prioritize readability and maintainability.
-Identify illogical constructs and poor names if any.
-
-
-----
-Perform a code review to fix and refactor code.
-
-Code should follow best practices.
-Code should use design patterns whenever possible.
-Code should have typing and follow SOLID principles.
-Write unit tests for code in a separate file using unittest.
-Prioritize readability and maintainability.
-Identify illogical constructs and poor names if any.
-Add any missing error handling.
+3.
+Review code.
+Generate unit tests using unittest.
+All unit tests must be runnable.
+All unit tests must pass.
