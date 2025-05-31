@@ -8,7 +8,7 @@ Design document for this application.
   - ✅ app_configuration.py 
   - ✅ app_logging.py
 
-- booking_repository.py
+- ✅ booking_repository.py
 - console_ui.py
 - fastapi_main.py
 - main.py
@@ -45,7 +45,7 @@ AppConfiguration.get: Retrieves a configuration value using a colon-separated pa
 AppConfiguration.contains: Checks if a configuration key exists.
 AppConfiguration.reset_instance: Resets the singleton instance.
 
-# File: app_logging.py
+## File: app_logging.py
 
 ![app_logging.py class diagram](docs/app_logging.png "app_logging.py class diagram")
 
@@ -60,7 +60,7 @@ LoggerConfig.\_default_stream_handler(): Returns a default StreamHandler with a 
 SingletonLogger: Implements a thread-safe singleton pattern to provide a single logger instance across multiple threads.
 SingletonLogger.get_logger(): Provides access to the single logger instance, ensuring only one is created.
 
-# File: booking_repository.py
+## File: booking_repository.py
 
 ![booking_repository.py class diagram](docs/booking_repository.png "booking_repository.py class diagram")
 
@@ -76,7 +76,20 @@ BookingRepository.load_all_bookings(): Loads all bookings for a specific seating
 BookingRepository.booking_exists(): Checks if a booking exists in the database.
 BookingRepository.clear_all_bookings(): Removes all bookings, mainly for testing purposes.
 
-# File: shared_data_models.py
+## File: seating_planner.py
+
+![seating_planner.py class diagram](docs/seating_planner.png "seating_planner.py class diagram")
+
+SeatingPlanner – Handles seat booking, seat status updates, and seating arrangements.
+SeatingPlanner.__init__ – Initializes the seating plan with configurations and loads existing bookings.
+SeatingPlanner._initialize_seating_plan – Creates an initial seating plan with all seats marked as available.
+SeatingPlanner._apply_bookings_to_plan – Updates the seating plan based on confirmed bookings.
+SeatingPlanner.get_seating_plan – Retrieves the current seating plan, optionally marking specific seats as proposed.
+SeatingPlanner._seat_label_to_indices – Converts a seat label (e.g., 'A1') into row and column indices.
+SeatingPlanner.book_seats – Books a number of available seats and assigns a unique booking ID.
+SeatingPlanner.cancel_booking – Cancels an existing booking and frees up the previously occupied seats.
+
+## File: shared_data_models.py
 
 ![shared_data_models.py class diagram](docs/shared_data_models.png "shared_data_models.py class diagram")
 
