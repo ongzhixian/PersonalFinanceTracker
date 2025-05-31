@@ -9,7 +9,7 @@ class TestBookingRepository(unittest.TestCase):
         """Create a persistent in-memory SQLite database for testing."""
         cls.connection = sqlite3.connect(":memory:")
         cls.connection.row_factory = sqlite3.Row  # Ensure correct row access
-        cls.repo = BookingRepository(cls.connection)
+        cls.repo = BookingRepository()
 
     @classmethod
     def tearDownClass(cls):

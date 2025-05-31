@@ -2,8 +2,6 @@ import sqlite3
 from typing import Sequence, Tuple, Dict, List, Iterator, Protocol
 from contextlib import contextmanager
 
-DEFAULT_DB_PATH = "seating_planner.db"
-
 
 class BookingRepositoryError(Exception):
     """Custom exception for BookingRepository errors."""
@@ -31,8 +29,9 @@ class IBookingRepository(Protocol):
 class BookingRepository(IBookingRepository):
     """Handles persistence of bookings in SQLite."""
 
-    def __init__(self, connection: sqlite3.Connection):
-        self._conn = connection
+    def __init__(self, db_path: str = ":memory:"):
+        self._conn = sqlite3.connect(db_path)
+        self._conn.row_factory = sqlite3.Row  # Allows dictionary-like row access
         self._init_db()
 
     def _init_db(self) -> None:
@@ -46,6 +45,7 @@ class BookingRepository(IBookingRepository):
                 PRIMARY KEY (seating_plan_title, booking_id, row, col)
             )
         """)
+        self._conn.commit()
 
     def save_booking(self, seating_plan_title: str, booking_id: str, seats: Sequence[Tuple[int, int]]) -> None:
         """Save a booking."""
