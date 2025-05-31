@@ -35,5 +35,14 @@ class TestAppConfiguration(unittest.TestCase):
         new_config = AppConfiguration(raw_config={"application": {"name": "NEW_APP"}})
         self.assertEqual(new_config.get("application:name"), "NEW_APP")
 
+    def test_config_default_behavior(self):
+        """Ensures missing seat_statuses returns an empty dictionary."""
+        mock_config = AppConfiguration(raw_config={})  # No seat_statuses key
+        statuses = mock_config.get("seat_statuses", {})
+
+        self.assertIsInstance(statuses, dict)
+        self.assertEqual(statuses, {})
+
+
 if __name__ == '__main__':
     unittest.main()

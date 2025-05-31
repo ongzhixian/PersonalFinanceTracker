@@ -172,5 +172,8 @@ Add any missing error handling.
 Add any missing docstrings.
 
 
-2
+2.
 Refactored code should not need further changes should you review it again.
+
+3.
+Generate unit tests using unittest.

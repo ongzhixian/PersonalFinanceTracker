@@ -1,53 +1,43 @@
-' java.exe -jar C:\Apps\bin\plantuml.jar .\app_configuration.puml
+' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\app_configuration.puml
 
 @startuml
-!theme toy
-
 title Application Configuration Class Diagram
+caption A diagram representing the configuration and singleton classes.
 
-class ConfigurationError extends Exception {
-    .. Methods ..
+class ConfigurationError {
+    + __init__(self)
 }
 
-class SingletonMeta << (M, #FFDD00) metaclass >> {
-    - _instances: Dict[Type, Any]
-    - _lock: threading.Lock
-    -- Methods --
-    + __call__(cls, *args, **kwargs): Any
-    + reset_instance(cls): None
+class SingletonMeta {
+    - weakref.WeakValueDictionary _instances
+    - threading.Lock _lock
+    + __call__(cls, *args, **kwargs)
+    + reset_instance(cls)
 }
 
 class ConfigLoader {
-    - _file_path: str
-    - _lock: threading.RLock
-    - _config: Dict[str, Any]
-    -- Methods --
-    + __init__(file_path: str): None
-    + reload(): None
-    + config: Dict[str, Any] <<property>>
+    - threading.RLock _lock
+    - dict _config
+    - Optional[str] _file_path
+    + __init__(self, file_path, raw_config)
+    + _validate_config(config)
+    + reload()
+    + config
 }
 
 class AppConfiguration {
-    - _loader: ConfigLoader
-    - _lock: threading.RLock
-    -- Methods --
-    + __init__(configuration_json_file_path: str): None
-    + reload(): None
-    + get(path: str, default: Optional[T], raise_on_missing: bool): Optional[T]
-    + contains(path: str): bool
-    + {static} reset_instance(): None
+    - threading.RLock _lock
+    - ConfigLoader _loader
+    + __init__(self, configuration_json_file_path, raw_config)
+    + reload()
+    + get(path, default, raise_on_missing)
+    + contains(path)
+    + reset_instance()
 }
 
 SingletonMeta <|-- AppConfiguration
-
-AppConfiguration *-- ConfigLoader
-
-ConfigurationError <.. ConfigLoader
-ConfigurationError <.. AppConfiguration
-
-footer
-Caption: This diagram illustrates the structure and relationships of the classes involved in the application's configuration management system.
-It highlights the Singleton pattern for `AppConfiguration` and its dependency on `ConfigLoader` for file operations.
-end footer
+ConfigLoader <|-- AppConfiguration
+ConfigurationError <-- ConfigLoader : raises
+ConfigurationError <-- AppConfiguration : raises
 
 @enduml

@@ -1,7 +1,7 @@
 import json
 import threading
 import weakref
-from typing import Any, Dict, Optional, TypeVar, Type
+from typing import Any, Dict, Optional, TypeVar
 
 T = TypeVar('T')
 
@@ -36,7 +36,6 @@ class ConfigLoader:
     def __init__(self, file_path: Optional[str] = None, raw_config: Optional[Dict[str, Any]] = None) -> None:
         self._lock: threading.RLock = threading.RLock()
         self._config: Dict[str, Any] = {}
-
         if raw_config is not None:
             self._config = self._validate_config(raw_config)
         elif file_path:
@@ -75,7 +74,7 @@ class AppConfiguration(metaclass=SingletonMeta):
                  raw_config: Optional[Dict[str, Any]] = None) -> None:
         if configuration_json_file_path:
             self._loader = ConfigLoader(file_path=configuration_json_file_path)
-        elif raw_config:
+        elif raw_config or raw_config == {}:
             self._loader = ConfigLoader(raw_config=raw_config)
         else:
             raise ConfigurationError("Either a file path or raw configuration must be provided.")
