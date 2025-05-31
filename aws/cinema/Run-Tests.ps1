@@ -1,0 +1,1 @@
+python.exe -m unittest discover --pattern *_tests.py

@@ -8,36 +8,35 @@ class ConfigurationError(Exception):
     """Custom exception for configuration errors."""
     pass
 
+
 class SingletonMeta(type):
-    """
-    Thread-safe Singleton metaclass.
-    """
+    """Thread-safe Singleton metaclass."""
     _instances: Dict[Type, Any] = {}
     _lock: threading.Lock = threading.Lock()
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs) -> Any:
         with cls._lock:
             if cls not in cls._instances:
-                instance = super().__call__(*args, **kwargs)
-                cls._instances[cls] = instance
+                cls._instances[cls] = super().__call__(*args, **kwargs)
             return cls._instances[cls]
 
     def reset_instance(cls) -> None:
+        """Resets the singleton instance (useful for testing)."""
         with cls._lock:
-            if cls in cls._instances:
-                del cls._instances[cls]
+            cls._instances.pop(cls, None)
+
 
 class ConfigLoader:
-    """
-    Handles loading and reloading configuration from a JSON file.
-    """
+    """Handles loading and reloading configuration from a JSON file."""
+
     def __init__(self, file_path: str) -> None:
-        self._file_path = file_path
-        self._lock = threading.RLock()
+        self._file_path: str = file_path
+        self._lock: threading.RLock = threading.RLock()
         self._config: Dict[str, Any] = {}
         self.reload()
 
     def reload(self) -> None:
+        """Reload configuration data from JSON file."""
         with self._lock:
             try:
                 with open(self._file_path, "r", encoding="utf-8") as f:
@@ -45,30 +44,27 @@ class ConfigLoader:
                 if not isinstance(config, dict):
                     raise ConfigurationError("Configuration root must be a dictionary.")
                 self._config = config
-            except FileNotFoundError as e:
-                raise ConfigurationError(f"Configuration file not found: {self._file_path}") from e
-            except json.JSONDecodeError as e:
-                raise ConfigurationError(f"Invalid JSON in configuration file: {e}") from e
+            except (FileNotFoundError, PermissionError, json.JSONDecodeError) as e:
+                raise ConfigurationError(f"Error loading configuration file: {e}") from e
 
     @property
     def config(self) -> Dict[str, Any]:
+        """Returns a copy of the current configuration."""
         with self._lock:
             return self._config.copy()
 
 class AppConfiguration(metaclass=SingletonMeta):
     """
     Thread-safe Singleton for application configuration.
-    Supports nested key retrieval via colon-separated strings.
+    Supports nested key retrieval via colon-separated paths.
     """
 
-    def __init__(self, configuration_json_file_path: str = 'app_configuration.json') -> None:
-        self._loader = ConfigLoader(configuration_json_file_path)
-        self._lock = threading.RLock()
+    def __init__(self, configuration_json_file_path: str) -> None:
+        self._loader: ConfigLoader = ConfigLoader(configuration_json_file_path)
+        self._lock: threading.RLock = threading.RLock()
 
     def reload(self) -> None:
-        """
-        Reload the configuration from the file.
-        """
+        """Reload the configuration from the file."""
         self._loader.reload()
 
     def get(self, path: str, default: Optional[T] = None, raise_on_missing: bool = False) -> Optional[T]:
@@ -76,9 +72,9 @@ class AppConfiguration(metaclass=SingletonMeta):
         Retrieve a configuration value using a colon-separated path for nested values.
 
         Args:
-            path (str): Colon-separated path string, e.g., "booking_settings:booking_id_prefix"
+            path (str): Colon-separated path string (e.g., "booking_settings:booking_id_prefix").
             default (Any, optional): Value to return if key is not found.
-            raise_on_missing (bool): If True, raise ConfigurationError if key is not found.
+            raise_on_missing (bool): If True, raise ConfigurationError if key is missing.
 
         Returns:
             Any: The configuration value, or default if not found.
@@ -121,9 +117,7 @@ class AppConfiguration(metaclass=SingletonMeta):
 
     @classmethod
     def reset_instance(cls) -> None:
-        """
-        Reset the singleton instance (for testing purposes).
-        """
+        """Reset the singleton instance (for testing purposes)."""
         SingletonMeta.reset_instance(cls)
 
 # Example usage:
