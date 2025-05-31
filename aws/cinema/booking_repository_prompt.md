@@ -1,3 +1,6 @@
+Given:
+
+```booking_repository.py
 import sqlite3
 from typing import Sequence, Tuple, Dict, Iterator, List
 from contextlib import contextmanager
@@ -172,3 +175,29 @@ class BookingRepository(IBookingRepository):
         except sqlite3.DatabaseError as e:
             raise BookingRepositoryError(f"Database error: {e}") from e
 
+
+```
+
+You are an extremely picky code reviewer.
+Review code and provide a fully refactored and optimized code.
+Refactored code should not need further changes should you review it again.
+
+Code should follow best practices.
+Code should use design patterns whenever possible.
+Code should have typing and follow SOLID principles.
+Code should be easily testable using unittest.
+Prioritize readability and maintainability.
+Identify illogical constructs and poor names if any.
+Add any missing error handling.
+Add any missing docstrings.
+
+Prefer Protocol over ABC
+
+2.
+Refactored code should not need further changes should you review it again.
+
+3.
+Review code.
+Generate unit tests using unittest.
+All unit tests must be runnable.
+All unit tests must pass.
