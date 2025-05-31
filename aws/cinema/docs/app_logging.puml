@@ -1,0 +1,33 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\app_logging.puml
+@startuml
+title Logging System Class Diagram
+caption A class diagram representing the logger configuration and singleton logger system.
+
+interface LoggingService {
+    +get_logger() : Logger
+}
+
+class LoggerConfig {
+    -name: str
+    -level: int
+    -handlers: List[Handler]
+    -logger: Logger
+    --
+    +__init__(name: str, level: int, handlers: Optional[List[Handler]])
+    -_configure_logger() : Logger
+    -_add_unique_handler(logger: Logger, handler: Handler) : None
+    -_default_stream_handler() : StreamHandler
+}
+
+class SingletonLogger {
+    -_instance: Optional[Logger]
+    -_lock: Lock
+    --
+    +get_logger() : Logger
+}
+
+LoggingService <|.. SingletonLogger
+LoggerConfig --> SingletonLogger : Uses
+LoggerConfig --> "0..*" Handler : Has
+
+@enduml
