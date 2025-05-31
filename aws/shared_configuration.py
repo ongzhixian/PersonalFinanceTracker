@@ -223,21 +223,57 @@ class ConfigurationRepository(BaseRepository):
 if __name__ == '__main__':
     # Example
     configuration_repository = ConfigurationRepository()
+    # message = ResertConfigurationMessage(
+    #     record_id='SYSTEM_TEST_01',
+    #     content_type='JSON',
+    #     content=json.dumps({
+    #         'environment': {
+    #             'development': {
+    #                 'version': 10
+    #             },
+    #             'production': {
+    #                 'version': 3
+    #             }
+    #         }
+    #     }),
+    #     user_code='SYSTEM_TEST')
     message = ResertConfigurationMessage(
-        record_id='SYSTEM_TEST_01',
+        record_id='UCM_ROLES',
         content_type='JSON',
         content=json.dumps({
-            'environment': {
-                'development': {
-                    'version': 10
+            'roles': {
+                'guest': {
+                    'name': 'Guest User',
+                    'description': 'Limited access for public viewing.',
+                    'actions': ['read_public_reports'],
+                    'status': 'active'
                 },
-                'production': {
-                    'version': 3
+                'membership_editor': {
+                    'name': 'Membership Editor',
+                    'description': 'Can create, edit, and publish content.',
+                    'actions': ['read_membership', 'write_membership', 'list_membership'],
+                    'status': 'active'
+                },
+                'user_credential_editor': {
+                    'name': 'User Credential Editor',
+                    'description': 'Can create, edit, and publish user credential.',
+                    'actions': ['read_user_credential', 'write_user_credential', 'list_user_credential'],
+                    'status': 'active'
                 }
             }
         }),
         user_code='SYSTEM_TEST')
-    #configuration_repository.resert_configuration(message)
+    message = ResertConfigurationMessage(
+        record_id='UCM_SECRETS',
+        content_type='JSON',
+        content=json.dumps({
+            'authentication_token': {
+                'value': 'some-secret-value',
+                'entry_datetime': '2025-05-27',
+            }
+        }),
+        user_code='SYSTEM_TEST')
+    configuration_repository.resert_configuration(message)
 
     # operation_result_message = configuration_repository.get_configuration('SYSTEM_TEST_01')
     # print(operation_result_message)
