@@ -1,35 +1,37 @@
-from typing import Any, Dict, List, Tuple, Optional
-from shared_data_models import SeatingPlan, SeatStatus
+from typing import Dict, List, Tuple, Optional
+
 from app_configuration import AppConfiguration
+from shared_data_models import Seat, SeatingPlan, SeatStatus
 
 class ConsoleUi:
     """
-    Handles all interactions with the console, including
-    displaying information and getting user input.
+    Handles user interactions through the console.
     Adheres to the Single Responsibility Principle.
     """
 
+    MAX_ROWS = 26
+    MAX_SEATS_PER_ROW = 50
+
     def __init__(self, config: AppConfiguration, seat_status: Optional[SeatStatus] = None) -> None:
         """
-        Initializes ConsoleUi with a reference to AppConfiguration and SeatStatus.
+        Initializes the ConsoleUI with application configuration and seat status.
         """
         self._config = config
-        self._seat_status = seat_status or SeatStatus(config)
+        self._seat_status = seat_status or SeatStatus.from_config(config)
 
-    def application_start_prompt(self) -> Tuple[str, int, int]:
+    def prompt_for_application_start_details(self) -> Tuple[str, int, int] | None:
         """
-        Prompts the user for initial application details in a specific format:
-        [Title] [Row] [SeatsPerRow].
-        Validates the input for maximum rows (26) and seats per row (50).
-        Rows are labeled from A to Z with Z nearest to the screen.
+        Prompts the user for initial application details in format: [Title] [Rows] [SeatsPerRow].
+        Validates input constraints for rows (max 26) and seats per row (max 50).
+        Returns:
+            Tuple[str, int, int]: Movie title, number of rows, and seats per row.
         """
         while True:
-            user_input: str = input(
-                "\nPlease define movie title and seating map in [Title] [Row] [SeatsPerRow] format:\n> ").strip()
+            user_input: str = input("\nDefine movie title and seating map in [Title] [Row] [SeatsPerRow] format:\n> ").strip()
             parts: List[str] = user_input.split()
 
             if len(parts) < 3:
-                print("Invalid format. Please ensure you provide a title, number of rows, and seats per row.")
+                print("Invalid format. Please provide title, number of rows, and seats per row.")
                 continue
 
             title_parts: List[str] = parts[:-2]
@@ -45,77 +47,74 @@ class ConsoleUi:
                 if not title:
                     print("Invalid input. Title cannot be empty.")
                     continue
-                if number_of_rows <= 0 or number_of_rows > 26:
-                    print("Invalid input. Number of rows must be a positive integer and not exceed 26 (A-Z).")
+                if number_of_rows <= 0 or number_of_rows > self.MAX_ROWS:
+                    print(f"Invalid input. Number of rows must be between 1 and {self.MAX_ROWS}.")
                     continue
-                if seats_per_row <= 0 or seats_per_row > 50:
-                    print("Invalid input. Number of seats per row must be a positive integer and not exceed 50.")
+                if seats_per_row <= 0 or seats_per_row > self.MAX_SEATS_PER_ROW:
+                    print(f"Invalid input. Seats per row must be between 1 and {self.MAX_SEATS_PER_ROW}.")
                     continue
 
                 return title, number_of_rows, seats_per_row
             except ValueError:
-                print("Invalid input. Please ensure rows and seats per row are positive integers.")
+                print("Invalid input. Rows and seats per row must be positive integers.")
             except IndexError:
                 print("Invalid format. Please ensure you provide a title, number of rows, and seats per row.")
 
-    def menu_prompt(self, seating_plan: SeatingPlan) -> int:
+    def display_menu(self, seating_plan: SeatingPlan) -> int:
         """
         Displays the main menu and prompts the user for their selection.
-        Includes movie title and available seats in the booking option.
-        Displays application name from configuration.
+        Returns:
+            int: User's selected menu option.
         """
-        app_name: str = self._config.get("application:name", default="Application")
-        movie_title: str = seating_plan.title
-        available_seats: int = seating_plan.available_seats_count
+        app_name = self._config.get("application:name", default="Movie Booking System")
+        movie_title = seating_plan.title
+        available_seats = seating_plan.available_seats_count
+
         print(f"\nWelcome to {app_name}")
         print(f"1. Book tickets for {movie_title} ({available_seats} seats available)")
         print("2. Check bookings")
         print("3. Exit")
+
         while True:
             try:
-                choice: int = int(input("Please enter your selection:\n> ").strip())
+                choice = int(input("Enter selection (1-3):\n> ").strip())
                 if choice in [1, 2, 3]:
                     return choice
-                else:
-                    print("Invalid choice. Please enter 1, 2, or 3.")
+                print("Invalid choice. Please enter 1, 2, or 3.")
             except ValueError:
                 print("Invalid input. Please enter a number.")
 
-    def number_of_seats_to_book_prompt(self, seating_plan: SeatingPlan) -> Optional[int]:
+    def prompt_for_number_of_seats_to_book(self, seating_plan: SeatingPlan) -> Optional[int]:
         """
-        Prompts the user for the number of seats they wish to book.
-        Input validation rules:
-        1. If the number of seats is greater than the number of available seats for booking,
-           pinpoint error and prompt user again.
-        2. User can input empty string to end prompt.
+        Prompts user for the number of seats they want to book.
+        Validates availability constraints.
         Returns:
-            int: Number of seats to book, or None if user cancels (inputs empty string).
+            int | None: Number of seats requested, or None if canceled.
         """
         self.display_seating_map(seating_plan)
-        available_seats: int = seating_plan.available_seats_count
+        available_seats = seating_plan.available_seats_count
         while True:
-            user_input: str = input("Enter the number of seats to book (or press Enter to cancel): ").strip()
-            if user_input == "":
-                return None  # User chose to cancel
+            user_input: str = input("Enter number of seats to book (or press Enter to cancel): ").strip()
+            if user_input == '':
+                return None
+
             try:
-                num_seats: int = int(user_input)
+                num_seats:int = int(user_input)
                 if num_seats <= 0:
-                    print("Invalid input. Please enter a positive integer for the number of seats.")
+                    print("Please enter a positive number.")
                     continue
                 if num_seats > available_seats:
-                    print(f"Cannot book {num_seats} seats. Only {available_seats} seats are available.")
+                    print(f"Cannot book {num_seats} seats. Only {available_seats} seats available.")
                     continue
                 return num_seats
             except ValueError:
-                print("Invalid input. Please enter a positive integer for the number of seats.")
+                print("Invalid input. Please enter a positive integer.")
 
     def display_seating_map(self, seating_plan: SeatingPlan) -> None:
         """
-        Displays the current seating map with each seat symbol aligned
-        with the first digit of its corresponding footer column number.
-        Row labels are reversed (first row is Z, last is A), but seat data is not reversed.
+        Displays current seating map with labeled rows and columns.
         """
-        seating_map: List[List[str]] = seating_plan.plan
+        seating_map: List[List[Seat]] = seating_plan.plan
         if not seating_map or not seating_map[0]:
             print("\nSeating plan is empty.")
             return
@@ -133,49 +132,39 @@ class ConsoleUi:
         status_symbols: Dict[str, str] = self._config.get("seat_status_symbols", default={})
         status = self._seat_status
 
-        status_value_to_config_key = {
+        status_map = {
             status.AVAILABLE: "AVAILABLE",
             status.BOOKED: "BOOKED",
             status.PROPOSED: "PROPOSED",
         }
 
-        def format_seat_symbol(seat: str) -> str:
-            config_key = status_value_to_config_key.get(seat, str(seat))
-            symbol = status_symbols.get(config_key, str(seat))
-            return symbol.ljust(col_width)
+        def format_seat(seat: Seat) -> str:
+            """Formats seat display using configured symbols."""
+            return status_symbols.get(status_map.get(seat.status, str(seat)), str(seat)).ljust(col_width)
 
-        def get_reversed_row_label(index: int) -> str:
-            """Returns the row label (A-Z), with Z for index 0, A for index num_rows-1."""
+        def get_row_label(index: int) -> str:
+            """Returns A-Z row label (reversed, so Z is first)."""
             return chr(ord('A') + (num_rows - 1 - index))
 
-        # Print each row in order, but with reversed row labels
         for i, row in enumerate(seating_map):
-            row_label: str = get_reversed_row_label(i)
-            seat_symbols: List[str] = [format_seat_symbol(seat) for seat in row]
-            row_display: str = f"{row_label} " + " ".join(seat_symbols)
-            print(row_display)
+            print(f"{get_row_label(i)} " + " ".join(format_seat(seat) for seat in row))
 
-        # Print column numbers (footer), aligned with seat symbols
-        footer = "  "  # 2 spaces for row label
-        footer_numbers = [
-            str(col_num + 1).ljust(col_width) for col_num in range(num_cols)
-        ]
-        footer += " ".join(footer_numbers)
-        print(footer)
+        footer_labels = ["  "] + [str(col + 1).ljust(col_width) for col in range(num_cols)]
+        print(" ".join(footer_labels))
 
-    def confirm_seating_map_prompt(self) -> str:
+    def propmpt_for_booking_confirmation(self) -> str:
         """
-        Asks the user to confirm or reject the proposed seating map.
-        Returns 'confirm' or an empty string or a seating position.
+        Asks user to confirm or modify seat selection.
+        Returns:
+            str: 'confirm' if accepted, or new seating position.
         """
-        response: str = input(
-            "Enter blank to accept seat selection, or enter new seating position: ").strip().lower()
-        return response
+        return input("Press Enter to confirm selection or enter new position: ").strip().lower()
 
-    def booking_id_prompt(self) -> str:
+    def prompt_for_booking_id(self) -> str:
         """
-        Prompts the user for a booking ID.
-        Returns the user's input.
+        Prompts user for a booking ID.
+        Returns:
+            str: Booking ID or empty string to return to menu.
         """
-        booking_id: str = input("\nEnter booking id, or enter blank to go back to main menu:\n> ").strip()
-        return booking_id
+        return input("\nEnter booking ID (or press Enter to cancel):\n> ").strip()
+

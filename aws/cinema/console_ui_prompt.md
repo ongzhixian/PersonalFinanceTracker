@@ -1,4 +1,22 @@
-Given the following Python code:
+Given:
+
+```shared_data_models
+SeatStatus – Holds seat status codes dynamically loaded from configuration.
+SeatStatus.from_config(config) – Initializes seat statuses using a configuration object.
+
+SeatingPlan – Represents a structured seating plan with a list of seats and available seat count.
+SeatingPlan.__post_init__() – Ensures the seating plan has valid data integrity.
+SeatingPlan.get_available_seats(seat_status) – Retrieves all seats marked as available.
+```
+
+```app_configuration
+AppConfiguration: Thread-safe singleton class providing access to application configuration.
+AppConfiguration.__init__: Initializes the application configuration using a file or dictionary.
+AppConfiguration.reload: Reloads configuration if loaded from a file.
+AppConfiguration.get: Retrieves a configuration value using a colon-separated path.
+AppConfiguration.contains: Checks if a configuration key exists.
+AppConfiguration.reset_instance: Resets the singleton instance.
+```
 
 ```console_ui.py
 from typing import Any, Dict, List, Tuple, Optional
@@ -17,7 +35,7 @@ class ConsoleUi:
         Initializes ConsoleUi with a reference to AppConfiguration and SeatStatus.
         """
         self._config = config
-        self._seat_status = seat_status or SeatStatus(config)
+        self._seat_status = seat_status or SeatStatus.from_config(config)
 
     def application_start_prompt(self) -> Tuple[str, int, int]:
         """
@@ -116,7 +134,7 @@ class ConsoleUi:
         """
         Displays the current seating map with each seat symbol aligned
         with the first digit of its corresponding footer column number.
-        Rows are displayed in reverse order (Z nearest to the screen at the top).
+        Row labels are reversed (first row is Z, last is A), but seat data is not reversed.
         """
         seating_map: List[List[str]] = seating_plan.plan
         if not seating_map or not seating_map[0]:
@@ -126,21 +144,16 @@ class ConsoleUi:
         num_rows: int = len(seating_map)
         num_cols: int = len(seating_map[0])
 
-        # Determine the width for each seat column (max 2 digits for column numbers)
         col_width: int = max(len(str(num_cols)), 2)
-
-        # Center "S C R E E N" above the seating map
-        total_width: int = 2 + num_cols * (col_width + 1) - 1  # 2 for row label, +1 for space between seats
+        total_width: int = 2 + num_cols * (col_width + 1) - 1
         screen_header: str = "S C R E E N"
         screen_padding: int = max((total_width - len(screen_header)) // 2, 0)
         print("\n" + " " * screen_padding + screen_header)
         print("-" * total_width)
 
-        # Fetch status-symbol mapping from config
         status_symbols: Dict[str, str] = self._config.get("seat_status_symbols", default={})
         status = self._seat_status
 
-        # Map status values to config keys
         status_value_to_config_key = {
             status.AVAILABLE: "AVAILABLE",
             status.BOOKED: "BOOKED",
@@ -152,19 +165,15 @@ class ConsoleUi:
             symbol = status_symbols.get(config_key, str(seat))
             return symbol.ljust(col_width)
 
-        # Helper to get row label for reversed order
-        def get_row_label(index: int) -> str:
-            """Returns the row label (A-Z), with Z at index 0, A at index num_rows-1."""
-            return chr(65 + (num_rows - 1 - index))
+        def get_reversed_row_label(index: int) -> str:
+            """Returns the row label (A-Z), with Z for index 0, A for index num_rows-1."""
+            return chr(ord('A') + (num_rows - 1 - index))
 
-        # Print each row in reverse order
-        for i in range(num_rows):
-            row_index = num_rows - 1 - i  # reversed index
-            row = seating_map[row_index]
-            row_label: str = get_row_label(i)
-            row_display: str = f"{row_label} "
-            seat_symbols = [format_seat_symbol(seat) for seat in row]
-            row_display += " ".join(seat_symbols)
+        # Print each row in order, but with reversed row labels
+        for i, row in enumerate(seating_map):
+            row_label: str = get_reversed_row_label(i)
+            seat_symbols: List[str] = [format_seat_symbol(seat) for seat in row]
+            row_display: str = f"{row_label} " + " ".join(seat_symbols)
             print(row_display)
 
         # Print column numbers (footer), aligned with seat symbols
@@ -194,6 +203,25 @@ class ConsoleUi:
 
 ```
 
+You are an extremely picky code reviewer.
+Review code and provide a fully refactored and optimized code.
+Refactored code should not need further changes should you review it again.
+
+Code should follow best practices.
+Code should use design patterns whenever possible.
+Code should have typing and follow SOLID principles.
+Code should be easily testable using unittest.
+Prioritize readability and maintainability.
+Identify illogical constructs and poor names if any.
+Add any missing error handling.
+Add any missing docstrings.
+
+
+2.
+Refactored code should not need further changes should you review it again.
+
+3.
+Generate unit tests using unittest.
 
 Update display_seating_map function as follows:
 
