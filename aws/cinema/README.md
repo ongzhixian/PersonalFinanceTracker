@@ -5,6 +5,10 @@
 
 # How to run 
 
+Run unit tests:
+
+python -m unittest discover --pattern *_tests.py
+
 
 # Files description
 
