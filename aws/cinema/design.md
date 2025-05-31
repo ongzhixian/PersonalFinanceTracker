@@ -2,49 +2,46 @@
 
 Design document for this application.
 
-## Data design
-
-We represent the graphical using a list of lists as follows:
-[['O', 'O', 'O', 'O', 'O', 'O'], ['O', 'O', 'B', 'O', 'O', 'O'], ['B', 'B', 'B', 'B', 'B', 'B']]
-First list represents the row nearest to screen.
-
-
-
-# How to run
-
-1. Console
-2. Web
-
-
-
 # Files / Modules
 
-1. app_configuration.py
-2. shared_data_models.py
-3. booking_repository.py
-4. main.py
-5. seating_planner.py
+app_configuration.py
+app_logging.py
+
+console_ui.py
+fastapi_main.py
+main.py
+
+seating_planner.py
+shared_data_models.py
+
+test_app_configuration.py
+test_app_logging.py
 
 
----- 
 
-1. console_ui.py (console_ui_test.py : unit tests for console_ui.py)
+# File: app_configuration.py
 
-Module that hold classes and functions for console interactions.
+ConfigurationError: Custom exception for configuration-related errors.
 
-2. main.py (main_test.py : unit tests for main.py)
+SingletonMeta: A metaclass implementing a thread-safe singleton pattern using weak references.
+SingletonMeta.__call__: Ensures only one instance of a class is created.
+SingletonMeta.reset_instance: Resets the singleton instance for testing purposes.
 
-Application script that orchestrate console UI interactions with user and business logic.
- 
-3. seating_planner.py (seating_planner_test.py : unit tests for seating_planner.py)
+ConfigLoader: Loads, validates, and manages configuration from a JSON file or a dictionary.
+ConfigLoader.__init__: Initializes configuration from a file or dictionary.
+ConfigLoader._validate_config: Validates that the configuration is a dictionary.
+ConfigLoader.reload: Reloads configuration from a JSON file.
+ConfigLoader.config: Returns a deep copy of the current configuration.
 
-Controls logic for allocating seats.
+AppConfiguration: Thread-safe singleton class providing access to application configuration.
+AppConfiguration.__init__: Initializes the application configuration using a file or dictionary.
+AppConfiguration.reload: Reloads configuration if loaded from a file.
+AppConfiguration.get: Retrieves a configuration value using a colon-separated path.
+AppConfiguration.contains: Checks if a configuration key exists.
+AppConfiguration.reset_instance: Resets the singleton instance.
 
-4. shared_data_models.py
 
-Shared data models used to represent seating plan data.
-Referenced by console_ui.py and seating_planner.py. 
-
+--- END-OF-FILE
 
 # Selection
 
