@@ -8,6 +8,7 @@ Design document for this application.
   - ✅ app_configuration.py 
   - ✅ app_logging.py
 
+- booking_repository.py
 - console_ui.py
 - fastapi_main.py
 - main.py
@@ -18,6 +19,7 @@ Design document for this application.
 - Unit tests
   - ✅ test_app_configuration.py
   - ✅ test_app_logging.py
+  - ✅ test_booking_repository.py
   - ✅ test_shared_data_models.py
 
 ## File: app_configuration.py
@@ -57,6 +59,22 @@ LoggerConfig.\_default_stream_handler(): Returns a default StreamHandler with a 
 
 SingletonLogger: Implements a thread-safe singleton pattern to provide a single logger instance across multiple threads.
 SingletonLogger.get_logger(): Provides access to the single logger instance, ensuring only one is created.
+
+# File: booking_repository.py
+
+![booking_repository.py class diagram](docs/booking_repository.png "booking_repository.py class diagram")
+
+BookingRepositoryError: Custom exception for booking-related errors.
+
+IBookingRepository: Protocol interface defining booking operations.
+
+BookingRepository: Implements booking persistence in an SQLite database.
+BookingRepository._init_db(): Initializes the bookings table in the database.
+BookingRepository.save_booking(): Saves a booking with a list of seat coordinates.
+BookingRepository.delete_booking(): Deletes a booking by its ID.
+BookingRepository.load_all_bookings(): Loads all bookings for a specific seating plan.
+BookingRepository.booking_exists(): Checks if a booking exists in the database.
+BookingRepository.clear_all_bookings(): Removes all bookings, mainly for testing purposes.
 
 # File: shared_data_models.py
 

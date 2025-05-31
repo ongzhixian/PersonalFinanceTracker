@@ -1,93 +1,112 @@
 Given:
 
-```app_logging.py
-import logging
-import threading
-from typing import Optional, Protocol, List
+```booking_repository.py
+import sqlite3
+from typing import Sequence, Tuple, Dict, List, Iterator, Protocol
+from contextlib import contextmanager
+
+DEFAULT_DB_PATH = "seating_planner.db"
 
 
-class LoggingService(Protocol):
-    """Protocol defining the structure of a logging service."""
-
-    def get_logger(self) -> logging.Logger:
-        """Retrieves a logger instance."""
+class BookingRepositoryError(Exception):
+    """Custom exception for BookingRepository errors."""
 
 
-class LoggerConfig:
-    """Handles the configuration and management of logger instances."""
+class IBookingRepository(Protocol):
+    """Protocol interface for bookings."""
 
-    VALID_LEVELS = {logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL}
+    def save_booking(self, seating_plan_title: str, booking_id: str, seats: Sequence[Tuple[int, int]]) -> None:
+        ...
 
-    def __init__(self, name: str = "app_logger", level: int = logging.INFO, handlers: Optional[List[logging.Handler]] = None) -> None:
-        """
-        Initializes the logger configuration.
+    def delete_booking(self, seating_plan_title: str, booking_id: str) -> None:
+        ...
 
-        Args:
-            name (str): Name of the logger.
-            level (int): Logging level.
-            handlers (Optional[List[logging.Handler]]): List of logging handlers.
-        """
-        self.name: str = name if name.strip() else "default_logger"  # ✅ Enforce a default name if empty
-        self.level: int = level if level in self.VALID_LEVELS else logging.INFO
-        self.handlers: List[logging.Handler] = handlers or [self._default_stream_handler()]
-        self.logger: logging.Logger = self._configure_logger()
+    def load_all_bookings(self, seating_plan_title: str) -> Dict[str, List[Tuple[int, int]]]:
+        ...
 
-    def _configure_logger(self) -> logging.Logger:
-        """Creates and configures the logger instance."""
-        logger = logging.getLogger(self.name)
-        logger.setLevel(self.level)
+    def booking_exists(self, seating_plan_title: str, booking_id: str) -> bool:
+        ...
 
-        if not logger.handlers:
-            for handler in self.handlers:
-                self._add_unique_handler(logger, handler)
-
-        return logger
-
-    @staticmethod
-    def _add_unique_handler(logger: logging.Logger, handler: logging.Handler) -> None:
-        """
-        Adds a handler to the logger if it's not already added.
-
-        Args:
-            logger (logging.Logger): Logger instance.
-            handler (logging.Handler): Logging handler to add.
-        """
-        if not any(isinstance(existing_handler, type(handler)) for existing_handler in logger.handlers):
-            logger.addHandler(handler)
-
-    @staticmethod
-    def _default_stream_handler() -> logging.StreamHandler:
-        """Creates a default StreamHandler with standardized formatting."""
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-        return handler
+    def clear_all_bookings(self) -> None:
+        ...
 
 
-class SingletonLogger(LoggingService):
-    """Singleton Logger with thread safety."""
+class BookingRepository(IBookingRepository):
+    """Handles persistence of bookings in SQLite."""
 
-    _instance: Optional[logging.Logger] = None
-    _lock = threading.Lock()
+    def __init__(self, connection: sqlite3.Connection):
+        self._conn = connection
+        self._init_db()
 
-    @classmethod
-    def get_logger(cls) -> logging.Logger:
-        """Retrieves the singleton logger instance."""
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:  # Ensures only one instance is created
-                    cls._instance = LoggerConfig().logger
+    def _init_db(self) -> None:
+        """Initialize the bookings table."""
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS bookings (
+                seating_plan_title TEXT NOT NULL,
+                booking_id TEXT NOT NULL,
+                row INTEGER NOT NULL,
+                col INTEGER NOT NULL,
+                PRIMARY KEY (seating_plan_title, booking_id, row, col)
+            )
+        """)
 
-        return cls._instance
+    def save_booking(self, seating_plan_title: str, booking_id: str, seats: Sequence[Tuple[int, int]]) -> None:
+        """Save a booking."""
+        if not seats:
+            raise ValueError("Seats list cannot be empty.")
 
+        try:
+            self._conn.executemany(
+                """
+                INSERT INTO bookings (seating_plan_title, booking_id, row, col)
+                VALUES (?, ?, ?, ?)
+                """,
+                [(seating_plan_title, booking_id, row, col) for row, col in seats]
+            )
+            self._conn.commit()
+        except sqlite3.IntegrityError:
+            raise BookingRepositoryError("Booking already exists or constraint failed.")
 
-# Example Usage
-if __name__ == "__main__":
-    logger = SingletonLogger.get_logger()
+    def delete_booking(self, seating_plan_title: str, booking_id: str) -> None:
+        """Delete a booking."""
+        cur = self._conn.execute(
+            """
+            DELETE FROM bookings WHERE seating_plan_title = ? AND booking_id = ?
+            """,
+            (seating_plan_title, booking_id)
+        )
+        self._conn.commit()
+        if cur.rowcount == 0:
+            raise BookingRepositoryError("No such booking to delete.")
 
-    try:
-        logger.info("Logger successfully initialized!")
-    except Exception as error:
-        logger.exception("Unexpected logging failure", exc_info=error)
+    def load_all_bookings(self, seating_plan_title: str) -> Dict[str, List[Tuple[int, int]]]:
+        """Load all bookings."""
+        rows = self._conn.execute(
+            """
+            SELECT booking_id, row, col FROM bookings WHERE seating_plan_title = ?
+            """,
+            (seating_plan_title,)
+        ).fetchall()
+
+        bookings: Dict[str, List[Tuple[int, int]]] = {}
+        for row in rows:
+            bookings.setdefault(row["booking_id"], []).append((row["row"], row["col"]))
+        return bookings
+
+    def booking_exists(self, seating_plan_title: str, booking_id: str) -> bool:
+        """Check if a booking exists."""
+        return self._conn.execute(
+            """
+            SELECT 1 FROM bookings WHERE seating_plan_title = ? AND booking_id = ? LIMIT 1
+            """,
+            (seating_plan_title, booking_id)
+        ).fetchone() is not None
+
+    def clear_all_bookings(self) -> None:
+        """Clear all bookings (for testing)."""
+        self._conn.execute("DELETE FROM bookings")
+        self._conn.commit()
+
 ```
 
 Generate plantuml for class diagram.

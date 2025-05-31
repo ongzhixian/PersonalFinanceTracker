@@ -1,0 +1,30 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\booking_repository.puml
+@startuml
+title Booking Repository Class Diagram
+caption Handles persistence of bookings in SQLite.
+
+interface IBookingRepository {
+    + save_booking(seating_plan_title: str, booking_id: str, seats: Sequence[Tuple[int, int]]) : None
+    + delete_booking(seating_plan_title: str, booking_id: str) : None
+    + load_all_bookings(seating_plan_title: str) : Dict[str, List[Tuple[int, int]]]
+    + booking_exists(seating_plan_title: str, booking_id: str) : bool
+    + clear_all_bookings() : None
+}
+
+class BookingRepository {
+    - _conn: sqlite3.Connection
+    + __init__(connection: sqlite3.Connection)
+    - _init_db() : None
+    + save_booking(seating_plan_title: str, booking_id: str, seats: Sequence[Tuple[int, int]]) : None
+    + delete_booking(seating_plan_title: str, booking_id: str) : None
+    + load_all_bookings(seating_plan_title: str) : Dict[str, List[Tuple[int, int]]]
+    + booking_exists(seating_plan_title: str, booking_id: str) : bool
+    + clear_all_bookings() : None
+}
+
+class BookingRepositoryError <<Exception>>
+
+IBookingRepository <|.. BookingRepository
+BookingRepositoryError ..> BookingRepository : Throws
+
+@enduml
