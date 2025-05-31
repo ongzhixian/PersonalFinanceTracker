@@ -104,6 +104,20 @@ Add any missing error handling.
 ```
 
 
+```commandline
+
+Update display_seating_map function as follows:
+
+Reverse the order of row labels only.
+
+Code should follow best practices.
+Code should use design patterns whenever possible.
+Code should have typing and follow SOLID principles.
+Write unit tests for code in a separate file.
+Prioritize readability and maintainability.
+Identify illogical constructs if any.
+
+```
 
 
 ```text
