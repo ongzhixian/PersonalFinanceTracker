@@ -40,6 +40,21 @@ AppConfiguration.get: Retrieves a configuration value using a colon-separated pa
 AppConfiguration.contains: Checks if a configuration key exists.
 AppConfiguration.reset_instance: Resets the singleton instance.
 
+# File: app_logging.py
+
+LoggingService: Defines a protocol for a logging service that retrieves a logger instance.
+
+LoggerConfig: Manages the configuration and setup of logger instances, ensuring proper logging levels and handlers.
+LoggerConfig.\\init\\(): Initializes the logger with a specified name, level, and handlers.
+LoggerConfig.\_configure_logger(): Creates and configures the logger instance with handlers.
+LoggerConfig.\_add_unique_handler(): Ensures that the logger does not duplicate handlers.
+LoggerConfig.\_default_stream_handler(): Returns a default StreamHandler with a formatted output.
+
+SingletonLogger: Implements a thread-safe singleton pattern to provide a single logger instance across multiple threads.
+SingletonLogger.get_logger(): Provides access to the single logger instance, ensuring only one is created.
+
+
+
 
 --- END-OF-FILE
 
