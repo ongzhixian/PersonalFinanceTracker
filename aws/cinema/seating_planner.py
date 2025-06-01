@@ -114,6 +114,8 @@ class SeatingPlanner:
 
         if start_seat:
             row, col = self._seat_label_to_indices(start_seat)
+
+            # Fill seats to the right in the same row
             for c in range(col, self.seats_per_row):
                 if self._seating_plan[row][c].status == self.status_map.AVAILABLE:
                     seats_to_book.append((row, c))
@@ -121,10 +123,29 @@ class SeatingPlanner:
                         break
                 else:
                     break
-            if row in rows_order:
-                rows_order.remove(row)
 
-        seats_needed = number_of_seats - len(seats_to_book)
+            if row in rows_order:
+                rows_order.remove(row)  # Remove the current row from the default order
+
+            seats_needed = number_of_seats - len(seats_to_book)
+
+            # Move to the next row closer to the screen
+            if seats_needed > 0:
+                new_row = row - 1 if row > 0 else None  # Ensure movement closer to the screen
+                if new_row is not None:
+                    for c in range(col, self.seats_per_row):  # Continue from same column
+                        if self._seating_plan[new_row][c].status == self.status_map.AVAILABLE:
+                            seats_to_book.append((new_row, c))
+                            if len(seats_to_book) == number_of_seats:
+                                break
+                        else:
+                            break
+                    if new_row in rows_order:
+                        rows_order.remove(new_row)
+
+            seats_needed = number_of_seats - len(seats_to_book)
+
+        # Default seat selection method if additional seats are required
         for r in rows_order:
             if seats_needed <= 0:
                 break
@@ -165,6 +186,85 @@ class SeatingPlanner:
                 self._seating_plan[r][c] = Seat(r, c, self.status_map.AVAILABLE)
             del self._confirmed_bookings[booking_id]
             raise e
+
+        return booking_id
+
+    def book_seats(self, number_of_seats: int, start_seat: Optional[str] = None) -> str:
+        """
+        Book a number of seats, optionally starting from a specific seat.
+        Returns the booking ID in the format <PREFIX><RUNNING NUMBER>.
+        """
+        if not isinstance(number_of_seats, int) or number_of_seats <= 0:
+            raise ValueError("Number of seats must be a positive integer.")
+
+        seats_to_book: List[Tuple[int, int]] = []
+        rows_order: List[int] = list(range(self.num_rows - 1, -1, -1))  # Default order: closest to screen last
+        col = None  # Initialize column tracking
+        start_row = None  # Track the row of start_seat
+
+        if start_seat:
+            start_row, col = self._seat_label_to_indices(start_seat)
+
+            # Step 1: Fill seats to the right of start_seat in its row
+            for c in range(col, self.seats_per_row):
+                if self._seating_plan[start_row][c].status == self.status_map.AVAILABLE:
+                    seats_to_book.append((start_row, c))
+                    if len(seats_to_book) == number_of_seats:
+                        break
+
+            if start_row in rows_order:
+                rows_order.remove(start_row)  # Remove start row from the default order
+
+        seats_needed = number_of_seats - len(seats_to_book)
+
+        # Ensure `start_row` is defined before filtering rows_order
+        if start_row is not None:
+            rows_order = [r for r in rows_order if r < start_row]  # Filter rows closer to the screen safely
+
+        while seats_needed > 0 and rows_order:
+            next_row = rows_order.pop(0)  # Move to the next row closer to the screen
+
+            available_seats = [c for c, seat in enumerate(self._seating_plan[next_row]) if
+                               seat.status == self.status_map.AVAILABLE]
+
+            # Apply center-priority logic in the new row
+            center = self.seats_per_row // 2
+            available_seats.sort(key=lambda c: abs(c - center))
+
+            for c in available_seats:
+                if seats_needed > 0:
+                    seats_to_book.append((next_row, c))
+                    seats_needed -= 1
+                else:
+                    break
+
+            # Ensure we continue moving to rows closer to the screen from start_row once current row is filled
+            if start_row is not None:
+                rows_order = [r for r in rows_order if r < start_row]
+
+        if len(seats_to_book) < number_of_seats:
+            raise ValueError("Not enough seats available to fulfill the booking.")
+
+        # Generate booking ID
+        prefix = self.config.get("booking_settings:booking_id_prefix", "BK")
+        running_number = len(self._confirmed_bookings) + 1
+        booking_id = f"{prefix}{running_number:04}"
+
+        # Update in-memory plan
+        for r, c in seats_to_book:
+            self._seating_plan[r][c] = Seat(r, c, self.status_map.BOOKED)
+
+        self._confirmed_bookings[booking_id] = seats_to_book
+
+        try:
+            self._repository.save_booking(self.title, booking_id, seats_to_book)
+        except BookingRepositoryError as e:
+            # Rollback in-memory state
+            for r, c in seats_to_book:
+                self._seating_plan[r][c] = Seat(r, c, self.status_map.AVAILABLE)
+            del self._confirmed_bookings[booking_id]
+            raise e
+
         return booking_id
 
     def cancel_booking(self, booking_id: str) -> str:
