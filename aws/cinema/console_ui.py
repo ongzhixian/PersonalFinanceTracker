@@ -152,7 +152,7 @@ class ConsoleUi:
         footer_labels = ["  "] + [str(col + 1).ljust(col_width) for col in range(num_cols)]
         print(" ".join(footer_labels))
 
-    def propmpt_for_booking_confirmation(self) -> str:
+    def prompt_for_booking_confirmation(self) -> str:
         """
         Asks user to confirm or modify seat selection.
         Returns:
