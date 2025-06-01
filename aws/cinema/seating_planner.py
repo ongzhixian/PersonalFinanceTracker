@@ -129,29 +129,20 @@ class SeatingPlanner:
             if seats_needed <= 0:
                 break
             available = [c for c, seat in enumerate(self._seating_plan[r]) if seat.status == self.status_map.AVAILABLE]
+
+            # Sort available seats by their distance from the center
+            center = self.seats_per_row // 2
+            available.sort(key=lambda c: abs(c - center))
+
             while seats_needed > 0 and available:
-                max_block_size = min(seats_needed, len(available))
-                found_block = False
-                for block_size in range(max_block_size, 0, -1):
-                    best_block = None
-                    min_dist = None
-                    for i in range(len(available) - block_size + 1):
-                        block = available[i:i + block_size]
-                        block_center = sum(block) / block_size
-                        center = self.seats_per_row / 2 - 0.5
-                        dist = abs(block_center - center)
-                        if min_dist is None or dist < min_dist:
-                            min_dist = dist
-                            best_block = block
-                    if best_block:
-                        for c in best_block:
-                            seats_to_book.append((r, c))
-                            available.remove(c)
-                        seats_needed = number_of_seats - len(seats_to_book)
-                        found_block = True
-                        break
-                if not found_block:
-                    break
+                block_size = min(seats_needed, len(available))
+                best_block = available[:block_size]
+
+                for c in best_block:
+                    seats_to_book.append((r, c))
+                    available.remove(c)
+
+                seats_needed = number_of_seats - len(seats_to_book)
 
         if len(seats_to_book) < number_of_seats:
             raise ValueError("Not enough seats available to fulfill the booking.")

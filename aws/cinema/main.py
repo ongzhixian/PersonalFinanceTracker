@@ -73,14 +73,18 @@ class SeatingApp:
                 return
 
             start_seat = None
+            has_displayed_successfully_book_tickets = False
             while True:
                 booking_id = self.seating_planner.book_seats(number_of_seats_to_book, start_seat=start_seat)
                 seating_plan = self.seating_planner.get_seating_plan(booking_id)
+                if not has_displayed_successfully_book_tickets:
+                    print(f'\nSuccessfully reserved {number_of_seats_to_book} {seating_plan.title} tickets.')
+                    has_displayed_successfully_book_tickets = True
                 self.console_ui.display_seating_map(seating_plan)
 
                 response = self.console_ui.prompt_for_booking_confirmation()
                 if response == '':
-                    print(f"Booking confirmed. Booking ID: {booking_id}")
+                    print(f"\nBooking ID: {booking_id} confirmed.")
                     break
 
                 start_seat = response
@@ -115,7 +119,7 @@ class SeatingApp:
         """
         Exits the application cleanly.
         """
-        print("Exiting application. Goodbye!")
+        self.console_ui.display_exit_message()
         sys.exit(0)
 
 
