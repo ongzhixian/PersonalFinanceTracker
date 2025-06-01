@@ -33,7 +33,7 @@ class TestSeatingPlanner(unittest.TestCase):
         """Ensure booking starts at a requested seat."""
         booking_id = self.planner.book_seats(2, start_seat="A1")
         booked_positions = self.planner._confirmed_bookings[booking_id]
-        self.assertIn((0, 0), booked_positions)  # 'A1' corresponds to (0, 0)
+        self.assertIn((4, 0), booked_positions)  # 'A1' corresponds to (4, 0) due to reversed row indexing
 
     def test_not_enough_seats_available(self):
         """Ensure an error is raised when attempting to overbook."""
