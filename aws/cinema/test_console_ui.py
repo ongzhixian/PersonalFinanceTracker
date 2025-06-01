@@ -67,6 +67,16 @@ class TestConsoleUi(unittest.TestCase):
 
             mock_input.assert_called_with(expected_prompt)
 
+    @patch("builtins.input", side_effect=["1"])
+    def test_display_menu_prompt(self, mock_input):
+        seat_matrix = [[Seat(row=0, col=i, status='available') for i in range(5)]]
+        seating_plan = SeatingPlan(title="Test Movie", available_seats_count=5, plan=seat_matrix)
+
+        with patch("builtins.print") as mock_print:
+            self.console_ui.display_menu(seating_plan)
+
+        mock_input.assert_called_with("Please enter your selection (1-3):\n> ")
+
 if __name__ == '__main__':
     unittest.main()
 

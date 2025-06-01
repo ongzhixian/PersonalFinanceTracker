@@ -77,7 +77,7 @@ class ConsoleUi:
 
         while True:
             try:
-                choice = int(input("Enter selection (1-3):\n> ").strip())
+                choice = int(input("Please enter your selection (1-3):\n> ").strip())
                 if choice in [1, 2, 3]:
                     return choice
                 print("Invalid choice. Please enter 1, 2, or 3.")
