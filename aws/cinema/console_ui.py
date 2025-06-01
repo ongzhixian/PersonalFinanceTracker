@@ -158,7 +158,7 @@ class ConsoleUi:
         Returns:
             str: 'confirm' if accepted, or new seating position.
         """
-        return input("Press Enter to confirm selection or enter new position: ").strip().lower()
+        return input("\nEnter blank to accept seat selection, or enter new seating position:\n> ").strip().lower()
 
     def prompt_for_booking_id(self) -> str:
         """

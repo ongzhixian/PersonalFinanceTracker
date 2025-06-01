@@ -87,6 +87,12 @@ class TestConsoleUi(unittest.TestCase):
         self.console_ui.prompt_for_number_of_seats_to_book(seating_plan)
         mock_input.assert_called_with("\nEnter number of tickets to book, or enter blank to go back to main menu:\n> ")
 
+    @patch("builtins.input")
+    def test_prompt_for_booking_confirmation_prompt_message(self, mock_input):
+        expected_prompt = "\nEnter blank to accept seat selection, or enter new seating position:\n> "
+        with patch("builtins.input") as mock_input:
+            self.console_ui.prompt_for_booking_confirmation()
+            mock_input.assert_called_with(expected_prompt)
 
 if __name__ == '__main__':
     unittest.main()
