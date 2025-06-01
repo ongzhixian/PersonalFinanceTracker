@@ -79,7 +79,7 @@ class SeatingPlanner:
                 seat = plan_copy[r][c]
                 if seat.status == self.status_map.BOOKED:
                     plan_copy[r][c] = Seat(r, c, self.status_map.PROPOSED)
-            return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
+            return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count, booking_id=booking_id)
 
         return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
 

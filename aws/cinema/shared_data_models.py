@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import List, Dict
+from typing import List, Optional
 
 from app_configuration import AppConfiguration
 
@@ -69,11 +69,13 @@ class SeatingPlan:
         title (str): Name of the seating arrangement.
         plan (List[List[Seat]]): 2D list representing the seats.
         available_seats_count (int): Number of available seats.
+        booking_id (Optional[str]): Booking identifier if relevant.
     """
 
     title: str
     plan: List[List[Seat]]
     available_seats_count: int
+    booking_id: Optional[str] = None
 
     def __post_init__(self) -> None:
         """
