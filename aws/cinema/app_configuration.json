@@ -1,10 +1,10 @@
 {
   "application": {
-    "name": "TEST_APP",
+    "name": "GIC Cinemas",
     "version": "1.0.1"
   },
   "booking_settings": {
-    "booking_id_prefix": "BK"
+    "booking_id_prefix": "GIC"
   },
   "seat_statuses": {
     "available": "O",
@@ -14,7 +14,7 @@
   "seat_status_symbols": {
     "AVAILABLE": ".",
     "BOOKED": "#",
-    "PROPOSED": "P"
+    "PROPOSED": "o"
   },
   "database_settings": {
     "seating_planner": {

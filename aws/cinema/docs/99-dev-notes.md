@@ -125,10 +125,10 @@ SeatingPlanner.cancel_booking – Cancels an existing booking and frees up the p
 MenuOption – Defines possible user actions in the booking system.
 
 SeatStatus – Holds seat status codes dynamically loaded from configuration.
-SeatStatus.from_config(config) – Initializes seat statuses using a configuration object.
+SeatStatus.from_config(cls, config: AppConfiguration) – Factory method to initialize seat statuses from configuration data.
 
 Seat – Represents a single seat with row, column, and status attributes.
-Seat.is_available(seat_status) – Checks if a seat is available based on a given seat status.
+Seat.is_available(self, seat_status: SeatStatus) – Checks if a seat is available based on a given seat status.
 
 SeatingPlan – Represents a structured seating plan with a list of seats and available seat count.
 SeatingPlan.__post_init__() – Ensures the seating plan has valid data integrity.
