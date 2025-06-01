@@ -149,7 +149,7 @@ class ConsoleUi:
         for i, row in enumerate(seating_map):
             print(f"{get_row_label(i)} " + " ".join(format_seat(seat) for seat in row))
 
-        footer_labels = ["  "] + [str(col + 1).ljust(col_width) for col in range(num_cols)]
+        footer_labels = [" "] + [str(col + 1).ljust(col_width) for col in range(num_cols)]
         print(" ".join(footer_labels))
 
     def prompt_for_booking_confirmation(self) -> str:
