@@ -1,0 +1,27 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\main.puml
+@startuml
+title SeatingApp Class Diagram
+caption A representation of the SeatingApp interactions in the movie seating application.
+
+class SeatingApp {
+    - AppConfiguration app_configuration
+    - ConsoleUi console_ui
+    - SeatingPlanner seating_planner
+    + __init__(config_path: str)
+    + start()
+    - _run_event_loop()
+    - _process_user_selection()
+    - _handle_booking()
+    - _handle_view_booking()
+    - _exit_application()
+}
+
+class AppConfiguration
+class ConsoleUi
+class SeatingPlanner
+
+SeatingApp --> AppConfiguration : uses
+SeatingApp --> ConsoleUi : interacts with
+SeatingApp --> SeatingPlanner : manages
+
+@enduml

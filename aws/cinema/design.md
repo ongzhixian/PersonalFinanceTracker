@@ -9,17 +9,20 @@ Design document for this application.
   - ✅ app_logging.py
 
 - ✅ booking_repository.py
-- console_ui.py
+- ✅ console_ui.py
 - fastapi_main.py
 - main.py
 
-- seating_planner.py
+- ✅ seating_planner.py
 - ✅ shared_data_models.py
 
 - Unit tests
   - ✅ test_app_configuration.py
   - ✅ test_app_logging.py
   - ✅ test_booking_repository.py
+  - test_main.py
+  - ✅ test_console_ui.py
+  - ✅ test_seating_planner.py
   - ✅ test_shared_data_models.py
 
 ## File: app_configuration.py
@@ -89,6 +92,19 @@ ConsoleUi.display_seating_map: Displays the current seating map with labeled row
 ConsoleUi.propmpt_for_booking_confirmation: Asks user to confirm or modify seat selection.
 ConsoleUi.prompt_for_booking_id: Collects booking ID from the user.
 
+## File: main.py
+
+![main.py class diagram](docs/main.png "main.py class diagram")
+
+SeatingApp – Manages the interaction between the console-based UI and the seating planner.
+SeatingApp.__init__ – Initializes the application with configuration and UI components.
+SeatingApp.start – Starts the application and initializes the seating planner.
+SeatingApp._run_event_loop – Continuously processes user selections until exit.
+SeatingApp._process_user_selection – Directs user choices to respective handlers.
+SeatingApp._handle_booking – Facilitates seat booking and confirmation.
+SeatingApp._handle_view_booking – Displays seating plans based on booking ID.
+SeatingApp._exit_application – Exits the application gracefully.
+
 ## File: seating_planner.py
 
 ![seating_planner.py class diagram](docs/seating_planner.png "seating_planner.py class diagram")
@@ -134,5 +150,3 @@ Seating assignment should follow this rule:
 1. Starting from specified position, fill up all the empty seats in the same row all the way to the right of the cinema hall.
 2. When there is not enough seats available, it should overflow to the next row closer to the screen.
 3. Seat allocation for overflow follows the rules for default seat allocation.
-
-

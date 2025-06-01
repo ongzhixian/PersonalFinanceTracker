@@ -3,7 +3,6 @@ from app_configuration import AppConfiguration
 from console_ui import ConsoleUi
 from seating_planner import SeatingPlanner
 
-
 class SeatingApp:
     """
     Manages interactions between ConsoleUi and SeatingPlanner for a movie seating application.
