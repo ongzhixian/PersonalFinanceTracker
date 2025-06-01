@@ -77,6 +77,17 @@ class TestConsoleUi(unittest.TestCase):
 
         mock_input.assert_called_with("Please enter your selection (1-3):\n> ")
 
+    @patch('builtins.input', return_value='')
+    def test_prompt_for_number_of_seats_to_book_prompt_message(self, mock_input):
+        """
+        Test that the correct prompt message is displayed when requesting seat booking input.
+        """
+        seat_matrix = [[Seat(row=0, col=i, status='available') for i in range(5)]]
+        seating_plan = SeatingPlan(title="Test Movie", available_seats_count=5, plan=seat_matrix)
+        self.console_ui.prompt_for_number_of_seats_to_book(seating_plan)
+        mock_input.assert_called_with("\nEnter number of tickets to book, or enter blank to go back to main menu:\n> ")
+
+
 if __name__ == '__main__':
     unittest.main()
 

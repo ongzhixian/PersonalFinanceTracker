@@ -91,10 +91,10 @@ class ConsoleUi:
         Returns:
             int | None: Number of seats requested, or None if canceled.
         """
-        self.display_seating_map(seating_plan)
+        # self.display_seating_map(seating_plan)
         available_seats = seating_plan.available_seats_count
         while True:
-            user_input: str = input("Enter number of seats to book (or press Enter to cancel): ").strip()
+            user_input: str = input("\nEnter number of tickets to book, or enter blank to go back to main menu:\n> ").strip()
             if user_input == '':
                 return None
 
