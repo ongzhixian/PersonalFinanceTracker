@@ -1,202 +1,190 @@
 Given Python code:
 
-```shared_data_models.py
-from dataclasses import dataclass
-from enum import Enum, auto
-from typing import List, Dict
-
+```main.py
+import sys
 from app_configuration import AppConfiguration
+from console_ui import ConsoleUi
+from seating_planner import SeatingPlanner
 
-
-class MenuOption(Enum):
-    """Enumeration for menu actions."""
-    BOOK_SEATS = auto()
-    VIEW_BOOKING = auto()
-    EXIT = auto()
-
-
-@dataclass(frozen=True)
-class SeatStatus:
+class SeatingApp:
     """
-    Represents seat status codes.
-    Loaded dynamically from configuration.
-    """
-    AVAILABLE: str
-    BOOKED: str
-    PROPOSED: str
-
-    @classmethod
-    def from_config(cls, config: AppConfiguration) -> "SeatStatus":
-        """
-        Factory method to initialize seat statuses from configuration.
-
-        Args:
-            config (AppConfiguration): Configuration instance.
-
-        Returns:
-            SeatStatus: Configured seat status object.
-        """
-        statuses = config.get("seat_statuses") or {}  # Ensuring it's always a dictionary
-        return cls(
-            AVAILABLE=statuses.get("available", "O"),
-            BOOKED=statuses.get("booked", "B"),
-            PROPOSED=statuses.get("proposed", "P")
-        )
-
-
-@dataclass(frozen=True)
-class Seat:
-    """
-    Represents a single seat in the seating plan.
-
-    Attributes:
-        row (int): Row index.
-        col (int): Column index.
-        status (str): Seat availability status.
-    """
-    row: int
-    col: int
-    status: str
-
-    def is_available(self, seat_status: SeatStatus) -> bool:
-        """Check if the seat is available."""
-        return self.status == seat_status.AVAILABLE
-
-
-@dataclass(frozen=True)
-class SeatingPlan:
-    """
-    Represents a structured seating plan.
-
-    Attributes:
-        title (str): Name of the seating arrangement.
-        plan (List[List[Seat]]): 2D list representing the seats.
-        available_seats_count (int): Number of available seats.
+    Manages interactions between ConsoleUi and SeatingPlanner for a movie seating application.
     """
 
-    title: str
-    plan: List[List[Seat]]
-    available_seats_count: int
-
-    def __post_init__(self) -> None:
+    def __init__(self, config_path: str) -> None:
         """
-        Validates data integrity after initialization.
-        Ensures seat matrix consistency.
+        Initializes the application with configurations and UI components.
+        :param config_path: Path to the application configuration file.
         """
-        if not self.plan:
-            raise ValueError("Seating plan cannot be empty.")
+        self.app_configuration = AppConfiguration(config_path)
+        self.console_ui = ConsoleUi(self.app_configuration)
+        self.seating_planner: SeatingPlanner | None = None
 
-        row_lengths = {len(row) for row in self.plan}
-        if len(row_lengths) > 1:
-            raise ValueError("All rows in the seating plan must have the same number of seats.")
-
-    def get_available_seats(self, seat_status: SeatStatus) -> List[Seat]:
+    def start(self) -> None:
         """
-        Retrieve a list of all available seats.
-
-        Args:
-            seat_status (SeatStatus): The seat status object.
-
-        Returns:
-            List[Seat]: List of seats marked as available.
+        Starts the seating planner application and manages user interactions.
         """
-        return [seat for row in self.plan for seat in row if seat.is_available(seat_status)]
+        try:
+            title, number_of_rows, seats_per_row = self.console_ui.prompt_for_application_start_details()
+            self.seating_planner = SeatingPlanner(title, number_of_rows, seats_per_row)
+            self._run_event_loop()
+        except Exception as e:
+            print(f"Error initializing application: {e}")
+            sys.exit(1)
+
+    def _run_event_loop(self) -> None:
+        """
+        Handles the main event loop for user interaction.
+        """
+        while True:
+            self._process_user_selection()
+
+    def _process_user_selection(self) -> None:
+        """
+        Handles user selection for seat booking, viewing seating map, and exiting.
+        """
+        if not self.seating_planner:
+            print("Seating planner is not initialized.")
+            return
+
+        seating_plan = self.seating_planner.get_seating_plan()
+        user_selection = self.console_ui.display_menu(seating_plan)
+
+        selection_handlers = {
+            1: self._handle_booking,
+            2: self._handle_view_booking,
+            3: self._exit_application,
+        }
+
+        selection_handler = selection_handlers.get(user_selection)
+        if selection_handler:
+            selection_handler()
+        else:
+            print("Invalid selection. Please choose a valid option.")
+
+    def _handle_booking(self) -> None:
+        """
+        Handles seat booking functionality.
+        """
+        if not self.seating_planner:
+            return
+
+        try:
+            seating_plan = self.seating_planner.get_seating_plan()
+            number_of_seats_to_book = self.console_ui.prompt_for_number_of_seats_to_book(seating_plan)
+            if number_of_seats_to_book is None:
+                return
+
+            start_seat = None
+            has_displayed_successfully_book_tickets = False
+            while True:
+                booking_id = self.seating_planner.book_seats(number_of_seats_to_book, start_seat=start_seat)
+                seating_plan = self.seating_planner.get_seating_plan(booking_id)
+                if not has_displayed_successfully_book_tickets:
+                    print(f'\nSuccessfully reserved {number_of_seats_to_book} {seating_plan.title} tickets.')
+                    has_displayed_successfully_book_tickets = True
+                self.console_ui.display_seating_map(seating_plan)
+
+                response = self.console_ui.prompt_for_booking_confirmation()
+                if response == '':
+                    print(f"\nBooking ID: {booking_id} confirmed.")
+                    break
+
+                start_seat = response
+                self.seating_planner.cancel_booking(booking_id)
+        except Exception as e:
+            print(f"Error processing booking: {e}")
+
+    def _handle_view_booking(self) -> None:
+        """
+        Handles viewing seating plans based on booking ID.
+        """
+        if not self.seating_planner:
+            return
+
+        try:
+            while True:
+                booking_id = self.console_ui.prompt_for_booking_id()
+                if booking_id == '':
+                    break
+
+                seating_plan = self.seating_planner.get_seating_plan(booking_id)
+                if seating_plan is None:
+                    print("Booking ID not found. Please try again.")
+                    continue
+
+                self.console_ui.display_seating_map(seating_plan)
+
+        except Exception as e:
+            print(f"Error viewing booking: {e}")
+
+    def _exit_application(self) -> None:
+        """
+        Exits the application cleanly.
+        """
+        self.console_ui.display_exit_message()
+        sys.exit(0)
+
+
+if __name__ == '__main__':
+    SeatingApp('./app_configuration.json').start()
 
 ```
 
-```test_shared_data_models.py
+```test_main.py
 import unittest
-from shared_data_models import SeatStatus, Seat, SeatingPlan, MenuOption
-from app_configuration import AppConfiguration
+from unittest.mock import patch, MagicMock
+
+from main import SeatingApp
 
 
-class TestSeatStatus(unittest.TestCase):
-    """Tests for SeatStatus behavior."""
+class TestSeatingApp(unittest.TestCase):
 
-    def test_factory_method_from_config(self):
-        """Validates SeatStatus factory method with config data."""
-        mock_config = AppConfiguration(raw_config={"seat_statuses": {
-            "available": "A",
-            "booked": "X",
-            "proposed": "Y"
-        }})
-        seat_status = SeatStatus.from_config(mock_config)
-        self.assertEqual(seat_status.AVAILABLE, "A")
-        self.assertEqual(seat_status.BOOKED, "X")
-        self.assertEqual(seat_status.PROPOSED, "Y")
+    @patch('main.AppConfiguration')
+    @patch('main.ConsoleUi')
+    @patch('main.SeatingPlanner')
+    def setUp(self, mock_seating_planner, mock_console_ui, mock_app_config):
+        """Sets up test instances with mocked dependencies."""
+        self.mock_app_config = mock_app_config.return_value
+        self.mock_console_ui = mock_console_ui.return_value
+        self.mock_seating_planner = mock_seating_planner.return_value
+        self.app = SeatingApp('./config.json')
 
-    def test_factory_method_with_defaults(self):
-        """Validates SeatStatus default values when config is missing."""
-        mock_config = AppConfiguration(raw_config={})
-        seat_status = SeatStatus.from_config(mock_config)
-        self.assertEqual(seat_status.AVAILABLE, "O")
-        self.assertEqual(seat_status.BOOKED, "B")
-        self.assertEqual(seat_status.PROPOSED, "P")
+    def test_initialization(self):
+        """Tests that SeatingApp initializes properly with configuration and UI components."""
+        self.assertIsNotNone(self.app.app_configuration)
+        self.assertIsNotNone(self.app.console_ui)
+        self.assertIsNone(self.app.seating_planner)
 
+    @patch('builtins.input', side_effect=["BOOK123"])
+    def test_handle_view_booking(self, mock_input):
+        """Tests viewing booking functionality."""
+        seating_plan_mock = MagicMock()
+        self.app.seating_planner = MagicMock()
+        self.app.seating_planner.get_seating_plan.return_value = seating_plan_mock
+        self.mock_console_ui.prompt_for_booking_id.return_value = "BOOK123"
 
-class TestSeat(unittest.TestCase):
-    """Tests for Seat behavior."""
+        with patch.object(self.app.console_ui, 'display_seating_map'):
+            self.app._handle_view_booking()
+            self.assertTrue(self.app.seating_planner.get_seating_plan.called)
 
-    def setUp(self):
-        """Set up common test objects."""
-        self.seat_status = SeatStatus("O", "B", "P")
-
-    def test_seat_availability(self):
-        """Checks if Seat correctly reports availability."""
-        available_seat = Seat(row=1, col=1, status=self.seat_status.AVAILABLE)
-        booked_seat = Seat(row=1, col=2, status=self.seat_status.BOOKED)
-
-        self.assertTrue(available_seat.is_available(self.seat_status))
-        self.assertFalse(booked_seat.is_available(self.seat_status))
-
-
-class TestSeatingPlan(unittest.TestCase):
-    """Tests for SeatingPlan behavior and validation."""
-
-    def setUp(self):
-        """Setup common objects for tests."""
-        self.seat_status = SeatStatus("O", "B", "P")
-        self.valid_plan = [
-            [Seat(0, 0, "O"), Seat(0, 1, "B")],
-            [Seat(1, 0, "O"), Seat(1, 1, "P")]
-        ]
-
-    def test_seating_plan_validation(self):
-        """Ensures seating plan enforces consistency."""
-        with self.assertRaises(ValueError):
-            SeatingPlan(title="Invalid Plan", plan=[], available_seats_count=0)
-
-        with self.assertRaises(ValueError):
-            SeatingPlan(title="Mismatched Rows", plan=[
-                [Seat(0, 0, "O")],
-                [Seat(1, 0, "O"), Seat(1, 1, "B")]
-            ], available_seats_count=0)
-
-    def test_available_seats(self):
-        """Checks available seat retrieval logic."""
-        seating_plan = SeatingPlan(title="Test Plan", plan=self.valid_plan, available_seats_count=2)
-        available_seats = seating_plan.get_available_seats(self.seat_status)
-
-        self.assertEqual(len(available_seats), 2)
-        self.assertEqual(available_seats[0].status, "O")
-        self.assertEqual(available_seats[1].status, "O")
-
-
-class TestMenuOption(unittest.TestCase):
-    """Tests for MenuOption enumeration."""
-
-    def test_enum_values(self):
-        """Verifies MenuOption members are correctly assigned."""
-        self.assertEqual(MenuOption.BOOK_SEATS.name, "BOOK_SEATS")
-        self.assertEqual(MenuOption.VIEW_BOOKING.name, "VIEW_BOOKING")
-        self.assertEqual(MenuOption.EXIT.name, "EXIT")
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
 
 ```
 
-Review and fix unit test code.
-All unit tests must be runnable.
+Fix test_handle_view_booking unit test.
+
+Generate new unit test for prompt_for_booking_confirmation function.
+Unit test should only check if input prompt matches the following:
+"Press Enter to confirm selection or enter new position: "
+Test should ensure prompt_for_booking_confirmation display the expected prompt
+Do not change `test_console_ui.setUp`
+All unit tests must be runnable. 
 All unit tests must pass.
+
+
+Generate unit tests for main.py using unittest. 
+All unit tests must be runnable. 
+All unit tests must pass.
+

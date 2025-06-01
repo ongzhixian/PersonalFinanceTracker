@@ -1,6 +1,10 @@
 Given:
 
-```app_configuration
+from app_configuration import AppConfiguration
+from booking_repository import IBookingRepository, BookingRepository, BookingRepositoryError
+from shared_data_models import Seat, SeatingPlan, SeatStatus
+
+```app_configuration.py
 AppConfiguration: Thread-safe singleton class providing access to application configuration.
 AppConfiguration.__init__: Initializes the application configuration using a file or dictionary.
 AppConfiguration.reload: Reloads configuration if loaded from a file.
@@ -8,12 +12,7 @@ AppConfiguration.get: Retrieves a configuration value using a colon-separated pa
 AppConfiguration.contains: Checks if a configuration key exists.
 AppConfiguration.reset_instance: Resets the singleton instance.
 ```
-
-```booking_repository
-BookingRepositoryError: Custom exception for booking-related errors.
-
-IBookingRepository: Protocol interface defining booking operations.
-
+```booking_repository.py
 BookingRepository: Implements booking persistence in an SQLite database.
 BookingRepository._init_db(): Initializes the bookings table in the database.
 BookingRepository.save_booking(): Saves a booking with a list of seat coordinates.
@@ -23,21 +22,21 @@ BookingRepository.booking_exists(): Checks if a booking exists in the database.
 BookingRepository.clear_all_bookings(): Removes all bookings, mainly for testing purposes.
 ```
 
-```shared_data_models
+```shared_data_models.py
 SeatStatus – Holds seat status codes dynamically loaded from configuration.
-SeatStatus.from_config(config) – Initializes seat statuses using a configuration object.
+SeatStatus.from_config(cls, config: AppConfiguration) – Factory method to initialize seat statuses from configuration data.
 
 Seat – Represents a single seat with row, column, and status attributes.
-Seat.is_available(seat_status) – Checks if a seat is available based on a given seat status.
+Seat.is_available(self, seat_status: SeatStatus) – Checks if a seat is available based on a given seat status.
 
 SeatingPlan – Represents a structured seating plan with a list of seats and available seat count.
 SeatingPlan.__post_init__() – Ensures the seating plan has valid data integrity.
 SeatingPlan.get_available_seats(seat_status) – Retrieves all seats marked as available.
 ```
 
+
 ```seating_planner.py
 import string
-import uuid
 from typing import List, Tuple, Dict, Optional
 
 from app_configuration import AppConfiguration
@@ -71,7 +70,7 @@ class SeatingPlanner:
         self.title: str = title
         self.num_rows: int = num_rows
         self.seats_per_row: int = seats_per_row
-        self.config = config or AppConfiguration()
+        self.config = config or AppConfiguration(raw_config={})
         self.status_map = SeatStatus.from_config(self.config)
 
         self._seating_plan: List[List[Seat]] = self._initialize_seating_plan()
@@ -79,9 +78,10 @@ class SeatingPlanner:
         self._confirmed_bookings: Dict[str, List[Tuple[int, int]]] = self._repository.load_all_bookings(self.title)
         self._apply_bookings_to_plan()
 
+
     def _initialize_seating_plan(self) -> List[List[Seat]]:
         return [
-            [Seat(r, c, self.status_map["AVAILABLE"]) for c in range(self.seats_per_row)]
+            [Seat(r, c, self.status_map.AVAILABLE) for c in range(self.seats_per_row)]
             for r in range(self.num_rows)
         ]
 
@@ -92,7 +92,7 @@ class SeatingPlanner:
         for seats in self._confirmed_bookings.values():
             for row, col in seats:
                 if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
-                    self._seating_plan[row][col] = Seat(row, col, self.status_map["BOOKED"])
+                    self._seating_plan[row][col] = Seat(row, col, self.status_map.BOOKED)
 
     def get_seating_plan(self, booking_id: Optional[str] = None) -> Optional[SeatingPlan]:
         """
@@ -105,7 +105,7 @@ class SeatingPlanner:
             for row in self._seating_plan
         ]
         available_count = sum(
-            seat.status == self.status_map["AVAILABLE"]
+            seat.status == self.status_map.AVAILABLE
             for row in plan_copy for seat in row
         )
 
@@ -114,15 +114,15 @@ class SeatingPlanner:
                 return None
             for r, c in self._confirmed_bookings[booking_id]:
                 seat = plan_copy[r][c]
-                if seat.status == self.status_map["BOOKED"]:
-                    plan_copy[r][c] = Seat(r, c, self.status_map["PROPOSED"])
-            return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
+                if seat.status == self.status_map.BOOKED:
+                    plan_copy[r][c] = Seat(r, c, self.status_map.PROPOSED)
+            return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count, booking_id=booking_id)
 
         return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
 
     def _seat_label_to_indices(self, seat_label: str) -> Tuple[int, int]:
         """
-        Convert a seat label (e.g., 'A1') to (row, col) indices.
+        Convert a seat label (e.g., 'A1') to (row, col) indices, reversing row order.
         """
         if not seat_label or len(seat_label) < 2:
             raise ValueError("Invalid seat label format.")
@@ -130,83 +130,91 @@ class SeatingPlanner:
         if row_char not in string.ascii_uppercase:
             raise ValueError("Invalid row character in seat label.")
         row = ord(row_char) - ord('A')
+        reversed_row = self.num_rows - 1 - row  # Reverse row indexing
         try:
             col = int(seat_label[1:]) - 1
         except ValueError:
             raise ValueError("Invalid column number in seat label.")
-        if not (0 <= row < self.num_rows and 0 <= col < self.seats_per_row):
+        if not (0 <= reversed_row < self.num_rows and 0 <= col < self.seats_per_row):
             raise ValueError("Seat label out of range.")
-        return row, col
+        return reversed_row, col
 
     def book_seats(self, number_of_seats: int, start_seat: Optional[str] = None) -> str:
         """
         Book a number of seats, optionally starting from a specific seat.
-        Returns the booking ID.
+        Returns the booking ID in the format <PREFIX><RUNNING NUMBER>.
         """
         if not isinstance(number_of_seats, int) or number_of_seats <= 0:
             raise ValueError("Number of seats must be a positive integer.")
 
         seats_to_book: List[Tuple[int, int]] = []
-        rows_order: List[int] = list(range(self.num_rows - 1, -1, -1))  # Furthest from screen first
+        rows_order: List[int] = list(range(self.num_rows - 1, -1, -1))  # Default order: closest to screen last
+        col = None  # Initialize column tracking
+        start_row = None  # Track the row of start_seat
 
         if start_seat:
-            row, col = self._seat_label_to_indices(start_seat)
+            start_row, col = self._seat_label_to_indices(start_seat)
+
+            # Step 1: Fill seats to the right of start_seat in its row
             for c in range(col, self.seats_per_row):
-                if self._seating_plan[row][c].status == self.status_map["AVAILABLE"]:
-                    seats_to_book.append((row, c))
+                if self._seating_plan[start_row][c].status == self.status_map.AVAILABLE:
+                    seats_to_book.append((start_row, c))
                     if len(seats_to_book) == number_of_seats:
                         break
-                else:
-                    break
-            if row in rows_order:
-                rows_order.remove(row)
+
+            if start_row in rows_order:
+                rows_order.remove(start_row)  # Remove start row from the default order
 
         seats_needed = number_of_seats - len(seats_to_book)
-        for r in rows_order:
-            if seats_needed <= 0:
-                break
-            available = [c for c, seat in enumerate(self._seating_plan[r]) if seat.status == self.status_map["AVAILABLE"]]
-            while seats_needed > 0 and available:
-                max_block_size = min(seats_needed, len(available))
-                found_block = False
-                for block_size in range(max_block_size, 0, -1):
-                    best_block = None
-                    min_dist = None
-                    for i in range(len(available) - block_size + 1):
-                        block = available[i:i + block_size]
-                        block_center = sum(block) / block_size
-                        center = self.seats_per_row / 2 - 0.5
-                        dist = abs(block_center - center)
-                        if min_dist is None or dist < min_dist:
-                            min_dist = dist
-                            best_block = block
-                    if best_block:
-                        for c in best_block:
-                            seats_to_book.append((r, c))
-                            available.remove(c)
-                        seats_needed = number_of_seats - len(seats_to_book)
-                        found_block = True
-                        break
-                if not found_block:
+
+        # Ensure `start_row` is defined before filtering rows_order
+        if start_row is not None:
+            rows_order = [r for r in rows_order if r < start_row]  # Filter rows closer to the screen safely
+
+        while seats_needed > 0 and rows_order:
+            next_row = rows_order.pop(0)  # Move to the next row closer to the screen
+
+            available_seats = [c for c, seat in enumerate(self._seating_plan[next_row]) if
+                               seat.status == self.status_map.AVAILABLE]
+
+            # Apply center-priority logic in the new row
+            center = self.seats_per_row // 2
+            available_seats.sort(key=lambda c: abs(c - center))
+
+            for c in available_seats:
+                if seats_needed > 0:
+                    seats_to_book.append((next_row, c))
+                    seats_needed -= 1
+                else:
                     break
+
+            # Ensure we continue moving to rows closer to the screen from start_row once current row is filled
+            if start_row is not None:
+                rows_order = [r for r in rows_order if r < start_row]
 
         if len(seats_to_book) < number_of_seats:
             raise ValueError("Not enough seats available to fulfill the booking.")
 
+        # Generate booking ID
+        prefix = self.config.get("booking_settings:booking_id_prefix", "BK")
+        running_number = len(self._confirmed_bookings) + 1
+        booking_id = f"{prefix}{running_number:04}"
+
         # Update in-memory plan
         for r, c in seats_to_book:
-            self._seating_plan[r][c] = Seat(r, c, self.status_map["BOOKED"])
+            self._seating_plan[r][c] = Seat(r, c, self.status_map.BOOKED)
 
-        booking_id = str(uuid.uuid4())
         self._confirmed_bookings[booking_id] = seats_to_book
+
         try:
-            self._repository.add_booking(self.title, booking_id, seats_to_book)
+            self._repository.save_booking(self.title, booking_id, seats_to_book)
         except BookingRepositoryError as e:
             # Rollback in-memory state
             for r, c in seats_to_book:
-                self._seating_plan[r][c] = Seat(r, c, self.status_map["AVAILABLE"])
+                self._seating_plan[r][c] = Seat(r, c, self.status_map.AVAILABLE)
             del self._confirmed_bookings[booking_id]
             raise e
+
         return booking_id
 
     def cancel_booking(self, booking_id: str) -> str:
@@ -219,21 +227,20 @@ class SeatingPlanner:
         seats_to_unbook = self._confirmed_bookings[booking_id]
         for row, col in seats_to_unbook:
             if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
-                if self._seating_plan[row][col].status == self.status_map["BOOKED"]:
-                    self._seating_plan[row][col] = Seat(row, col, self.status_map["AVAILABLE"])
+                if self._seating_plan[row][col].status == self.status_map.BOOKED:
+                    self._seating_plan[row][col] = Seat(row, col, self.status_map.AVAILABLE)
         del self._confirmed_bookings[booking_id]
         try:
             self._repository.delete_booking(self.title, booking_id)
         except BookingRepositoryError as e:
             # Rollback in-memory state
             for row, col in seats_to_unbook:
-                self._seating_plan[row][col] = Seat(row, col, self.status_map["BOOKED"])
+                self._seating_plan[row][col] = Seat(row, col, self.status_map.BOOKED)
             self._confirmed_bookings[booking_id] = seats_to_unbook
             raise e
         return booking_id
 
 ```
-
 
 You are an extremely picky code reviewer.
 Review code and provide a fully refactored and optimized code.
@@ -256,3 +263,18 @@ Review code.
 Generate unit tests using unittest.
 All unit tests must be runnable.
 All unit tests must pass.
+
+
+
+
+Fix test_book_seats_starting_at_specific_seat unit test.
+Do not change _seat_label_to_indices function.
+
+Update test_book_seats_starting_at_specific_seat function as follows:
+
+Change the format of booking_id to <PREFIX><RUNNING NUMBER>
+<PREFIX> is defined from AppConfiguration.
+
+
+If booking_id is defined, add booking_id to the returned SeatingPlan.
+Make necessary adjustments to SeatingPlan.

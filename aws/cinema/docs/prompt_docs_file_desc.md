@@ -200,10 +200,6 @@ class SeatingPlanner:
 
 ```
 
-Generate design specification.
-Provide design specification as markdown documents.
-Generate PlantUml markup for any tables and diagrams as needed in separate files.
-Separate PlantUML files for tables and diagrams. 
+Generate PlantUml markup for class diagram.
+Add title and caption.
 
-Any tables and diagrams 
-Tables and diagrams should be rendered as PlantUml markup in separate files.
