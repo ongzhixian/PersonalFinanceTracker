@@ -102,7 +102,7 @@ class SeatingApp:
         try:
             while True:
                 booking_id = self.console_ui.prompt_for_booking_id()
-                if not booking_id.strip():
+                if booking_id == '':
                     break
 
                 seating_plan = self.seating_planner.get_seating_plan(booking_id)
@@ -111,7 +111,7 @@ class SeatingApp:
                     continue
 
                 self.console_ui.display_seating_map(seating_plan)
-                break
+
         except Exception as e:
             print(f"Error viewing booking: {e}")
 

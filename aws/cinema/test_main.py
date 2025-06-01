@@ -77,17 +77,17 @@ class TestSeatingApp(unittest.TestCase):
                 self.app._handle_booking()
                 self.assertTrue(self.app.seating_planner.book_seats.called)
 
-    @patch('builtins.input', side_effect=["BOOK123"])
-    def test_handle_view_booking(self, mock_input):
+    def test_handle_view_booking(self):
         """Tests viewing booking functionality."""
         seating_plan_mock = MagicMock()
         self.app.seating_planner = MagicMock()
         self.app.seating_planner.get_seating_plan.return_value = seating_plan_mock
-        self.mock_console_ui.prompt_for_booking_id.return_value = "BOOK123"
+        self.mock_console_ui.prompt_for_booking_id.side_effect = ["BOOK123", ""]
 
-        with patch.object(self.app.console_ui, 'display_seating_map'):
+        with patch.object(self.mock_console_ui, 'display_seating_map') as mock_display:
             self.app._handle_view_booking()
-            self.assertTrue(self.app.seating_planner.get_seating_plan.called)
+            self.app.seating_planner.get_seating_plan.assert_called_with("BOOK123")
+            mock_display.assert_called_with(seating_plan_mock)
 
 if __name__ == '__main__':
     unittest.main()
