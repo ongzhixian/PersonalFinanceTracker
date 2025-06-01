@@ -1,0 +1,36 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\use-cases2.puml
+@startuml
+title Seat Booking System Overview
+
+actor User
+
+rectangle "Console UI" {
+  User --> (View Seating Availability)
+  User --> (Book Seats)
+  User --> (Cancel Bookings)
+  User --> (Retrieve Past Reservations)
+}
+
+rectangle "System Backend" {
+  (Book Seats) --> (Seating Planner)
+  (Cancel Bookings) --> (Seating Planner)
+  (Retrieve Past Reservations) --> (SQLite Database)
+  (View Seating Availability) --> (SQLite Database)
+
+  (Seating Planner) --> (SQLite Database) : Updates Seat Status
+}
+
+rectangle "Configuration" {
+  (Thread-Safe Settings)
+  (Reloadable Configurations)
+}
+
+rectangle "Logging Service" {
+  (Capture Events)
+  (Record Errors)
+}
+
+"System Backend" ..> "Configuration" : Uses Settings
+"System Backend" ..> "Logging Service" : Logs Events
+
+@enduml

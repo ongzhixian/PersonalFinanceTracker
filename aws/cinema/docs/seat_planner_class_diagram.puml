@@ -1,0 +1,67 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\seat_planner_class_diagram2.puml
+@startuml
+title Seating Planner Class Diagram
+caption This diagram represents the structure and relationships in the SeatingPlanner class.
+
+class SeatingPlanner {
+    - title: str
+    - num_rows: int
+    - seats_per_row: int
+    - config: AppConfiguration
+    - status_map: SeatStatus
+    - _seating_plan: List<List<Seat>>
+    - _repository: IBookingRepository
+    - _confirmed_bookings: Dict<str, List<Tuple<int, int>>>
+
+    + __init__(title: str, num_rows: int, seats_per_row: int, db_path: str, config: Optional[AppConfiguration], repository: Optional[IBookingRepository])
+    - _initialize_seating_plan() : List<List<Seat>>
+    - _apply_bookings_to_plan() : None
+    - _seat_label_to_indices(seat_label: str) : Tuple<int, int>
+    + get_seating_plan(booking_id: Optional[str]) : Optional[SeatingPlan>
+    + book_seats(number_of_seats: int, start_seat: Optional[str>) : str
+    + cancel_booking(booking_id: str) : str
+}
+
+class Seat {
+    - row: int
+    - col: int
+    - status: SeatStatus
+}
+
+class SeatingPlan {
+    - title: str
+    - plan: List<List<Seat>>
+    - available_seats_count: int
+}
+
+class SeatStatus {
+    + AVAILABLE
+    + BOOKED
+    + PROPOSED
+    + from_config(config: AppConfiguration)
+}
+
+class AppConfiguration {
+    - raw_config: dict
+}
+
+class IBookingRepository {
+    + load_all_bookings(title: str) : Dict<str, List<Tuple<int, int>>>
+    + save_booking(title: str, booking_id: str, seats: List<Tuple<int, int>>) : None
+    + delete_booking(title: str, booking_id: str) : None
+}
+
+class BookingRepository {
+    - db_path: str
+}
+
+IBookingRepository <|-- BookingRepository
+SeatingPlanner --> Seat
+SeatingPlanner --> SeatingPlan
+SeatingPlanner --> SeatStatus
+SeatingPlanner --> AppConfiguration
+SeatingPlanner --> IBookingRepository
+Seat --> SeatStatus
+SeatingPlan --> Seat
+
+@enduml
