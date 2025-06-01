@@ -33,7 +33,7 @@ class SeatingPlanner:
         self.title: str = title
         self.num_rows: int = num_rows
         self.seats_per_row: int = seats_per_row
-        self.config = config or AppConfiguration()
+        self.config = config or AppConfiguration(raw_config={})
         self.status_map = SeatStatus.from_config(self.config)
 
         self._seating_plan: List[List[Seat]] = self._initialize_seating_plan()
