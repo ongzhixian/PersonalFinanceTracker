@@ -76,6 +76,19 @@ BookingRepository.load_all_bookings(): Loads all bookings for a specific seating
 BookingRepository.booking_exists(): Checks if a booking exists in the database.
 BookingRepository.clear_all_bookings(): Removes all bookings, mainly for testing purposes.
 
+## File: console_ui.py
+
+![console_ui.py class diagram](docs/console_ui.png "console_ui.py class diagram")
+
+ConsoleUi: Manages console-based user interactions for booking movie tickets.
+ConsoleUi.__init__: Initializes console UI with application configuration and seat status.
+ConsoleUi.prompt_for_application_start_details: Collects and validates movie title and seating map details.
+ConsoleUi.display_menu: Shows main menu options and retrieves user selection.
+ConsoleUi.prompt_for_number_of_seats_to_book: Prompts user for seat booking quantity and validates availability.
+ConsoleUi.display_seating_map: Displays the current seating map with labeled rows and columns.
+ConsoleUi.propmpt_for_booking_confirmation: Asks user to confirm or modify seat selection.
+ConsoleUi.prompt_for_booking_id: Collects booking ID from the user.
+
 ## File: seating_planner.py
 
 ![seating_planner.py class diagram](docs/seating_planner.png "seating_planner.py class diagram")

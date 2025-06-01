@@ -1,0 +1,42 @@
+' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\console_ui.puml
+@startuml
+title Console UI Class Diagram
+caption Handles user interactions through the console.
+
+class ConsoleUi {
+    - MAX_ROWS = 26
+    - MAX_SEATS_PER_ROW = 50
+    - _config: AppConfiguration
+    - _seat_status: SeatStatus
+    + __init__(config: AppConfiguration, seat_status: Optional[SeatStatus])
+    + prompt_for_application_start_details(): Tuple<String, int, int> | None
+    + display_menu(seating_plan: SeatingPlan): int
+    + prompt_for_number_of_seats_to_book(seating_plan: SeatingPlan): Optional<int>
+    + display_seating_map(seating_plan: SeatingPlan): None
+    + propmpt_for_booking_confirmation(): str
+    + prompt_for_booking_id(): str
+}
+
+class AppConfiguration
+class SeatingPlan {
+    + available_seats_count: int
+    + title: str
+    + plan: List<List<Seat>>
+}
+class Seat {
+    + status: SeatStatus
+}
+class SeatStatus {
+    + AVAILABLE
+    + BOOKED
+    + PROPOSED
+    + from_config(config: AppConfiguration)
+}
+
+ConsoleUi --> AppConfiguration
+ConsoleUi --> SeatStatus
+ConsoleUi --> SeatingPlan
+SeatingPlan --> Seat
+Seat --> SeatStatus
+
+@enduml
