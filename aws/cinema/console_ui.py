@@ -80,9 +80,9 @@ class ConsoleUi:
                 choice = int(input("Please enter your selection (1-3):\n> ").strip())
                 if choice in [1, 2, 3]:
                     return choice
-                print("Invalid choice. Please enter 1, 2, or 3.")
+                print("\nInvalid choice. Please enter 1, 2, or 3.")
             except ValueError:
-                print("Invalid input. Please enter a number.")
+                print("\nInvalid input. Please enter a number.")
 
     def prompt_for_number_of_seats_to_book(self, seating_plan: SeatingPlan) -> Optional[int]:
         """
@@ -104,7 +104,7 @@ class ConsoleUi:
                     print("Please enter a positive number.")
                     continue
                 if num_seats > available_seats:
-                    print(f"Cannot book {num_seats} seats. Only {available_seats} seats available.")
+                    print(f"\nSorry, there are only {available_seats} available.")
                     continue
                 return num_seats
             except ValueError:
@@ -118,6 +118,9 @@ class ConsoleUi:
         if not seating_map or not seating_map[0]:
             print("\nSeating plan is empty.")
             return
+
+        print(f"\nBooking id: {seating_plan.booking_id}")
+        print("Selected seats:")
 
         num_rows: int = len(seating_map)
         num_cols: int = len(seating_map[0])
@@ -166,5 +169,8 @@ class ConsoleUi:
         Returns:
             str: Booking ID or empty string to return to menu.
         """
-        return input("\nEnter booking ID (or press Enter to cancel):\n> ").strip()
+        return input("\nEnter booking id, or enter blank to back to main menu:\n> ").strip()
 
+    def display_exit_message(self):
+        app_name = self._config.get("application:name", default="Movie Booking System")
+        print(f"\nThank you for using {app_name} system. Bye!")
