@@ -85,7 +85,7 @@ class SeatingPlanner:
 
     def _seat_label_to_indices(self, seat_label: str) -> Tuple[int, int]:
         """
-        Convert a seat label (e.g., 'A1') to (row, col) indices.
+        Convert a seat label (e.g., 'A1') to (row, col) indices, reversing row order.
         """
         if not seat_label or len(seat_label) < 2:
             raise ValueError("Invalid seat label format.")
@@ -93,13 +93,14 @@ class SeatingPlanner:
         if row_char not in string.ascii_uppercase:
             raise ValueError("Invalid row character in seat label.")
         row = ord(row_char) - ord('A')
+        reversed_row = self.num_rows - 1 - row  # Reverse row indexing
         try:
             col = int(seat_label[1:]) - 1
         except ValueError:
             raise ValueError("Invalid column number in seat label.")
-        if not (0 <= row < self.num_rows and 0 <= col < self.seats_per_row):
+        if not (0 <= reversed_row < self.num_rows and 0 <= col < self.seats_per_row):
             raise ValueError("Seat label out of range.")
-        return row, col
+        return reversed_row, col
 
     def book_seats(self, number_of_seats: int, start_seat: Optional[str] = None) -> str:
         """
