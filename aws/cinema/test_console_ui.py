@@ -53,6 +53,20 @@ class TestConsoleUi(unittest.TestCase):
         result = self.console_ui.prompt_for_booking_id()
         self.assertEqual(result, '123456')
 
+    def test_prompt_for_application_start_details_prompt(self):
+        expected_prompt = "\nPlease define movie title and seating map in [Title] [Row] [SeatsPerRow] format:\n> "
+
+        config = AppConfiguration()  # Mock or provide an actual AppConfiguration instance
+        console_ui = ConsoleUi(config)
+
+        with patch("builtins.input", side_effect=KeyboardInterrupt) as mock_input:
+            try:
+                console_ui.prompt_for_application_start_details()
+            except KeyboardInterrupt:
+                pass  # Stop infinite loop safely
+
+            mock_input.assert_called_with(expected_prompt)
+
 if __name__ == '__main__':
     unittest.main()
 

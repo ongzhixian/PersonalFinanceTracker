@@ -27,7 +27,7 @@ class ConsoleUi:
             Tuple[str, int, int]: Movie title, number of rows, and seats per row.
         """
         while True:
-            user_input: str = input("\nDefine movie title and seating map in [Title] [Row] [SeatsPerRow] format:\n> ").strip()
+            user_input: str = input("\nPlease define movie title and seating map in [Title] [Row] [SeatsPerRow] format:\n> ").strip()
             parts: List[str] = user_input.split()
 
             if len(parts) < 3:
