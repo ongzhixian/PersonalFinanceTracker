@@ -1,5 +1,4 @@
 import string
-import uuid
 from typing import List, Tuple, Dict, Optional
 
 from app_configuration import AppConfiguration
@@ -105,7 +104,7 @@ class SeatingPlanner:
     def book_seats(self, number_of_seats: int, start_seat: Optional[str] = None) -> str:
         """
         Book a number of seats, optionally starting from a specific seat.
-        Returns the booking ID.
+        Returns the booking ID in the format <PREFIX><RUNNING NUMBER>.
         """
         if not isinstance(number_of_seats, int) or number_of_seats <= 0:
             raise ValueError("Number of seats must be a positive integer.")
@@ -157,11 +156,15 @@ class SeatingPlanner:
         if len(seats_to_book) < number_of_seats:
             raise ValueError("Not enough seats available to fulfill the booking.")
 
+        # Generate booking ID using prefix from configuration and a running number
+        prefix = self.config.get("booking_settings:booking_id_prefix", "BK")
+        running_number = len(self._confirmed_bookings) + 1
+        booking_id = f"{prefix}{running_number:04}"
+
         # Update in-memory plan
         for r, c in seats_to_book:
             self._seating_plan[r][c] = Seat(r, c, self.status_map.BOOKED)
 
-        booking_id = str(uuid.uuid4())
         self._confirmed_bookings[booking_id] = seats_to_book
         try:
             self._repository.save_booking(self.title, booking_id, seats_to_book)
