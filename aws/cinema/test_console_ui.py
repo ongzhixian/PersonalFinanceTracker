@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, call
 from app_configuration import AppConfiguration
 from shared_data_models import Seat, SeatStatus, SeatingPlan
 from console_ui import ConsoleUi
@@ -93,6 +93,26 @@ class TestConsoleUi(unittest.TestCase):
         with patch("builtins.input") as mock_input:
             self.console_ui.prompt_for_booking_confirmation()
             mock_input.assert_called_with(expected_prompt)
+
+    def test_display_seating_map(self):
+        seat_matrix = [[Seat(row=0, col=i, status='available') for i in range(5)]]
+        seating_plan = SeatingPlan(title="Test Movie", available_seats_count=5, plan=seat_matrix)
+        with patch("builtins.print") as mock_print:
+            self.console_ui.display_seating_map(seating_plan)
+        mock_print.assert_has_calls([
+            call('\nBooking id: None'),
+            call('Selected seats:'),
+            call('\n  S C R E E N'),
+            call('----------------'),
+            call("A Seat(row=0, col=0, status='available') Seat(row=0, col=1, status='available') Seat(row=0, col=2, status='available') Seat(row=0, col=3, status='available') Seat(row=0, col=4, status='available')"),
+            call('  1  2  3  4  5 ')])
+
+    def test_display_exit_message(self):
+        with patch("builtins.print") as mock_print:
+            self.console_ui.display_exit_message()
+        mock_print.assert_has_calls([
+            call('\nThank you for using Movie Booking System system. Bye!')
+        ])
 
 if __name__ == '__main__':
     unittest.main()

@@ -171,6 +171,6 @@ class ConsoleUi:
         """
         return input("\nEnter booking id, or enter blank to back to main menu:\n> ").strip()
 
-    def display_exit_message(self):
+    def display_exit_message(self) -> None:
         app_name = self._config.get("application:name", default="Movie Booking System")
         print(f"\nThank you for using {app_name} system. Bye!")
