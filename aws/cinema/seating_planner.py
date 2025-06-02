@@ -5,7 +5,6 @@ from app_configuration import AppConfiguration
 from booking_repository import IBookingRepository, BookingRepository, BookingRepositoryError
 from shared_data_models import Seat, SeatingPlan, SeatStatus
 
-
 class SeatingPlanner:
     """
     Manages the seating plan logic, including booking,
@@ -40,22 +39,6 @@ class SeatingPlanner:
         self._confirmed_bookings: Dict[str, List[Tuple[int, int]]] = self._repository.load_all_bookings(self.title)
         self._apply_bookings_to_plan()
 
-
-    def _initialize_seating_plan(self) -> List[List[Seat]]:
-        return [
-            [Seat(r, c, self.status_map.AVAILABLE) for c in range(self.seats_per_row)]
-            for r in range(self.num_rows)
-        ]
-
-    def _apply_bookings_to_plan(self) -> None:
-        """
-        Apply all confirmed bookings to the seating plan.
-        """
-        for seats in self._confirmed_bookings.values():
-            for row, col in seats:
-                if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
-                    self._seating_plan[row][col] = Seat(row, col, self.status_map.BOOKED)
-
     def get_seating_plan(self, booking_id: Optional[str] = None) -> Optional[SeatingPlan]:
         """
         Returns the current seating plan.
@@ -82,25 +65,6 @@ class SeatingPlanner:
 
         return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
 
-    def _seat_label_to_indices(self, seat_label: str) -> Tuple[int, int]:
-        """
-        Convert a seat label (e.g., 'A1') to (row, col) indices, reversing row order.
-        """
-        if not seat_label or len(seat_label) < 2:
-            raise ValueError("Invalid seat label format.")
-        row_char = seat_label[0].upper()
-        if row_char not in string.ascii_uppercase:
-            raise ValueError("Invalid row character in seat label.")
-        row = ord(row_char) - ord('A')
-        reversed_row = self.num_rows - 1 - row  # Reverse row indexing
-        try:
-            col = int(seat_label[1:]) - 1
-        except ValueError:
-            raise ValueError("Invalid column number in seat label.")
-        if not (0 <= reversed_row < self.num_rows and 0 <= col < self.seats_per_row):
-            raise ValueError("Seat label out of range.")
-        return reversed_row, col
-
     def book_seats(self, number_of_seats: int, start_seat: Optional[str] = None) -> str:
         """
         Book a number of seats, optionally starting from a specific seat.
@@ -125,13 +89,11 @@ class SeatingPlanner:
                         break
 
             if start_row in rows_order:
+                idx = rows_order.index(start_row)
+                rows_order = rows_order[idx:] + rows_order[:idx]
                 rows_order.remove(start_row)  # Remove start row from the default order
 
         seats_needed = number_of_seats - len(seats_to_book)
-
-        # Ensure `start_row` is defined before filtering rows_order
-        if start_row is not None:
-            rows_order = [r for r in rows_order if r < start_row]  # Filter rows closer to the screen safely
 
         while seats_needed > 0 and rows_order:
             next_row = rows_order.pop(0)  # Move to the next row closer to the screen
@@ -149,10 +111,6 @@ class SeatingPlanner:
                     seats_needed -= 1
                 else:
                     break
-
-            # Ensure we continue moving to rows closer to the screen from start_row once current row is filled
-            if start_row is not None:
-                rows_order = [r for r in rows_order if r < start_row]
 
         if len(seats_to_book) < number_of_seats:
             raise ValueError("Not enough seats available to fulfill the booking.")
@@ -201,3 +159,37 @@ class SeatingPlanner:
             self._confirmed_bookings[booking_id] = seats_to_unbook
             raise e
         return booking_id
+
+    def _initialize_seating_plan(self) -> List[List[Seat]]:
+        return [
+            [Seat(r, c, self.status_map.AVAILABLE) for c in range(self.seats_per_row)]
+            for r in range(self.num_rows)
+        ]
+
+    def _apply_bookings_to_plan(self) -> None:
+        """
+        Apply all confirmed bookings to the seating plan.
+        """
+        for seats in self._confirmed_bookings.values():
+            for row, col in seats:
+                if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
+                    self._seating_plan[row][col] = Seat(row, col, self.status_map.BOOKED)
+
+    def _seat_label_to_indices(self, seat_label: str) -> Tuple[int, int]:
+        """
+        Convert a seat label (e.g., 'A1') to (row, col) indices, reversing row order.
+        """
+        if not seat_label or len(seat_label) < 2:
+            raise ValueError("Invalid seat label format.")
+        row_char = seat_label[0].upper()
+        if row_char not in string.ascii_uppercase:
+            raise ValueError("Invalid row character in seat label.")
+        row = ord(row_char) - ord('A')
+        reversed_row = self.num_rows - 1 - row  # Reverse row indexing
+        try:
+            col = int(seat_label[1:]) - 1
+        except ValueError:
+            raise ValueError("Invalid column number in seat label.")
+        if not (0 <= reversed_row < self.num_rows and 0 <= col < self.seats_per_row):
+            raise ValueError("Seat label out of range.")
+        return reversed_row, col

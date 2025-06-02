@@ -1,71 +1,36 @@
 ' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\seating_planner.puml
 @startuml
-
-title Class Diagram for Seating Planner
-caption This diagram illustrates the structure and relationships of the `SeatingPlanner` class and its collaborators.
-
 class SeatingPlanner {
-    - title: str
-    - num_rows: int
-    - seats_per_row: int
-    - config: AppConfiguration
-    - status_map: SeatStatus
-    - _seating_plan: List<List<Seat>>
-    - _repository: IBookingRepository
-    - _confirmed_bookings: Dict<str, List<Tuple<int, int>>>
-    + __init__(title: str, num_rows: int, seats_per_row: int, db_path: str, config: Optional[AppConfiguration], repository: Optional[IBookingRepository])
-    - _initialize_seating_plan(): List<List<Seat>>
-    - _apply_bookings_to_plan(): None
-    + get_seating_plan(booking_id: Optional[str]): Optional[SeatingPlan]
-    - _seat_label_to_indices(seat_label: str): Tuple<int, int>
-    + book_seats(number_of_seats: int, start_seat: Optional[str]): str
-    + cancel_booking(booking_id: str): str
+    - String title
+    - int num_rows
+    - int seats_per_row
+    - AppConfiguration config
+    - Dict<String, SeatStatus> status_map
+    - List<List<Seat>> _seating_plan
+    - IBookingRepository _repository
+    - Dict<String, List<Tuple<int, int>>> _confirmed_bookings
+
+    + SeatingPlanner(String title, int num_rows, int seats_per_row, String db_path, AppConfiguration config, IBookingRepository repository)
+    + SeatingPlan get_seating_plan(Optional<String> booking_id)
+    + String book_seats(int number_of_seats, Optional<String> start_seat)
+    + String cancel_booking(String booking_id)
+
+    - List<List<Seat>> _initialize_seating_plan()
+    - void _apply_bookings_to_plan()
+    - Tuple<int, int> _seat_label_to_indices(String seat_label)
 }
 
-interface IBookingRepository {
-    + load_all_bookings(plan_title: str): Dict<str, List<Tuple<int, int>>>
-    + save_booking(plan_title: str, booking_id: str, seats: List[Tuple[int, int]]): None
-    + delete_booking(plan_title: str, booking_id: str): None
-}
+class AppConfiguration
+class IBookingRepository
+class BookingRepository
+class Seat
+class SeatingPlan
+class SeatStatus
 
-class BookingRepository {
-    - db_path: str
-    + __init__(db_path: str)
-}
-
-class AppConfiguration {
-    ' (Details not provided in the given code, assumed external)
-}
-
-class Seat {
-    - row: int
-    - col: int
-    - status: str
-}
-
-class SeatingPlan {
-    - title: str
-    - plan: List<List<Seat>>
-    - available_seats_count: int
-}
-
-class SeatStatus {
-    ' (Details not provided in the given code, assumed external)
-    + from_config(config: AppConfiguration): SeatStatus
-    + AVAILABLE: str
-    + BOOKED: str
-    + PROPOSED: str
-}
-
-SeatingPlanner --> AppConfiguration : uses
-SeatingPlanner --> IBookingRepository : depends on
-SeatingPlanner ..> BookingRepository : uses (implementation)
-SeatingPlanner --> Seat : composes
-SeatingPlanner --> SeatingPlan : creates
-SeatingPlanner --> SeatStatus : uses
-
-IBookingRepository <|-- BookingRepository
-
-SeatStatus <-- AppConfiguration : created from
-
+SeatingPlanner --> AppConfiguration
+SeatingPlanner --> IBookingRepository
+SeatingPlanner --> BookingRepository
+SeatingPlanner --> Seat
+SeatingPlanner --> SeatingPlan
+SeatingPlanner --> SeatStatus
 @enduml
