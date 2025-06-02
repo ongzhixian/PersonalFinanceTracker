@@ -1,15 +1,7 @@
 from dataclasses import dataclass
-from enum import Enum, auto
 from typing import List, Optional
 
 from app_configuration import AppConfiguration
-
-
-class MenuOption(Enum):
-    """Enumeration for menu actions."""
-    BOOK_SEATS = auto()
-    VIEW_BOOKING = auto()
-    EXIT = auto()
 
 
 @dataclass(frozen=True)

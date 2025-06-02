@@ -1,38 +1,31 @@
 ' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\shared_data_models.puml
 @startuml
-title Seating System Class Diagram
-caption This diagram illustrates the relationships and structure of the seating system.
-
-class MenuOption {
-  +BOOK_SEATS
-  +VIEW_BOOKING
-  +EXIT
-}
+class AppConfiguration
 
 class SeatStatus {
-  +AVAILABLE: str
-  +BOOKED: str
-  +PROPOSED: str
-  +from_config(config: AppConfiguration): SeatStatus
+    AVAILABLE: str
+    BOOKED: str
+    PROPOSED: str
+    +from_config(config: AppConfiguration): SeatStatus
 }
 
 class Seat {
-  +row: int
-  +col: int
-  +status: str
-  +is_available(seat_status: SeatStatus): bool
+    row: int
+    col: int
+    status: str
+    +is_available(seat_status: SeatStatus): bool
 }
 
 class SeatingPlan {
-  +title: str
-  +plan: List<List<Seat>>
-  +available_seats_count: int
-  +get_available_seats(seat_status: SeatStatus): List<Seat>
+    title: str
+    plan: List<List<Seat>>
+    available_seats_count: int
+    booking_id: Optional[str]
+    +get_available_seats(seat_status: SeatStatus): List<Seat>
 }
 
-SeatStatus --> Seat : Defines status
-Seat --> SeatingPlan : Part of seating arrangement
-MenuOption ..> SeatingPlan : Manages bookings
-AppConfiguration --> SeatStatus : Loads status dynamically
+SeatStatus --> AppConfiguration : Uses config
+Seat --> SeatStatus : Uses statuses
+SeatingPlan --> Seat : Contains multiple seats
 
 @enduml

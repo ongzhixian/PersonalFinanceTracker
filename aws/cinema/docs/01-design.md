@@ -74,7 +74,6 @@ Handles seating arrangement and availability.
 Defines essential data structures.
 
 #### **Classes**
-- `MenuOption` – Defines possible user actions.
 - `SeatStatus` – Loads seat status codes dynamically from configuration.
 - `Seat` – Represents a seat with attributes for row, column, and status.
 - `SeatingPlan` – Manages structured seating arrangements.

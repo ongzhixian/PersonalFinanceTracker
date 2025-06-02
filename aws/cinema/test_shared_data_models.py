@@ -1,5 +1,5 @@
 import unittest
-from shared_data_models import SeatStatus, Seat, SeatingPlan, MenuOption
+from shared_data_models import SeatStatus, Seat, SeatingPlan
 from app_configuration import AppConfiguration
 
 
@@ -73,16 +73,6 @@ class TestSeatingPlan(unittest.TestCase):
         self.assertEqual(len(available_seats), 2)
         self.assertEqual(available_seats[0].status, "O")
         self.assertEqual(available_seats[1].status, "O")
-
-
-class TestMenuOption(unittest.TestCase):
-    """Tests for MenuOption enumeration."""
-
-    def test_enum_values(self):
-        """Verifies MenuOption members are correctly assigned."""
-        self.assertEqual(MenuOption.BOOK_SEATS.name, "BOOK_SEATS")
-        self.assertEqual(MenuOption.VIEW_BOOKING.name, "VIEW_BOOKING")
-        self.assertEqual(MenuOption.EXIT.name, "EXIT")
 
 
 if __name__ == "__main__":
