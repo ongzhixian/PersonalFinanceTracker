@@ -228,6 +228,7 @@ def send_diff_to_notes():
     print(file_path_list)
     for file_path in file_path_list:
         norm_file_path = os.path.normpath(file_path)
+        print('Reading', norm_file_path)
         with open(norm_file_path, 'r') as in_file:
             content = in_file.read()
         title = norm_file_path.replace(norm_repo_root_path, '')
