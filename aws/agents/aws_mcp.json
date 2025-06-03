@@ -1,0 +1,24 @@
+{
+    "mcp": {
+        "transport_type": "streamable-http",
+        "transport_type:[options]": "stdio|sse|streamable-http",
+        "stdio": {},
+        "sse": {
+            "host": "127.0.0.1",
+            "port": 4600
+        },
+        "streamable-http": {
+            "host": "127.0.0.1",
+            "port": 4600,
+            "path": "/mcp-server/mcp"
+        }
+    },
+    "uvicorn": {
+        "host": "127.0.0.1",
+        "port": 4600
+    },
+    "fastapi": {
+        "root_path": "/mcp-server",
+        "root_path_default": "/mcp-server"
+    }
+}
