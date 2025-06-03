@@ -1,13 +1,10 @@
 ' java.exe -jar C:\Apps\bin\plantuml.jar .\docs\main.puml
 @startuml
-title SeatingApp Class Diagram
-caption A representation of the SeatingApp interactions in the movie seating application.
-
 class SeatingApp {
     - AppConfiguration app_configuration
     - ConsoleUi console_ui
     - SeatingPlanner seating_planner
-    + __init__(config_path: str)
+    + SeatingApp(config_path: str)
     + start()
     - _run_event_loop()
     - _process_user_selection()
@@ -16,12 +13,35 @@ class SeatingApp {
     - _exit_application()
 }
 
-class AppConfiguration
-class ConsoleUi
-class SeatingPlanner
+class ConsoleUi {
+    + prompt_for_application_start_details()
+    + display_menu(seating_plan)
+    + prompt_for_number_of_seats_to_book(seating_plan)
+    + display_seating_map(seating_plan)
+    + prompt_for_booking_confirmation()
+    + prompt_for_booking_id()
+    + display_exit_message()
+}
 
-SeatingApp --> AppConfiguration : uses
-SeatingApp --> ConsoleUi : interacts with
-SeatingApp --> SeatingPlanner : manages
+class SeatingPlanner {
+    + SeatingPlanner(title: str, number_of_rows: int, seats_per_row: int)
+    + book_seats(number_of_seats: int, start_seat: Optional[str])
+    + get_seating_plan(booking_id: Optional[int])
+    + cancel_booking(booking_id: int)
+}
 
+class AppConfiguration {
+    + AppConfiguration(config_path: str)
+}
+
+enum MenuOption {
+    BOOK_SEATS
+    VIEW_BOOKING
+    EXIT
+}
+
+SeatingApp --> ConsoleUi
+SeatingApp --> SeatingPlanner
+SeatingApp --> AppConfiguration
+ConsoleUi ..> SeatingPlanner : interacts
 @enduml

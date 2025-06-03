@@ -1,7 +1,14 @@
 import sys
+from enum import Enum, auto
 from app_configuration import AppConfiguration
 from console_ui import ConsoleUi
 from seating_planner import SeatingPlanner
+
+class MenuOption(Enum):
+    """Enumeration for menu actions."""
+    BOOK_SEATS = auto()
+    VIEW_BOOKING = auto()
+    EXIT = auto()
 
 class SeatingApp:
     """

@@ -78,4 +78,7 @@ Defines essential data structures.
 - `Seat` – Represents a seat with attributes for row, column, and status.
 - `SeatingPlan` – Manages structured seating arrangements.
 
----
+### `main.py`
+
+#### **Classes**
+SeatingApp: Manages user interactions and application flow.

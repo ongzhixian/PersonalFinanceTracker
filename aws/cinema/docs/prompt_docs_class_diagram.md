@@ -1,204 +1,144 @@
 Given:
 
-```seat_planner.py
-import string
-import uuid
-from typing import List, Tuple, Dict, Optional
-
+```main.py
+import sys
+from enum import Enum, auto
 from app_configuration import AppConfiguration
-from booking_repository import IBookingRepository, BookingRepository, BookingRepositoryError
-from shared_data_models import Seat, SeatingPlan, SeatStatus
+from console_ui import ConsoleUi
+from seating_planner import SeatingPlanner
 
+class MenuOption(Enum):
+    """Enumeration for menu actions."""
+    BOOK_SEATS = auto()
+    VIEW_BOOKING = auto()
+    EXIT = auto()
 
-class SeatingPlanner:
+class SeatingApp:
     """
-    Manages the seating plan logic, including booking,
-    proposing seats, and confirming bookings.
-    Each instance is associated with a specific seating plan title.
+    Manages interactions between ConsoleUi and SeatingPlanner for a movie seating application.
     """
 
-    def __init__(
-        self,
-        title: str,
-        num_rows: int,
-        seats_per_row: int,
-        db_path: str = "seating_planner.db",
-        config: Optional[AppConfiguration] = None,
-        repository: Optional[IBookingRepository] = None
-    ):
-        if not isinstance(title, str) or not title:
-            raise ValueError("Title must be a non-empty string.")
-        if not isinstance(num_rows, int) or num_rows <= 0:
-            raise ValueError("Number of rows must be a positive integer.")
-        if not isinstance(seats_per_row, int) or seats_per_row <= 0:
-            raise ValueError("Seats per row must be a positive integer.")
-
-        self.title: str = title
-        self.num_rows: int = num_rows
-        self.seats_per_row: int = seats_per_row
-        self.config = config or AppConfiguration(raw_config={})
-        self.status_map = SeatStatus.from_config(self.config)
-
-        self._seating_plan: List[List[Seat]] = self._initialize_seating_plan()
-        self._repository: IBookingRepository = repository or BookingRepository(db_path)
-        self._confirmed_bookings: Dict[str, List[Tuple[int, int]]] = self._repository.load_all_bookings(self.title)
-        self._apply_bookings_to_plan()
-
-
-    def _initialize_seating_plan(self) -> List[List[Seat]]:
-        return [
-            [Seat(r, c, self.status_map.AVAILABLE) for c in range(self.seats_per_row)]
-            for r in range(self.num_rows)
-        ]
-
-    def _apply_bookings_to_plan(self) -> None:
+    def __init__(self, config_path: str) -> None:
         """
-        Apply all confirmed bookings to the seating plan.
+        Initializes the application with configurations and UI components.
+        :param config_path: Path to the application configuration file.
         """
-        for seats in self._confirmed_bookings.values():
-            for row, col in seats:
-                if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
-                    self._seating_plan[row][col] = Seat(row, col, self.status_map.BOOKED)
+        self.app_configuration = AppConfiguration(config_path)
+        self.console_ui = ConsoleUi(self.app_configuration)
+        self.seating_planner: SeatingPlanner | None = None
 
-    def get_seating_plan(self, booking_id: Optional[str] = None) -> Optional[SeatingPlan]:
+    def start(self) -> None:
         """
-        Returns the current seating plan.
-        If booking_id is provided, marks those seats as 'proposed' (self.status_map["PROPOSED"]).
-        If booking_id does not exist, returns None.
+        Starts the seating planner application and manages user interactions.
         """
-        plan_copy: List[List[Seat]] = [
-            [Seat(seat.row, seat.col, seat.status) for seat in row]
-            for row in self._seating_plan
-        ]
-        available_count = sum(
-            seat.status == self.status_map.AVAILABLE
-            for row in plan_copy for seat in row
-        )
-
-        if booking_id:
-            if booking_id not in self._confirmed_bookings:
-                return None
-            for r, c in self._confirmed_bookings[booking_id]:
-                seat = plan_copy[r][c]
-                if seat.status == self.status_map.BOOKED:
-                    plan_copy[r][c] = Seat(r, c, self.status_map.PROPOSED)
-            return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
-
-        return SeatingPlan(title=self.title, plan=plan_copy, available_seats_count=available_count)
-
-    def _seat_label_to_indices(self, seat_label: str) -> Tuple[int, int]:
-        """
-        Convert a seat label (e.g., 'A1') to (row, col) indices.
-        """
-        if not seat_label or len(seat_label) < 2:
-            raise ValueError("Invalid seat label format.")
-        row_char = seat_label[0].upper()
-        if row_char not in string.ascii_uppercase:
-            raise ValueError("Invalid row character in seat label.")
-        row = ord(row_char) - ord('A')
         try:
-            col = int(seat_label[1:]) - 1
-        except ValueError:
-            raise ValueError("Invalid column number in seat label.")
-        if not (0 <= row < self.num_rows and 0 <= col < self.seats_per_row):
-            raise ValueError("Seat label out of range.")
-        return row, col
+            title, number_of_rows, seats_per_row = self.console_ui.prompt_for_application_start_details()
+            self.seating_planner = SeatingPlanner(title, number_of_rows, seats_per_row)
+            self._run_event_loop()
+        except Exception as e:
+            print(f"Error initializing application: {e}")
+            sys.exit(1)
 
-    def book_seats(self, number_of_seats: int, start_seat: Optional[str] = None) -> str:
+    def _run_event_loop(self) -> None:
         """
-        Book a number of seats, optionally starting from a specific seat.
-        Returns the booking ID.
+        Handles the main event loop for user interaction.
         """
-        if not isinstance(number_of_seats, int) or number_of_seats <= 0:
-            raise ValueError("Number of seats must be a positive integer.")
+        while True:
+            self._process_user_selection()
 
-        seats_to_book: List[Tuple[int, int]] = []
-        rows_order: List[int] = list(range(self.num_rows - 1, -1, -1))  # Furthest from screen first
+    def _process_user_selection(self) -> None:
+        """
+        Handles user selection for seat booking, viewing seating map, and exiting.
+        """
+        if not self.seating_planner:
+            print("Seating planner is not initialized.")
+            return
 
-        if start_seat:
-            row, col = self._seat_label_to_indices(start_seat)
-            for c in range(col, self.seats_per_row):
-                if self._seating_plan[row][c].status == self.status_map.AVAILABLE:
-                    seats_to_book.append((row, c))
-                    if len(seats_to_book) == number_of_seats:
-                        break
-                else:
-                    break
-            if row in rows_order:
-                rows_order.remove(row)
+        seating_plan = self.seating_planner.get_seating_plan()
+        user_selection = self.console_ui.display_menu(seating_plan)
 
-        seats_needed = number_of_seats - len(seats_to_book)
-        for r in rows_order:
-            if seats_needed <= 0:
-                break
-            available = [c for c, seat in enumerate(self._seating_plan[r]) if seat.status == self.status_map.AVAILABLE]
-            while seats_needed > 0 and available:
-                max_block_size = min(seats_needed, len(available))
-                found_block = False
-                for block_size in range(max_block_size, 0, -1):
-                    best_block = None
-                    min_dist = None
-                    for i in range(len(available) - block_size + 1):
-                        block = available[i:i + block_size]
-                        block_center = sum(block) / block_size
-                        center = self.seats_per_row / 2 - 0.5
-                        dist = abs(block_center - center)
-                        if min_dist is None or dist < min_dist:
-                            min_dist = dist
-                            best_block = block
-                    if best_block:
-                        for c in best_block:
-                            seats_to_book.append((r, c))
-                            available.remove(c)
-                        seats_needed = number_of_seats - len(seats_to_book)
-                        found_block = True
-                        break
-                if not found_block:
+        selection_handlers = {
+            1: self._handle_booking,
+            2: self._handle_view_booking,
+            3: self._exit_application,
+        }
+
+        selection_handler = selection_handlers.get(user_selection)
+        if selection_handler:
+            selection_handler()
+        else:
+            print("Invalid selection. Please choose a valid option.")
+
+    def _handle_booking(self) -> None:
+        """
+        Handles seat booking functionality.
+        """
+        if not self.seating_planner:
+            return
+
+        try:
+            seating_plan = self.seating_planner.get_seating_plan()
+            number_of_seats_to_book = self.console_ui.prompt_for_number_of_seats_to_book(seating_plan)
+            if number_of_seats_to_book is None:
+                return
+
+            start_seat = None
+            has_displayed_successfully_book_tickets = False
+            while True:
+                booking_id = self.seating_planner.book_seats(number_of_seats_to_book, start_seat=start_seat)
+                seating_plan = self.seating_planner.get_seating_plan(booking_id)
+                if not has_displayed_successfully_book_tickets:
+                    print(f'\nSuccessfully reserved {number_of_seats_to_book} {seating_plan.title} tickets.')
+                    has_displayed_successfully_book_tickets = True
+                self.console_ui.display_seating_map(seating_plan)
+
+                response = self.console_ui.prompt_for_booking_confirmation()
+                if response == '':
+                    print(f"\nBooking ID: {booking_id} confirmed.")
                     break
 
-        if len(seats_to_book) < number_of_seats:
-            raise ValueError("Not enough seats available to fulfill the booking.")
+                start_seat = response
+                self.seating_planner.cancel_booking(booking_id)
+        except Exception as e:
+            print(f"Error processing booking: {e}")
 
-        # Update in-memory plan
-        for r, c in seats_to_book:
-            self._seating_plan[r][c] = Seat(r, c, self.status_map.BOOKED)
-
-        booking_id = str(uuid.uuid4())
-        self._confirmed_bookings[booking_id] = seats_to_book
-        try:
-            self._repository.save_booking(self.title, booking_id, seats_to_book)
-        except BookingRepositoryError as e:
-            # Rollback in-memory state
-            for r, c in seats_to_book:
-                self._seating_plan[r][c] = Seat(r, c, self.status_map.AVAILABLE)
-            del self._confirmed_bookings[booking_id]
-            raise e
-        return booking_id
-
-    def cancel_booking(self, booking_id: str) -> str:
+    def _handle_view_booking(self) -> None:
         """
-        Cancel a booking by booking ID.
+        Handles viewing seating plans based on booking ID.
         """
-        if booking_id not in self._confirmed_bookings:
-            raise ValueError(f"Booking ID '{booking_id}' not found.")
+        if not self.seating_planner:
+            return
 
-        seats_to_unbook = self._confirmed_bookings[booking_id]
-        for row, col in seats_to_unbook:
-            if 0 <= row < self.num_rows and 0 <= col < self.seats_per_row:
-                if self._seating_plan[row][col].status == self.status_map.BOOKED:
-                    self._seating_plan[row][col] = Seat(row, col, self.status_map.AVAILABLE)
-        del self._confirmed_bookings[booking_id]
         try:
-            self._repository.delete_booking(self.title, booking_id)
-        except BookingRepositoryError as e:
-            # Rollback in-memory state
-            for row, col in seats_to_unbook:
-                self._seating_plan[row][col] = Seat(row, col, self.status_map.BOOKED)
-            self._confirmed_bookings[booking_id] = seats_to_unbook
-            raise e
-        return booking_id
+            while True:
+                booking_id = self.console_ui.prompt_for_booking_id()
+                if booking_id == '':
+                    break
+
+                seating_plan = self.seating_planner.get_seating_plan(booking_id)
+                if seating_plan is None:
+                    print("Booking ID not found. Please try again.")
+                    continue
+
+                self.console_ui.display_seating_map(seating_plan)
+
+        except Exception as e:
+            print(f"Error viewing booking: {e}")
+
+    def _exit_application(self) -> None:
+        """
+        Exits the application cleanly.
+        """
+        self.console_ui.display_exit_message()
+        sys.exit(0)
+
+
+if __name__ == '__main__':
+    SeatingApp('./app_configuration.json').start()
 
 ```
+
+Generate PlantUML markup.
 
 Generate design specification.
 Provide design specification as markdown documents.
