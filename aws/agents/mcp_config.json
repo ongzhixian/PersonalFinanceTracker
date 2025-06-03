@@ -1,6 +1,6 @@
 {
     "default": {
-        "applicable_transport_type": "stdio|sse",
+        "applicable_transport_type": "stdio|sse|streamable-http",
         "transport_type": "stdio"
     }, 
     "api_key": {
