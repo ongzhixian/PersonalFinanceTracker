@@ -1,6 +1,7 @@
 """Module containing some shared functionality use across MCP clients and servers"""
 import json
 import logging
+import os
 
 def get_mcp_client_logger(logger_name: str = None):
     default_format = "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s"
@@ -59,6 +60,21 @@ class McpClientJsonConfiguration(JsonConfiguration):
         mcp_servers_settings = self._get_configuration('mcpServers', return_top_level_dict=True)
         return mcp_servers_settings
 
+    def get_secret(self, key: str):
+        secrets = self._get_configuration('secrets')
+        #
+        secrets_file_path_setting = secrets['file-path'] if 'file-path' in secrets else None
+        if secrets_file_path_setting is None:
+            raise Exception('File path not defined.')
+        secrets_file_path = os.path.normpath(os.path.expandvars(secrets_file_path_setting))
+
+        secret_key = secrets[key]
+        with open(secrets_file_path, "r", encoding="utf-8") as f:
+            secrets = json.load(f)
+            return secrets[secret_key] if secret_key in secrets else None
+
+    def get_setting(self, key: str):
+        return self._get_configuration(key)
 
 class McpServerJsonConfiguration(JsonConfiguration):
     def __init__(self, configuration_json_file_path: str):
