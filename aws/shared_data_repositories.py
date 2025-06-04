@@ -45,6 +45,10 @@ class DynamoDbEntity(object):
     def map_from_dynamodb_attribute(self, data:dict, field_name:str, default_value = None):
         return self.__map_from_dynamodb_attribute(data[field_name]) if field_name in data else default_value
 
+    @staticmethod
+    def get_dynamodb_attribute_value(data:dict, field_name:str, default_value = None):
+        return DynamoDbEntity.__map_from_dynamodb_attribute(data[field_name]) if field_name in data else default_value
+
 
 # BASE REPOSITORY CLASSES
 
