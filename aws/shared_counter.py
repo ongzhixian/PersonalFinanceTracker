@@ -64,7 +64,7 @@ class CounterEntity(DynamoDbEntity):
         super().__init__()
 
         self.id = None
-        self.value_type = None
+        # self.value_type = None
         self.value = None
         self.description = None
 
@@ -93,12 +93,12 @@ class CounterEntity(DynamoDbEntity):
 
     def load_from_dict(self, data:dict):
         self.id = self.map_from_dynamodb_attribute(data, CounterEntity.ID_FIELD_NAME)
-        self.value_type = self.map_from_dynamodb_attribute(data, CounterEntity.VALUE_TYPE_FIELD_NAME)
+        # self.value_type = self.map_from_dynamodb_attribute(data, CounterEntity.VALUE_TYPE_FIELD_NAME)
         self.value = self.map_from_dynamodb_attribute(data, CounterEntity.VALUE_FIELD_NAME)
         self.description = self.map_from_dynamodb_attribute(data, CounterEntity.DESCRIPTION_FIELD_NAME)
 
         self.record_update_by = self.map_from_dynamodb_attribute(data, CounterEntity.RECORD_UPDATE_BY_FIELD_NAME)
-        self.record_update_datetime = self.map_from_dynamodb_attribute(data, CounterEntity.RECORD_UPDATE_BY_FIELD_NAME)
+        self.record_update_datetime = self.map_from_dynamodb_attribute(data, CounterEntity.RECORD_UPDATE_DATETIME_FIELD_NAME)
         self.record_create_by = self.map_from_dynamodb_attribute(data, CounterEntity.RECORD_CREATE_BY_FIELD_NAME)
         self.record_create_datetime = self.map_from_dynamodb_attribute(data, CounterEntity.RECORD_CREATE_DATETIME_FIELD_NAME)
 
@@ -119,7 +119,6 @@ class CounterEntity(DynamoDbEntity):
         # record_timestamp = datetime.now(timezone.utc).as timezone(SINGAPORE_TIMEZONE)
         record_timestamp = datetime.now(SINGAPORE_TIMEZONE)
         return record_timestamp
-
 
 class ResertCounterEntity(CounterEntity):
     """(Re)place or In(sert) a counter record."""
@@ -243,6 +242,93 @@ class CounterRepository(BaseRepository):
         except Exception as exception:
             print(exception)
 
+    def get_counter_name_list(self):
+        try:
+            result = []
+            scan_kwargs = {
+                'TableName': self._TABLE_NAME,
+                'ProjectionExpression': '#ID',
+                'ExpressionAttributeNames': {
+                    '#ID': 'id',
+                }
+            }
+            while True:
+                response = dynamodb_client.scan(**scan_kwargs)
+                print('scan:', response)
+                if 'Items' in response:
+                    for item in response['Items']:
+                        result.append(DynamoDbEntity.get_dynamodb_attribute_value(item, CounterEntity.ID_FIELD_NAME))
+                if 'LastEvaluatedKey' not in response:
+                    break
+                scan_kwargs['ExclusiveStartKey'] = response['LastEvaluatedKey']
+
+            # Sort
+            result.sort(key=lambda r: r, reverse=False)
+            return OperationResultMessage(True, data_object=result)
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            return OperationResultMessage(False, error=client_error.response)
+
+    def get_all_counters(self):
+        try:
+            result = []
+            scan_kwargs = {
+                'TableName': self._TABLE_NAME,
+                'ProjectionExpression': '#ID',
+                'ExpressionAttributeNames': {
+                    '#ID': 'id',
+                }
+            }
+            while True:
+                response = dynamodb_client.scan(**scan_kwargs)
+                print('scan:', response)
+                if 'Items' in response:
+                    for item in response['Items']:
+                        result.append(CounterEntity(item).to_json_object())
+                if 'LastEvaluatedKey' not in response:
+                    break
+                scan_kwargs['ExclusiveStartKey'] = response['LastEvaluatedKey']
+
+            # Sort
+            result.sort(key=lambda r: r['id'], reverse=False)
+            return OperationResultMessage(True, data_object=result)
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            return OperationResultMessage(False, error=client_error.response)
+
+    def get_counter(self, counter_name: str):
+        try:
+            result = []
+            scan_kwargs = {
+                'TableName': self._TABLE_NAME,
+                'FilterExpression': '#ID = :id',
+                'ExpressionAttributeNames': {
+                    '#ID': 'id',
+                },
+                'ExpressionAttributeValues': {
+                    ':id': { 'S': counter_name },
+                }
+            }
+            while True:
+                response = dynamodb_client.scan(**scan_kwargs)
+                print('scan:', response)
+                if 'Items' in response:
+                    for item in response['Items']:
+                        result.append(CounterEntity(item).to_json_object())
+                if 'LastEvaluatedKey' not in response:
+                    break
+                scan_kwargs['ExclusiveStartKey'] = response['LastEvaluatedKey']
+
+            # Sort
+            result.sort(key=lambda r: r['id'], reverse=False)
+            if len(result) <= 0:
+                return OperationResultMessage(True)
+            return OperationResultMessage(True, data_object=result[0])
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            return OperationResultMessage(False, error=client_error.response)
+
+
 # TESTs
 
 def test_counter_repository():
@@ -262,13 +348,15 @@ def test_counter_repository():
     #     print('Updated:', counter_name)
 
     # print(operation_result_message)
-    message = IncrementCounterMessage(
-        id='testCounter2',
-        user_code='SYSTEM_TEST')
-    counter_repository.update_counter(message)
+    # message = IncrementCounterMessage(
+    #     id='testCounter2',
+    #     user_code='SYSTEM_TEST')
+    # counter_repository.update_counter(message)
 
     # rule = counter_repository.get_rule('generic_1')
     # print(rule)
+    counter_name_list = counter_repository.get_counter_name_list()
+    print(counter_name_list)
 
 if __name__ == '__main__':
     # Example
