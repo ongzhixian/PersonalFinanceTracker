@@ -2,10 +2,13 @@
 import json
 import logging
 import os
+import threading
+import time
 
 def get_mcp_client_logger(logger_name: str = None):
-    default_format = "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s"
+    default_format = "\n[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s"
     message_centric_format = "[%(levelname).3s] %(message)s"
+    # default_format = message_centric_format
     logging.basicConfig(
         level=logging.DEBUG,
         format=default_format,
@@ -16,8 +19,11 @@ def get_mcp_client_logger(logger_name: str = None):
     logging.getLogger('mcp').setLevel(logging.WARNING)
     logging.getLogger('asyncio').setLevel(logging.INFO)
     logging.getLogger('sse_starlette').setLevel(logging.INFO)
+    logging.getLogger('conduit_client').setLevel(logging.INFO)
+    logging.getLogger('openai._base_client.request').setLevel(logging.INFO)
     return logging.getLogger(logger_name)
 
+# Configuration
 
 class JsonConfiguration(object):
     def __init__(self, configuration_json_file_path:str):
@@ -107,3 +113,46 @@ class McpServerJsonConfiguration(JsonConfiguration):
     def get_fastapi_settings(self):
         fastapi_settings = self._get_configuration('fastapi')
         return fastapi_settings
+
+# Idle timeout handler
+
+class IdleTimeoutManager:
+    """
+    Manages idle timeout for the server.
+    If no request is received for `timeout_seconds`, the process will terminate.
+    Optionally, a callback can be provided to save state before exit.
+    """
+    def __init__(self, timeout_seconds: int = 300, on_timeout=None):
+        self.timeout_seconds = timeout_seconds
+        self._last_request_time = time.time()
+        self._lock = threading.Lock()
+        self._watcher_thread = None
+        self._started = False
+        self._on_timeout = on_timeout
+
+    def update(self) -> None:
+        """Update the timestamp of the last handled request."""
+        with self._lock:
+            self._last_request_time = time.time()
+
+    def _watcher(self) -> None:
+        """Background thread to terminate the process if idle for too long."""
+        while True:
+            time.sleep(10)
+            with self._lock:
+                idle_time = time.time() - self._last_request_time
+            if idle_time > self.timeout_seconds:
+                print(f"[IDLE TIMEOUT] No requests for {idle_time:.0f}s, saving state and shutting down.")
+                if self._on_timeout:
+                    try:
+                        self._on_timeout()
+                    except Exception as e:
+                        print(f"[IDLE TIMEOUT] Exception during save_state: {e}")
+                os._exit(0)  # Immediate exit
+
+    def start(self) -> None:
+        """Start the idle timeout watcher thread (only once)."""
+        if not self._started:
+            self._watcher_thread = threading.Thread(target=self._watcher, daemon=True)
+            self._watcher_thread.start()
+            self._started = True
