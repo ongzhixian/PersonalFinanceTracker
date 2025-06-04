@@ -4,12 +4,25 @@ import uvicorn
 
 from conduit_client import AsyncOpenAI
 
-from shared_mcp import get_mcp_client_logger, McpServerJsonConfiguration
+from shared_mcp import get_mcp_client_logger, McpServerJsonConfiguration, IdleTimeoutManager
 
+URI_SCHEME = 'conduit-mcp'
 mcp_config = McpServerJsonConfiguration('./conduit_mcp.json')
 log = get_mcp_client_logger()
 
-URI_SCHEME = 'conduit-mcp'
+
+def save_state():
+    """
+    Implement your state-saving logic here.
+    This function will be called before the process exits due to idle timeout.
+    """
+    print("[SAVE STATE] Saving state before exit...")
+    # Example: Save to a file (replace with your actual logic)
+    with open("server_state.txt", "w") as f:
+        f.write("State saved at idle timeout.\n")
+    print("[SAVE STATE] State saved.")
+
+idle_timeout = IdleTimeoutManager(timeout_seconds=300, on_timeout=save_state)
 
 mcp = FastMCP(
     name="ConduitMcp",

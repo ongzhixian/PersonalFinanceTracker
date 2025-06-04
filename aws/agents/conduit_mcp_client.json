@@ -5,13 +5,13 @@
             "url": "http://127.0.0.1:4500/mcp-server/mcp",
             "note": "For Streamable HTTP connections, add this URL directly in Client"
         },
-        "aws_mcp": {
+        "ucm_mcp": {
             "type": "streamable-http",
             "url": "http://127.0.0.1:4600/mcp-server/mcp",
             "note": "For Streamable HTTP connections, add this URL directly in Client"
         }
     },
     "client" : {
-        "preferredLargeLanguageModel": "gemini-1.5-flash-002"
+        "preferred_llm": "gemini-1.5-flash-002"
     }
 }
