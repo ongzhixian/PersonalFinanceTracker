@@ -140,6 +140,7 @@ class IncrementCounterEntity(CounterEntity):
     def __init__(self, increment_counter_message:IncrementCounterMessage):
         super().__init__()
         record_timestamp = self.get_record_timestamp()
+        self.increment_value = increment_counter_message.increment
 
         self.id = increment_counter_message.id
 
@@ -158,7 +159,7 @@ class IncrementCounterEntity(CounterEntity):
 
     def __update_expression_attribute_values(self):
         return {
-            ':incr_value': self.dynamodb_number_value('1'),
+            ':incr_value': self.dynamodb_number_value(str(self.increment_value)),
             ':record_update_by': self.dynamodb_string_value(self.record_update_by),
             ':record_update_datetime': self.dynamodb_string_value(self.record_update_datetime.isoformat())
         }
@@ -296,7 +297,7 @@ class CounterRepository(BaseRepository):
             print('client_error:', client_error)
             return OperationResultMessage(False, error=client_error.response)
 
-    def get_counter(self, counter_name: str):
+    def get_counter_by_scan(self, counter_name: str):
         try:
             result = []
             scan_kwargs = {
@@ -327,6 +328,31 @@ class CounterRepository(BaseRepository):
         except ClientError as client_error:
             print('client_error:', client_error)
             return OperationResultMessage(False, error=client_error.response)
+
+    def get_counter(self, counter_name: str):
+        try:
+            response = dynamodb_client.get_item(
+                TableName = self._TABLE_NAME,
+                Key = {
+                    'id': { 'S': counter_name }
+                }
+            )
+
+            if 'Item' in response:
+                retrieved_counter_entity = CounterEntity(response['Item']).to_json_object()
+                return OperationResultMessage(True, data_object=retrieved_counter_entity)
+            else:
+                return OperationResultMessage(True)
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            return OperationResultMessage(False, error=client_error.response)
+
+    def add_to_counter(self, counter_name: str, increment:int):
+        message = IncrementCounterMessage(
+            id=counter_name,
+            user_code='SYSTEM_TEST',
+            increment=increment)
+        self.update_counter(message)
 
 
 # TESTs

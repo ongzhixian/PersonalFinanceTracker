@@ -1,6 +1,7 @@
 import json
 import sys
 
+from pydantic import Field
 from fastapi import FastAPI
 from fastmcp import FastMCP, Context
 import uvicorn
@@ -11,6 +12,8 @@ from shared_mcp import get_mcp_client_logger, McpServerJsonConfiguration
 sys.path.append('..')
 print('sys.path', sys.path)
 from shared_counter import CounterRepository
+from shared_user_credential import UserCredentialRepository
+# from fastmcp.prompts.base import UserMessage, AssistantMessage
 
 import pdb
 
@@ -26,6 +29,27 @@ mcp = FastMCP(
     """)
 
 # STATIC RESOURCES
+from pathlib import Path
+from fastmcp.resources import FileResource, TextResource, DirectoryResource
+
+# Does not work :-(
+# # 1. Exposing a static file directly
+#
+# readme_path = Path("./README.md").resolve()
+# if readme_path.exists():
+#     # Use a file:// URI scheme
+#     readme_resource = FileResource(
+#         # uri=f"file:///{readme_path.as_posix()}",
+#         uri='file:///C:/Code/zong/pft/aws/agents/README.md',
+#         path=readme_path, # Path to the actual file
+#         name="README File",
+#         description="The project's README.",
+#         mime_type="text/markdown",
+#         tags={"documentation"}
+#     )
+#     mcp.add_resource(readme_resource)
+
+
 
 @mcp.resource(
     uri=f"{URI_SCHEME}://version",      # Explicit URI (required)
@@ -41,7 +65,7 @@ def get_version():
 @mcp.resource(
     uri=f"{URI_SCHEME}://counter-name",      # Explicit URI (required)
     name="Counter Name List",                # Custom name
-    description="Get a list of all counter names.", # Custom description
+    description="Get a name only list of all counters.", # Custom description
     mime_type="application/json",             # Explicit MIME type
     tags={"status"}                     # Categorization tags
 )
@@ -81,14 +105,155 @@ async def get_counter(name: str) -> dict:
     """Get details for a specific name."""
     counter_repository = CounterRepository()
     operation_result_message = counter_repository.get_counter(name)
+    print('operation_result_message', operation_result_message)
     return operation_result_message.data_object
+
+
+# FILE SYSTEM
+
+@mcp.resource(
+    uri=f"{URI_SCHEME}://file-content/{{filepath*}}",
+    name="Get File Content",                            # Custom name
+    description="Return file at the given filepath.",   # Custom description
+    mime_type="text/plain",                       # Explicit MIME type
+    tags={"content"}                                    # Categorization tags
+)
+def get_file_content(filepath: str) -> str:
+    """Retrieves content at a file at specific filepath."""
+    file_path = Path(filepath).resolve()
+    file_resource = FileResource(
+        uri=f"file://{file_path.as_posix()}",
+        path=file_path,
+        mime_type="text/markdown",
+        tags={"file"}
+    )
+    return file_resource
+
+@mcp.resource(
+    uri=f"{URI_SCHEME}://file-list/{{directory_path*}}",
+    name="Get File List",                               # Custom name
+    description="List files of given directory path.",  # Custom description
+    mime_type="application/json",                       # Explicit MIME type
+    tags={"listing"}                                    # Categorization tags
+)
+def get_file_list(directory_path: str) -> str:
+    """Retrieves list of file names found at specific directory path."""
+    resolved_directory_path = Path(directory_path).resolve()
+    directory_resource = DirectoryResource(
+        uri=f"{URI_SCHEME}://file-list/{directory_path}",
+        path=resolved_directory_path,
+        name=f"Directory listing of {directory_path}",
+        description=f"Lists files in {directory_path} directory.",
+        recursive=False,
+        tags={"file-listing"},
+        mime_type="plain/text"
+    )
+    # print(directory_resource)
+    return directory_resource
 
 
 # TOOLS
 
-# @mcp.tool()
-# def add(a: int, b: int) -> int:
-#     return a + b + 10
+def _get_content_by_mime_type(mime_type, content):
+    norm_mime_type = mime_type.lower()
+    match norm_mime_type:
+        case 'application/json':
+            return json.loads(content)
+        case 'plain/text':
+            return content
+        case _:
+            return None
+
+def _handle_read_resource_response(response_list):
+    print('read_resource_response', response_list)
+    parsed_response_list = []
+    for response in response_list:
+        response_class_name = response.__class__.__name__.lower()
+        match response_class_name:
+            case 'readresourcecontents':
+                return _get_content_by_mime_type(response.mime_type, response.content)
+            case _:
+                print("Unhandled read_resource_response_class_name:", response_class_name)
+                return None
+
+@mcp.tool(
+    name="list_counters",               # Custom tool name for the LLM
+    description="List all counters.",   # Custom description
+    tags={"catalog", "list", "counters"},  # Optional tags for organization/filtering
+    annotations={
+        "title": "List All Counters",
+        "readOnlyHint": True,
+        "openWorldHint": True
+    }
+)
+async def list_counters(ctx: Context):
+    read_resource_response = await ctx.read_resource(f"{URI_SCHEME}://counter")
+    #read_resource_response = [ReadResourceContents(content='[\n  "testCounter1",\n  "testCounter2"\n]', mime_type='application/json')]
+    handled_response =  _handle_read_resource_response(read_resource_response)
+    print('handled_response', handled_response)
+    return handled_response
+    #
+    # print('read_resource_response', read_resource_response)
+    # return read_resource_response
+
+
+@mcp.tool(
+    name="get_counter",  # Custom tool name for the LLM
+    description="Get specific counter.",  # Custom description
+    tags={"detail", "get", "counters"},  # Optional tags for organization/filtering
+    annotations={
+        "title": "Get Counter",
+        "readOnlyHint": True,
+        "openWorldHint": True
+    }
+)
+def get_counter(counter_name: str, ctx: Context):
+    return ctx.read_resource(f"{URI_SCHEME}://counter/{counter_name}")
+
+
+@mcp.tool(
+    name="increment_counter",  # Custom tool name for the LLM
+    description="Increment the value of specific counter by specified increment.",  # Custom description
+    tags={"detail", "get", "counters"},  # Optional tags for organization/filtering
+    annotations={
+        "title": "Increment Counter",
+        "readOnlyHint": False,
+        "destructiveHint": True,
+        "openWorldHint": True
+    }
+)
+def increment_counter(counter_name: str, increment: int = 1):
+    counter_repository = CounterRepository()
+    operation_result_message = counter_repository.add_to_counter(counter_name, increment)
+    return operation_result_message
+
+
+# PROMPTS
+
+@mcp.prompt(
+    name="ReviewCode",  # Custom prompt name
+    description="Review given code",  # Custom description
+    tags={"analysis", "code", "review"}  # Optional categorization tags
+)
+def review_code(
+        code: str = Field(description="The code to review")
+    ) -> str:
+    """"""
+    return f"""Review the following code:\n\n```code\n{code}\n```\nProvide the code review as a markdown document.
+    Provide grades for code for these categories: [Correctness, Readability, Efficiency, Maintainability, Style ] from 1 to 5."""
+
+@mcp.prompt(
+    name="InitializeQuery",  # Custom prompt name
+    description="Executes query with knowledge of available MCP resources",  # Custom description
+    tags={"query", "initialization"}  # Optional categorization tags
+)
+def query(
+        mcp_resources: str = Field(description="List available MCP resources"),
+        query: str = Field(description="List available MCP resources")
+    ) -> str:
+    """"""
+    return f"Given following MCP resources:\n\n```\n{mcp_resources}\n```\n\n{query}"
+
 
 ########################################
 # Main scripts

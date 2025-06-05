@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 from os import environ
 
 from fastmcp import Client
@@ -66,6 +67,7 @@ class FastMcpClient():
             # print(f">> Available resources: {response}")
 
     def _handle_read_resource_responses(self, read_resource_responses):
+        # print('read_resource_responses', read_resource_responses)
         resource_list = []
         for read_resource_response in read_resource_responses:
             read_resource_response_class_name = read_resource_response.__class__.__name__.lower()
@@ -81,6 +83,8 @@ class FastMcpClient():
                                 resource_list.extend(resource)
                             case _:
                                 logger.warning('Unhandled resource_class_name %s', resource_class_name)
+                    if read_resource_response.mimeType == 'text/plain':
+                        return read_resource_response.text
                 case _:
                     logger.warning('Unhandled read_resource_response_class_name %s', read_resource_response_class_name)
         return resource_list
@@ -176,13 +180,13 @@ class FastMcpClient():
             # for resource in self.resource_list:
             #     print(resource)
 
-            # Get file (ucm-mcp://ucm_mcp/file-content/{filepath*})
+            # 'ucm-mcp://ucm_mcp/file-content/{filepath*}'
+
             # read_resource_responses = await self.mcp_client.read_resource('ucm-mcp://ucm_mcp/file-content/C:/Code/zong/pft/aws/agents/README.md')
             # print('read_resource_responses', read_resource_responses)
+            # 'file://C:/Code/zong/pft/aws/agents/README.md')
 
-            # Get directory (ucm-mcp://ucm_mcp/file-list/{directory_path*})
-            # read_resource_responses = await self.mcp_client.read_resource('ucm-mcp://ucm_mcp/file-list/C:/Code/zong/pft/aws/agents')
-            # print('read_resource_responses', read_resource_responses)
+
 
             # read_resource_responses = await self.mcp_client.read_resource('ucm-mcp://ucm_mcp/local-file')
             # print('read_resource_responses', read_resource_responses)
@@ -384,23 +388,82 @@ class FastMcpClient():
 
     async def start_chat(self):
         """Runs an interactive chat loop"""
-        print("Type 'quit' to exit.\n")
-        while True:
-            try:
-                query = input(f"[{len(self.message_history):03}]{'USER':>4}: ").strip()
-                if query.lower() == 'quit':
-                    break
-                if len(query) <= 0:
-                    continue
+        # print("Type 'quit' to exit.\n")
+        # counter = 0
+        # while True:
+        #     time.sleep(1)
+        #     counter = counter + 1
+        #     print(f'Waited {counter} s')
+        # Get directory (ucm-mcp://ucm_mcp/file-list/{directory_path*})
 
+        # We get target_directory somewhere
+        target_directory = 'C:/Code/zong/pft/aws/cinema'
+
+        async with (self.mcp_client):
+            read_resource_responses = await self.mcp_client.read_resource(f'ucm-mcp://ucm_mcp/file-list/{target_directory}')
+            parsed_response = self._handle_read_resource_responses(read_resource_responses)
+            print('parsed_response', parsed_response)
+            if len(parsed_response) <= 0:
+                return
+            first_parsed_response = parsed_response[0]
+            filename_list = first_parsed_response['files'] if 'files' in first_parsed_response else []
+
+            import os
+            print('Filenames: ', len(filename_list))
+
+            for filename in filename_list:
+                file_path = os.path.normpath(os.path.join(target_directory, filename))
+                file_path.replace('\\', '/')
+                split_ext = os.path.splitext(file_path)
+
+                file_name = split_ext[0]
+                file_extension = split_ext[1].lower()
+                if file_name.startswith('.') or file_extension in ['.json', '']:
+                    print(f'Skipping {file_path}')
+                    continue
+                print(f"To get content of {file_path} and then do something with it")
+                # Read the file
+                read_resource_responses = await self.mcp_client.read_resource(f'ucm-mcp://ucm_mcp/file-content/{file_path}')
+                print('read_resource_responses', read_resource_responses)
+                parsed_response = self._handle_read_resource_responses(read_resource_responses)
+
+                prompt_response = await self.mcp_client.get_prompt(
+                    'ucm_mcp_ReviewCode', {
+                        "code": parsed_response
+                    })
+                # print(f'\nPROMPT RESPONSE: {prompt_response}')
+                # print(f'Number of messages: {len(prompt_response.messages)}')
+                prompt_message = prompt_response.messages[0]
+                # prompt_message.content is TextContent
+                print('PROMPT:', prompt_message.content.text)
+                # pdb.set_trace()
+                query = prompt_message.content.text
                 response = await self.get_chat_response(query)
-                if response is None:
-                    continue
-                print(f"{response['role']:>9}: {response['content']}".strip())
-                print()
+                print(query)
+                print('response', response['content'])
+                with open('C:/Code/zong/pft/aws/cinema/review/review.md', 'w', encoding='utf8') as out_file:
+                    out_file.write(response['content'])
+                return
 
-            except Exception as e:
-                print(f"Error: {str(e)}")
+
+
+
+        # while True:
+        #     try:
+        #         query = input(f"[{len(self.message_history):03}]{'USER':>4}: ").strip()
+        #         if query.lower() == 'quit':
+        #             break
+        #         if len(query) <= 0:
+        #             continue
+        #
+        #         response = await self.get_chat_response(query)
+        #         if response is None:
+        #             continue
+        #         print(f"{response['role']:>9}: {response['content']}".strip())
+        #         print()
+        #
+        #     except Exception as e:
+        #         print(f"Error: {str(e)}")
 
 
 async def main():

@@ -44,9 +44,10 @@ class ResertCounterMessage(Message):
 class IncrementCounterMessage(Message):
     ID_FIELD_NAME = 'id'
 
-    def __init__(self, id: str, user_code: str):
+    def __init__(self, id: str, user_code: str, increment: int = 1):
         self.id = id
         self.user_code = user_code
+        self.increment = increment
 
     def __str__(self):
         return f"id: {self.id}"
