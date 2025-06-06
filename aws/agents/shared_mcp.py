@@ -4,6 +4,9 @@ import logging
 import os
 import threading
 import time
+from typing import Optional
+
+import pdb
 
 def get_mcp_client_logger(logger_name: str = None):
     default_format = "\n[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s"
@@ -24,6 +27,31 @@ def get_mcp_client_logger(logger_name: str = None):
     return logging.getLogger(logger_name)
 
 # Content
+
+class FileUtility(object):
+    @staticmethod
+    def normalize_path(directory_path, file_name = None):
+        """
+        Normalize file paths such that they always look like:
+        C:/dir1/dir2/.../file
+        """
+        if file_name is None:
+            target_path = directory_path
+        else:
+            target_path = os.path.join(directory_path, file_name)
+        file_path = os.path.normpath(target_path)
+        file_path.replace('\\', '/')
+        return file_path
+
+    @staticmethod
+    def get_file_path_parts(file_path):
+        """
+        Note: A file_path like '.coverage' returns '.coverage' as file_name and '' as file_extension
+        """
+        split_ext = os.path.splitext(file_path)
+        file_name = split_ext[0]
+        file_extension = split_ext[1].lower()
+        return (file_name, file_extension)
 
 
 
@@ -160,3 +188,154 @@ class IdleTimeoutManager:
             self._watcher_thread = threading.Thread(target=self._watcher, daemon=True)
             self._watcher_thread.start()
             self._started = True
+
+# FastMcpClient
+
+from fastmcp import Client
+from mcp.shared.exceptions import McpError
+
+class FastMcpClient(object):
+    def __init__(self, mcp_config: McpClientJsonConfiguration):
+        self.mcp_servers_settings = mcp_config.get_mcp_servers_settings()
+        self.llm_model = mcp_config.get_setting('client:preferred_llm')
+
+        self.mcp_client = Client(self.mcp_servers_settings)
+        runtime_dns_domain = os.environ.get('USERDNSDOMAIN')
+        self._use_synaptic = runtime_dns_domain == 'AD.MLP.COM'
+        self.logger = get_mcp_client_logger()
+
+        self.resource_list = []
+        self.tools = None
+        self.message_history = []
+        self.chat_client = None
+
+    async def initialize_tools(self):
+        self.tools = None
+        async with self.mcp_client:
+            tools = await self.mcp_client.list_tools()
+            self.tools = [{
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": tool.inputSchema
+            } for tool in tools] if self._use_synaptic else tools
+
+
+    def _initialize_chat(self, chat_client):
+        self.chat_client = chat_client
+        self.message_history = []
+        # If we want to define system prompt
+        # self.message_history.append({
+        #     "role": "system",
+        #     "content": "You are a helpful assistant but you respond to all questions as if you were C3P0.",
+        # })
+
+    async def async_initialize(self):
+        await self.initialize_tools()
+        self._initialize_chat()
+
+    #
+
+    async def _is_connected(self, dump: bool = False):
+        async with self.mcp_client:
+            is_connected_result = self.mcp_client.is_connected()
+            if dump: self.logger.debug("Client connected: %s", self.mcp_client.is_connected())
+            return is_connected_result
+
+    async def _ping(self, dump: bool = False):
+        async with self.mcp_client:
+            ping_result = await self.mcp_client.ping()
+            if dump: self.logger.debug('ping_result: %s', ping_result)
+            return ping_result
+
+    # Resources
+
+    async def _get_resources(self, dump: bool = False):
+        try:
+            async with self.mcp_client:
+                resources = await self.mcp_client.list_resources() # resources -> list[mcp.types.Resource]
+                self.resource_list.extend(resources)
+                if dump:
+                    self.logger.debug(f"Number of resources: {len(resources)}")
+                    for resource in resources:
+                        self.logger.debug('resource: %s', resource)
+        except McpError as mcp_error:
+            self.logger.warning('Unable to get resources; %s', mcp_error)
+
+    async def _get_resource_templates(self, dump: bool = False):
+        try:
+            async with self.mcp_client:
+                resource_templates = await self.mcp_client.list_resource_templates() # resource_templates -> list[mcp.types.ResourceTemplate]
+                self.resource_list.extend(resource_templates)
+                if dump:
+                    self.logger.debug("Number of resource templates: %s", len(resource_templates))
+                    for resource_template in resource_templates:
+                        self.logger.debug('resource_template: %s', resource_template)
+        except McpError as mcp_error:
+            self.logger.warning('Unable to get resource templates; %s', mcp_error)
+
+    async def _get_tools(self, dump: bool = False):
+        try:
+            async with self.mcp_client:
+                tools = await self.mcp_client.list_tools() # tools -> list[mcp.types.Tool]
+                self.resource_list.extend(tools)
+                self.tools = [{
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.inputSchema
+                } for tool in tools] if self._use_synaptic else tools
+
+                if dump:
+                    self.logger.debug(f"Number of tools: {len(tools)}")
+                    for tool in tools:
+                        self.logger.debug('tool: %s', tool)
+        except McpError as mcp_error:
+            self.logger.warning('Unable to get tools; %s', mcp_error)
+
+    async def _get_prompts(self, dump: bool = False):
+        try:
+            async with self.mcp_client:
+                prompts = await self.mcp_client.list_prompts()
+                self.resource_list.extend(prompts)
+                if dump:
+                    self.logger.debug(f"Number of prompts: {len(prompts)}")
+                    for prompt in prompts:
+                        self.logger.debug('prompt: %s', prompt)
+        except McpError as mcp_error:
+            self.logger.warning('Unable to get prompts; %s', mcp_error)
+
+
+
+    async def initialize_mcp_resource_list(
+            self,
+            dump_ping: bool=False,
+            dump_connect: bool=False,
+            dump_resources: bool=False,
+            dump_resource_templates: bool = False,
+            dump_tools: bool=False,
+            dump_prompts: bool=False,
+            dump_resource_list: bool = False):
+        # async with self.mcp_client:
+        await self._is_connected(dump_connect)
+        await self._ping(dump_ping)
+        self.resource_list = []
+        await self._get_resources(dump_resources)
+        await self._get_resource_templates(dump_resource_templates)
+        await self._get_tools(dump_tools)
+        await self._get_prompts(dump_prompts)
+        if dump_resource_list:
+            for resource in self.resource_list:
+                print(resource)
+
+    def initialize_chat(self, chat_client, system_prompt: Optional[str] = None):
+        """
+        # If we want to define system prompt
+        # Example of system prompt:
+        # "You are a helpful assistant but you respond to all questions as if you were C3P0.",
+        """
+        self.chat_client = chat_client
+        self.message_history = []
+        if system_prompt is not None:
+            self.message_history.append({
+                "role": "system",
+                "content": system_prompt
+            })

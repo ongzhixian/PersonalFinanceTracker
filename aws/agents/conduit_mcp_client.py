@@ -6,7 +6,7 @@ from os import environ
 from fastmcp import Client
 import mcp
 
-from shared_mcp import get_mcp_client_logger, McpClientJsonConfiguration
+from shared_mcp import get_mcp_client_logger, McpClientJsonConfiguration, FastMcpClient
 
 import pdb
 
@@ -19,78 +19,27 @@ PREFERRED_LLM = 'gemini-1.5-flash-002'
 
 ########################################
 
-class FastMcpClient():
+class ConduitFastMcpClient(FastMcpClient):
 
     def __init__(self, mcp_config: McpClientJsonConfiguration):
-        self.mcp_servers_settings = mcp_config.get_mcp_servers_settings()
-        self.llm_model = mcp_config.get_setting('client:preferred_llm')
-        self.mcp_client = Client(self.mcp_servers_settings)
-
-        runtime_dns_domain = environ.get('USERDNSDOMAIN')
-        self._use_synaptic = runtime_dns_domain == 'AD.MLP.COM'
+        super().__init__(mcp_config)
 
     def _get_chat_client(self, preferred_llm:str='gemini-1.5-flash-002'):
-        if use_synaptic:  # Use Conduit
+        if self._use_synaptic:  # Use Conduit
             from conduit_client import AsyncOpenAI
             client = AsyncOpenAI()
             client.model = preferred_llm
             return client
         else:
-            # Use other AI providers
-            # from anthropic import Anthropic
-            # client = Anthropic()
-            # return client
-            raise ValueError('NOT CHAT CLIENT')
+            raise RuntimeError('NO DEFINED CHAT CLIENT')
             return None
 
-    def _initialize_chat(self):
-        self.message_history = []
-        # If we want to define system prompt
-        # self.message_history.append({
-        #     "role": "system",
-        #     "content": "You are a helpful assistant but you respond to all questions as if you were C3P0.",
-        # })
-        self.chat_client = self._get_chat_client()
-
-    async def _initialize_tools(self):
-        self.tools = None
-        async with self.mcp_client:
-            tools = await self.mcp_client.list_tools()
-            self.tools = [{
-                "name": tool.name,
-                "description": tool.description,
-                "parameters": tool.inputSchema
-            } for tool in tools] if use_synaptic else tools
-            # logger.debug(f"Available tools: %s", tools)
-            # response = await self.mcp_client.list_resources()
-            # print(f">> Available resources: {response}")
-
-    def _handle_read_resource_responses(self, read_resource_responses):
-        resource_list = []
-        for read_resource_response in read_resource_responses:
-            read_resource_response_class_name = read_resource_response.__class__.__name__.lower()
-            match read_resource_response_class_name:
-                case 'textresourcecontents':
-                    if read_resource_response.mimeType == 'application/json':
-                        resource = json.loads(read_resource_response.text)
-                        resource_class_name = resource.__class__.__name__.lower()
-                        match resource_class_name:
-                            case 'dict':
-                                resource_list.append(resource)
-                            case 'list':
-                                resource_list.extend(resource)
-                            case _:
-                                logger.warning('Unhandled resource_class_name %s', resource_class_name)
-                case _:
-                    logger.warning('Unhandled read_resource_response_class_name %s', read_resource_response_class_name)
-        return resource_list
-
-    def _initialize_chat_prompt(self, resource_list):
+    def _get_system_prompt(self):
         """
         Attempt to work around MCP limitations by giving ability to read resources.
         This currently goes against the way MCP wants to work...so KIV and go tool_call oriented.
         """
-        mcp_resources = "\n".join([ str(resource) for resource in resource_list ])
+        mcp_resources = "\n".join([str(resource) for resource in self.resource_list])
         add_instructions = """
         If the query requires reading MCP resources and making tool calls from given MCP resources:
         1. If resource is not in given MCP resources list, prefix the the name with 'TO-IMPLEMENT'.
@@ -123,108 +72,27 @@ class FastMcpClient():
             "role": "system",
             "content": seed_prompt
         })
+        return seed_prompt
 
-    async def async_debug_dump(
-            self,
-            dump_resources: bool=False,
-            dump_resource_templates: bool=False,
-            dump_tools: bool=False,
-            dump_prompts: bool=False,
-            dump_ping: bool=False,
-            dump_connect: bool=False):
-        async with self.mcp_client:
-            self.resource_list = []
-
-            if dump_connect:
-                logger.debug("Client connected: %s", self.mcp_client.is_connected())
-
-            ping_result = await self.mcp_client.ping()
-            if dump_ping:
-                logger.debug('ping_result: %s', ping_result)
-
-            resources = await self.mcp_client.list_resources()
-            # resources -> list[mcp.types.Resource]
-            self.resource_list.extend(resources)
-            if dump_resources:
-                logger.debug(f"Number of resources: {len(resources)}")
-                for resource in resources:
-                    logger.debug('resource: %s', resource)
-
-            resource_templates = await self.mcp_client.list_resource_templates()
-            # resource_templates -> list[mcp.types.ResourceTemplate]
-            self.resource_list.extend(resource_templates)
-            if dump_resource_templates:
-                logger.debug("Number of resource templates: %s", len(resource_templates))
-                for resource_template in resource_templates:
-                    logger.debug('resource_template: %s', resource_template)
-
-            tools = await self.mcp_client.list_tools()
-            # tools -> list[mcp.types.Tool]
-            self.resource_list.extend(tools)
-            if dump_tools:
-                logger.debug(f"Number of tools: {len(tools)}")
-                for tool in tools:
-                    logger.debug('tool: %s', tool)
-
-            prompts = await self.mcp_client.list_prompts()
-            self.resource_list.extend(prompts)
-            if dump_prompts:
-                logger.debug(f"Number of prompts: {len(prompts)}")
-                for prompt in prompts:
-                    logger.debug('prompt: %s', prompt)
-
-            # for resource in self.resource_list:
-            #     print(resource)
-
-            # Get file (ucm-mcp://ucm_mcp/file-content/{filepath*})
-            # read_resource_responses = await self.mcp_client.read_resource('ucm-mcp://ucm_mcp/file-content/C:/Code/zong/pft/aws/agents/README.md')
-            # print('read_resource_responses', read_resource_responses)
-
-            # Get directory (ucm-mcp://ucm_mcp/file-list/{directory_path*})
-            # read_resource_responses = await self.mcp_client.read_resource('ucm-mcp://ucm_mcp/file-list/C:/Code/zong/pft/aws/agents')
-            # print('read_resource_responses', read_resource_responses)
-
-            # read_resource_responses = await self.mcp_client.read_resource('ucm-mcp://ucm_mcp/local-file')
-            # print('read_resource_responses', read_resource_responses)
-
-            # self._initialize_chat_prompt(self.resource_list)
-
-            # read_resource_responses = await self.mcp_client.read_resource("ucm-mcp://ucm_mcp/counter-name")
-            # resource_list = self._handle_read_resource_responses(read_resource_responses)
-
-            # print('resource_list', resource_list)
-            # for resource in resource_list:
-            #     read_resource_responses = await self.mcp_client.read_resource(f"ucm-mcp://ucm_mcp/counter/{resource}")
-            #     rsrc = self._handle_read_resource_responses(read_resource_responses)
-            #     print('rsrc', rsrc)
-
-            # resource = 'testCounter1'
-            # read_resource_responses = await self.mcp_client.read_resource(f"ucm-mcp://ucm_mcp/counter/{resource}")
-            # rsrc = self._handle_read_resource_responses(read_resource_responses)
-            # print('rsrc', rsrc)
-
-            # get_prompt(name: str, arguments: dict[str, Any] | None = None):
-            # prompt_response = await self.mcp_client.get_prompt(
-            #     'ucm_mcp_InitializeQuery', {
-            #         "mcp_resources": "\n".join([ str(resource) for resource in self.resource_list ]),
-            #         "query": "What resources can I access?"
-            #     })
-            # print(f'\nPROMPT RESPONSE: {prompt_response}')
-            # print(f'Number of messages: {len(prompt_response.messages)}')
-            # prompt_message = prompt_response.messages[0]
-            # print('\nPROMPT:')
-            # # prompt_message.content is TextContent
-            # print(prompt_message.content.text)
-            #
-        if dump_connect:
-            logger.debug("Client connected: %s", self.mcp_client.is_connected())
-
-    async def async_initialize(self):
-        # Initialize session and client objects
-        # self.session: Optional[ClientSession] = None
-        # self.exit_stack = AsyncExitStack()
-        await self._initialize_tools()
-        self._initialize_chat()
+    def _handle_read_resource_responses(self, read_resource_responses):
+        resource_list = []
+        for read_resource_response in read_resource_responses:
+            read_resource_response_class_name = read_resource_response.__class__.__name__.lower()
+            match read_resource_response_class_name:
+                case 'textresourcecontents':
+                    if read_resource_response.mimeType == 'application/json':
+                        resource = json.loads(read_resource_response.text)
+                        resource_class_name = resource.__class__.__name__.lower()
+                        match resource_class_name:
+                            case 'dict':
+                                resource_list.append(resource)
+                            case 'list':
+                                resource_list.extend(resource)
+                            case _:
+                                logger.warning('Unhandled resource_class_name %s', resource_class_name)
+                case _:
+                    logger.warning('Unhandled read_resource_response_class_name %s', read_resource_response_class_name)
+        return resource_list
 
     def _get_tool_call_response_content(self, response_list):
         """
@@ -241,7 +109,6 @@ class FastMcpClient():
                     logger.warning('Unhandled tool call response type: %s', response_class_name)
 
         return " ".join(text_content_list)
-
 
     async def _handle_chat_completion_response(self, response):
         """Handler for openai.types.chat.chat_completion.ChatCompletion
@@ -283,30 +150,25 @@ class FastMcpClient():
             vertex_ai_citation_metadata=[])
         """
         number_of_choices = len(response.choices)
-        logger.debug("Number of choices in ChatCompletion: %d", number_of_choices)
-        for choice in response.choices:
-            logger.debug("Choice: %s", choice)
-
-        chosen_message = None
-        finish_reason = None
-        if number_of_choices <= 1:
-            chosen_message = response.choices[0].message
-            finish_reason = response.choices[0].finish_reason.lower()
-        else:
+        if number_of_choices <= 0 or number_of_choices > 1: # We want to know when there are multiple Choices available for us
+            logger.debug("Number of choices in ChatCompletion: %d", number_of_choices)
+            for choice in response.choices:
+                logger.debug("Choice: %s", choice)
             # Have yet to encounter a case where we got multiple choices
-            logger.error('Unhandled multiple choices: %s', response)
+            logger.error('Unhandled response: %s', response)
             raise NotImplementedError()
+
+        # We are only able to handle a single Choice for now.
+        chosen_message = chosen_message = response.choices[0].message
+        finish_reason = response.choices[0].finish_reason.lower()
 
         match finish_reason:
             case 'stop':
-
-                if chosen_message.content.startswith('READ_RESOURCE:'):
+                if chosen_message.content.startswith('READ_RESOURCE:'): # HACK-ish
                     resource_uri = chosen_message.content.replace('READ_RESOURCE:', '').strip().strip('.')
                     async with self.mcp_client:
-                        pdb.set_trace()
                         read_resource_responses = await self.mcp_client.read_resource(resource_uri)
-                        resource_list = self._handle_read_resource_responses(read_resource_responses)
-
+                        self.resource_list = self._handle_read_resource_responses(read_resource_responses)
                 else:
                     chat_response = {
                         "role": chosen_message.role,
@@ -337,6 +199,7 @@ class FastMcpClient():
                 first_tool_call = chosen_message.tool_calls[0]
                 tool_call_response_content = self._get_tool_call_response_content(first_tool_call.response)
 
+                # Track history and return a response suitable for display to console
                 self.message_history.append({
                     "type": "tool_result",
                     "tool_use_id": first_tool_call.id,
@@ -350,7 +213,7 @@ class FastMcpClient():
             case _:
                 logger.warning('Unhandled finish_reason: %s', finish_reason)
 
-    async def get_chat_response(self, query: str) -> str:
+    async def _process_chat_response(self, query: str) -> str:
 
         self.message_history.append({
             "role": "user",
@@ -366,21 +229,16 @@ class FastMcpClient():
             logger.debug('Chat completion response: %s', response)
             # handle response by class name
             response_class_name = response.__class__.__name__.lower()
+            # Conduit will return an object of ChatCompletion
             match response_class_name:
                 case 'chatcompletion':
                     return await self._handle_chat_completion_response(response)
                 case _:
                     logger.warning("Unable to handle %s:\n%s", response_class_name, response)
         else:
-            logger.warning("MISSING IMPLEMENTATION")
-            # Initial Claude API call
-            # response = self.anthropic.messages.create(
-            #     model="claude-3-5-sonnet-20241022",
-            #     max_tokens=1000,
-            #     messages=messages,
-            #     tools=available_tools
-            # )
+            logger.warning("Missing implementation for non-synaptic chat clients")
         return None
+
 
     async def start_chat(self):
         """Runs an interactive chat loop"""
@@ -393,22 +251,26 @@ class FastMcpClient():
                 if len(query) <= 0:
                     continue
 
-                response = await self.get_chat_response(query)
+                response = await self._process_chat_response(query)
                 if response is None:
                     continue
                 print(f"{response['role']:>9}: {response['content']}".strip())
                 print()
-
             except Exception as e:
                 print(f"Error: {str(e)}")
 
 
 async def main():
     mcp_config = McpClientJsonConfiguration('./conduit_mcp_client.json')
-    fast_mcp_client = FastMcpClient(mcp_config)
-    await fast_mcp_client.async_initialize()
-    await fast_mcp_client.async_debug_dump()
+    fast_mcp_client = ConduitFastMcpClient(mcp_config)
+    await fast_mcp_client.initialize_mcp_resource_list()
+    # Add customizations
+    chat_client = fast_mcp_client._get_chat_client()
+    system_prompt = fast_mcp_client._get_system_prompt()
+    system_prompt = None
+    fast_mcp_client.initialize_chat(chat_client, system_prompt)
     await fast_mcp_client.start_chat()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

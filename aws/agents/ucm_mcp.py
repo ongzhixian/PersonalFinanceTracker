@@ -243,6 +243,18 @@ def review_code(
     Provide grades for code for these categories: [Correctness, Readability, Efficiency, Maintainability, Style ] from 1 to 5."""
 
 @mcp.prompt(
+    name="GeneratePythonCode",  # Custom prompt name
+    description="Generate Python code given a specification",  # Custom description
+    tags={"code", "generation", "Python"}  # Optional categorization tags
+)
+def generate_python_code(
+        specification: str = Field(description="Specification for the code to be generated.")
+    ) -> str:
+    """"""
+    return f"""Given:\n\n```specification.md\n{specification}\n```\n\nGenerate code in Python."""
+
+
+@mcp.prompt(
     name="InitializeQuery",  # Custom prompt name
     description="Executes query with knowledge of available MCP resources",  # Custom description
     tags={"query", "initialization"}  # Optional categorization tags
