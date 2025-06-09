@@ -17,7 +17,7 @@ from shared_user_credential import UserCredentialRepository
 
 import pdb
 
-mcp_config = McpServerJsonConfiguration('./ucm_mcp.json')
+mcp_config = McpServerJsonConfiguration('./ucm_mcp_config.json')
 log = get_mcp_client_logger()
 
 URI_SCHEME = 'ucm-mcp'

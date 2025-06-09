@@ -3,6 +3,7 @@ import base64
 import secrets
 import time
 import hmac
+import os
 
 class PasswordUtility(object):
     def __init__(self):
@@ -141,6 +142,32 @@ class TokenUtility(object):
             # Handle decoding errors or other issues
             print(f"Invalid token: {e}")
             return False
+
+class FileUtility(object):
+    @staticmethod
+    def normalize_path(directory_path, file_name = None):
+        """
+        Normalize file paths such that they always look like:
+        C:/dir1/dir2/.../file
+        """
+        if file_name is None:
+            target_path = directory_path
+        else:
+            target_path = os.path.join(directory_path, file_name)
+        file_path = os.path.normpath(target_path)
+        file_path.replace('\\', '/')
+        return file_path
+
+    @staticmethod
+    def get_file_path_parts(file_path):
+        """
+        Note: A file_path like '.coverage' returns '.coverage' as file_name and '' as file_extension
+        """
+        split_ext = os.path.splitext(file_path)
+        file_name = split_ext[0]
+        file_extension = split_ext[1].lower()
+        return (file_name, file_extension)
+
 
 
 if __name__ == "__main__":
