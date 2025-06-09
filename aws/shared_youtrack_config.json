@@ -1,0 +1,11 @@
+{
+    "youtrack": {
+        "service_url": "https://zhixian.youtrack.cloud",
+        "api_url": "https://zhixian.youtrack.cloud/api"
+    },
+    "secrets": {
+        "file-path": "%APPDATA%/Microsoft/UserSecrets/tech-notes-press/secrets-development.json",
+        "youtrack-token-secret-key": "zhixian_youtrack_token",
+        "gemini-ai-api-secret-key": "hci_blazer_gemini_api_key"
+    }
+}
