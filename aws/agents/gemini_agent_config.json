@@ -1,0 +1,33 @@
+{
+    "mcpServers": {
+        "ucm_mcp": {
+            "type": "streamable-http",
+            "url": "http://127.0.0.1:4600/mcp-server/mcp",
+            "note": "For Streamable HTTP connections, add this URL directly in Client"
+        }
+    },
+    "logging": {
+        "logger": {
+            "name": "GeminiAgent",
+            "logging_level": "DEBUG"
+        },
+        "fileHandler": {
+            "enabled": true,
+            "logging_level": "DEBUG",
+            "formatter": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "file_path": "./gemini_agent.log"
+        },
+        "streamHandler": {
+            "enabled": true,
+            "logging_level": "DEBUG",
+            "formatter": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        }
+    },
+    "gemini" : {
+        "preferred_model": "gemini-2.0-flash"
+    },
+    "secrets": {
+        "file-path": "%APPDATA%/Microsoft/UserSecrets/tech-notes-press/secrets-development.json",
+        "gemini-ai-api-secret-key": "hci_blazer_gemini_api_key"
+    }
+}
