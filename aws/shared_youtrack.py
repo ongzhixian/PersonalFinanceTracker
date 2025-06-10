@@ -18,7 +18,6 @@ class JsonConfiguration(object):
             secrets_json = json.load(in_file)
             return secrets_json[secrets_file_secret_key]
 
-# zhixian_youtrack_token
 
 
 class YoutrackApi(object):
@@ -35,6 +34,8 @@ class YoutrackApi(object):
         self.api_base_url = 'https://zhixian.youtrack.cloud/api'
 
     def get_projects(self):
+        # https://www.jetbrains.com/help/youtrack/devportal/resource-api-admin-projects.html
+        # https://www.jetbrains.com/help/youtrack/devportal/api-entity-Project.html#-x35rkv_5
         # id,name,shortName,createdBy(login,name,id),leader(login,name,id)
         fields_query = ','.join(['id', 'name', 'shortName', 'createdBy(login,name,id)', 'leader(login,name,id)'])
         endpoint_url = f'{self.api_base_url}/admin/projects?fields={fields_query}'
