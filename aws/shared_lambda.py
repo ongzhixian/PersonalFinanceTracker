@@ -61,12 +61,18 @@ class EndpointResponse(object):
         self.HTTP_OK_CODE = 200
         self.HTTP_BAD_REQUEST_CODE = 400
         self.HTTP_FORBIDDEN = 401
+        self.HTTP_BAD_GATEWAY = 502
 
     # def response(self, http_code:int, body_text:str) -> dict:
     #     return {
     #         'statusCode': http_code,
     #         'body': json.dumps(body_text)
     #     }
+
+    def bad_gateway(self, upstream_operation_result_message:OperationResultMessage) -> dict:
+        return ResponseMessage(
+            self.HTTP_BAD_REQUEST_CODE,
+            json.dumps(upstream_operation_result_message.__dict__)).to_dict()
 
     def forbidden(self) -> dict:
         return ResponseMessage(

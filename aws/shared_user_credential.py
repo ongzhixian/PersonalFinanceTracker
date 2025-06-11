@@ -384,10 +384,16 @@ class UserCredentialRepository(BaseRepository):
 
     def authenticate_user_credential(self, authenticate_user_credential_message:AuthenticateUserCredentialMessage):
         try:
+            print('# authenticate_user_credential')
+            print(f'Validating username: {authenticate_user_credential_message.username}')
+
             response = dynamodb_client.get_item(
                 TableName=self._TABLE_NAME,
                 Key={ 'username': {'S': authenticate_user_credential_message.username} }
             )
+
+            print('authenticate_user_credential-Response', response)
+
             if 'Item' in response:
                 user_credential_entity = UserCredentialEntity(response['Item'])
 
@@ -401,16 +407,19 @@ class UserCredentialRepository(BaseRepository):
                 is_valid_credentials = sha256_hex == password_hash
 
                 if is_valid_credentials:
+                    print('authenticate_user_credential-return', 'True: Valid credentials')
                     return OperationResultMessage(True, 'Credentials are authentic', {
                         'is_valid': True,
                         'message': 'Valid credentials'
                     })
                 else:
+                    print('authenticate_user_credential-return', 'False: Invalid credentials')
                     return OperationResultMessage(True, 'Credentials are not valid', {
                         'is_valid': False,
                         'message': 'Invalid credentials'
                     })
 
+            print('authenticate_user_credential-return', 'False: User not found')
             return OperationResultMessage(True, 'User not found', {
                 'is_valid': False,
                 'message': 'User not found'

@@ -18,10 +18,10 @@ class SharedTokenService(object):
         secret_key = authentication_token['value']
         return secret_key
 
-    def generate_token(self, configuration_id:str = 'UCM_SECRETS'):
+    def generate_token(self, message: str = '', configuration_id:str = 'UCM_SECRETS'):
         secret_key = self.get_secret_key_from_configuration(configuration_id)
         token_utility = TokenUtility(secret_key)
-        new_token = token_utility.generate_token(60 * 60)
+        new_token = token_utility.generate_token(60 * 60, message)
         return new_token
 
     def verify_token(self, auth_token:str, configuration_id:str = 'UCM_SECRETS'):

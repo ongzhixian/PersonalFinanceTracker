@@ -64,33 +64,57 @@ def post_ucm_authentication_ticket(event:dict, context):
     """
     dump_api_gateway_event_context(event, context)
 
-    # Validation
+    try:
+        # Validation
+        print('# Request Validation Phase')
 
-    # EventHeadersJson.get_event_headers_json(event)
-    authorization_header = EventHeadersJson.get_authorization_header(event)
-    if authorization_header is None:
-        return endpoint_response.forbidden()
+        # print('## Check authorization header')
+        #
+        # # EventHeadersJson.get_event_headers_json(event)
+        # authorization_header = EventHeadersJson.get_authorization_header(event)
+        # if authorization_header is None:
+        #     return endpoint_response.forbidden()
 
-    event_body_json = EventBodyJson.get_event_body_json(event)
-    if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
+        print('## Event body retrieval')
 
-    authenticate_user_credential_message = AuthenticateUserCredentialMessage.create_from_dict(event_body_json.data_object)
-    if authenticate_user_credential_message is None: return endpoint_response.bad_request('Invalid authenticate user credential message')
+        event_body_json = EventBodyJson.get_event_body_json(event)
+        if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
 
-    # Repository action
+        print('## Generating message from event body')
 
-    repository = UserCredentialRepository()
-    operation_result_message = repository.authenticate_user_credential(authenticate_user_credential_message)
+        authenticate_user_credential_message = AuthenticateUserCredentialMessage.create_from_dict(event_body_json.data_object)
+        if authenticate_user_credential_message is None: return endpoint_response.bad_request('Invalid authenticate user credential message')
 
-    return_message = f'{authenticate_user_credential_message.username} added successfully' if operation_result_message.is_success else f'{authenticate_user_credential_message.username} fail to add'
+        # Repository action
+        print('# Repository Action Phase')
 
-    token = shared_token_service.generate_token()
-    return endpoint_response.data(OperationResultMessage(
-        operation_is_successful=operation_result_message.is_success,
-        message=return_message,
-        data_object={
-            'token' : token
-        }))
+        repository = UserCredentialRepository()
+        operation_result_message = repository.authenticate_user_credential(authenticate_user_credential_message)
+
+        if operation_result_message.is_success:
+            # If success, we should have a data object
+            credential_check_result = operation_result_message.data_object
+            is_valid_credential = credential_check_result['is_valid']
+            credential_check_message = credential_check_result['message']
+
+            print('## POST authenticate_user_credential', operation_result_message)
+            # return_message = f'{authenticate_user_credential_message.username} credential validated.' if is_valid_credential else f'{authenticate_user_credential_message.username} credential are invalid.'
+
+            # token = shared_token_service.generate_token() if is_valid_credential else None
+            data_object = {
+                'token': shared_token_service.generate_token()
+            } if is_valid_credential else None
+
+            return endpoint_response.data(OperationResultMessage(
+                operation_is_successful=operation_result_message.is_success,
+                message=credential_check_message,
+                data_object=data_object))
+
+        return endpoint_response.bad_gateway(operation_result_message)
+    except Exception as error:
+        print(error)
+        return endpoint_response.ok(False, f'HAS ERROR: {error}')
+
 
 
 ## User Credential
