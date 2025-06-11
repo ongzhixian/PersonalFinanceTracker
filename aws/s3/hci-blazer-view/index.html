@@ -20,13 +20,13 @@
 
     <div class="container">
         <div class="row" style="margin-top:1em">
-            <h1>HCI Blazer Views</h1>
+            <h1>TEST</h1>
         </div>
 
         <div class="row">
-            
+
             <section id="contentPanel" class="panel hide">
-                <site-navigation-bar name="asd"></site-navigation-bar>
+                <site-navigation-bar></site-navigation-bar>
 
                 <div  style="margin-top:1em">
 
@@ -60,7 +60,7 @@
 
             </section>
 
-            <section id="loginPanel" class="panel hide">
+            <section id="loginPanel" class="panel hide" style="display:none;">
 
                 <div class="g_id_signin"
                     data-type="standard"
@@ -71,24 +71,108 @@
                     data-logo_alignment="left">
                 </div>
 
+                <section id="customLoginPanel" class="panel hide" style="margin-top:1em;">
+
+                    <form id="customLoginForm">
+                        <div class="row">
+                            <div class="six columns">
+                                <label for="usernameInput">Username</label>
+                                <input class="u-full-width" type="text" placeholder="Email" id="usernameInput" value="testuser1" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="six columns">
+                                <label for="passwordInput">Password</label>
+                                <input class="u-full-width" type="password" placeholder="Password" id="passwordInput" value="testuser1a" />
+                            </div>
+                        </div>
+
+                        <input class="button-primary" type="button" value="Validate Credential" id="validateCredentialButton" />
+                    </form>
+
+                </section>
+
             </section>
+
+            <section>
+                <div>
+                    <test-button></test-button>
+                </div>
+
+                &nbsp;
+
+                <div>
+                    <input class="button-primary" type="button" value="Validate Credential"/>
+                </div>
+
+
+            </section>
+
+
         </div>
 
     </div>
 
-    
+
     <script src="components/siteNavigationBar.js" async defer></script>
+    <script src="components/customLogin.js" async defer></script>
+    <script src="components/testButton.js" async defer></script>
     <script type="text/javascript" src="js/site.js" async defer></script>
     <script type="text/javascript" defer>
 
-        function UiHandler(loginHandler) {
+        function AuthenticationTicketApiHandler() {
+            this.AUTH_TICKET_STORAGE_KEY = "test_auth_ticket";
+            this.storeAuthTicket = (authTicket) => localStorage.setItem(this.AUTH_TICKET_STORAGE_KEY, authTicket);
+            this.getStoredAuthTicket = () => localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY);
+            this.hasAuthTicket = () => localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY) !== null;
+            this.logout = () => localStorage.removeItem(this.AUTH_TICKET_STORAGE_KEY);
 
+            this.getAuthenticationTicket = async function(username, password) {
+
+                let storedAuthTicket = this.getStoredAuthTicket();
+                if (storedAuthTicket !== null)
+                    return storedAuthTicket;
+
+                const endpoint_url = 'https://7pps9elf11.execute-api.us-east-1.amazonaws.com/authentication-ticket';
+                const requestHeaders = new Headers();
+                requestHeaders.append("Content-Type", "application/json");
+
+                const response = await fetch(endpoint_url, {
+                    method: "POST",
+                    headers: requestHeaders,
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const responseJson = await response.json();
+                if (responseJson.is_success && responseJson.data_object) {
+                    this.storeAuthTicket(responseJson.data_object.token);
+                    return responseJson.data_object.token;
+                } else {
+                    console.warn('Validation failed: ', responseJson.message);
+                    return null;
+                }
+            }
+        }
+
+        // Standard-flow
+
+        function UiHandler(loginHandler, authenticationTicketApiHandler) {
+
+            this.allowCustomLogin = true;
             this.loginHandler = loginHandler;
+            this.authenticationTicketApiHandler = authenticationTicketApiHandler;
 
             this.contentPanel = document.querySelector("section#contentPanel");
             this.loginPanel = document.querySelector("section#loginPanel");
+            this.customLoginPanel = document.querySelector("section#customLoginPanel");
+            this.customLoginForm = document.querySelector("form#customLoginForm");
+
             this.logoutButton = document.querySelector("button.logout");
-            
+            this.validateCredentialButton = document.querySelector("#validateCredentialButton");
+
             this.updateCredentialTable = function() {
                 let jwt = loginHandler.getCredentialJwt();
                 if (jwt !== null) { // Has credential
@@ -102,20 +186,35 @@
 
             this.refreshDisplay = function() {
                 let hasCredentialJwt = loginHandler.hasCredentialJwt();
-                if (hasCredentialJwt) {
+                let hasAuthTicket = authenticationTicketApiHandler.hasAuthTicket();
+                if (hasCredentialJwt || hasAuthTicket) {
                     this.updateCredentialTable();
-
                     this.contentPanel.classList.remove('hide'); // Show content panel
                     this.loginPanel.classList.add('hide');      // Hide login panel
+                    if (this.allowCustomLogin)
+                        this.customLoginPanel.classList.add('hide');          // Hide custom login panel
                 } else {
                     this.contentPanel.classList.add('hide');    // Hide content panel
                     this.loginPanel.classList.remove('hide');   // Show login panel
+                    if (this.allowCustomLogin)
+                        this.customLoginPanel.classList.remove('hide');
                 }
             }
 
             this.setupEventListeners = function() {
+
+                if (this.allowCustomLogin) {
+                    this.validateCredentialButton.addEventListener('click', async (e) => {
+                        const usernameValue = e.target.form.elements['usernameInput'].value;
+                        const passwordValue = e.target.form.elements['passwordInput'].value;
+                        const authTicket = await authenticationTicketApiHandler.getAuthenticationTicket(usernameValue, passwordValue);
+                        this.refreshDisplay();
+                    });
+                }
+
                 this.logoutButton.addEventListener('click',  () => {
                     this.loginHandler.logout();
+                    this.authenticationTicketApiHandler.logout();
                     this.refreshDisplay();
                 });
             }
@@ -124,7 +223,7 @@
         ////////////////////////////////////////
         // START
 
-        let loginHandler, uiHandler;
+        let loginHandler, authenticationTicketApiHandler, uiHandler;
 
         // document.addEventListener('DOMContentLoaded', function() {
         //     uiHandler.refreshDisplay();
@@ -145,7 +244,8 @@
             );
 
             loginHandler = new LoginHandler();
-            uiHandler = new UiHandler(loginHandler);
+            authenticationTicketApiHandler = new AuthenticationTicketApiHandler();
+            uiHandler = new UiHandler(loginHandler, authenticationTicketApiHandler);
 
             uiHandler.setupEventListeners(); // Setup event listeners
             uiHandler.refreshDisplay();

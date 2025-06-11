@@ -55,3 +55,40 @@ function sgpTimeString(locale = "en-SG") {
     const timezoneName = localeIntl.resolvedOptions().timeZone;
     return `${localDate} ${currentTime.toLocaleTimeString()} (${timezoneName})`;
 }
+
+function AuthenticationTicketApiHandler() {
+    this.AUTH_TICKET_STORAGE_KEY = "test_auth_ticket";
+    this.storeAuthTicket = (authTicket) => localStorage.setItem(this.AUTH_TICKET_STORAGE_KEY, authTicket);
+    this.getStoredAuthTicket = () => localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY);
+    this.hasAuthTicket = () => localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY) !== null;
+    this.logout = () => localStorage.removeItem(this.AUTH_TICKET_STORAGE_KEY);
+
+    this.getAuthenticationTicket = async function(username, password) {
+
+        let storedAuthTicket = this.getStoredAuthTicket();
+        if (storedAuthTicket !== null)
+            return storedAuthTicket;
+
+        const endpoint_url = 'https://7pps9elf11.execute-api.us-east-1.amazonaws.com/authentication-ticket';
+        const requestHeaders = new Headers();
+        requestHeaders.append("Content-Type", "application/json");
+
+        const response = await fetch(endpoint_url, {
+            method: "POST",
+            headers: requestHeaders,
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        });
+
+        const responseJson = await response.json();
+        if (responseJson.is_success && responseJson.data_object) {
+            this.storeAuthTicket(responseJson.data_object.token);
+            return responseJson.data_object.token;
+        } else {
+            console.warn('Validation failed: ', responseJson.message);
+            return null;
+        }
+    }
+}
