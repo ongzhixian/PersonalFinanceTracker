@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="description" content="HCI-Blazer site"/>
+    <meta name="author" content="Ong Zhi Xian"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>HCI-Blazer Views</title>
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="../css/normalize.css"/>
+    <link rel="stylesheet" href="../css/skeleton.css"/>
+    <link rel="stylesheet" href="../css/site.css"/>
+    <link rel="icon" type="image/png" href="../images/favicon.ico"/>
+    <meta name="google-signin-client_id"
+          content="923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style></style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="row" style="margin-top:1em">
+            <h1>TEST</h1>
+        </div>
+
+        <div class="row">
+
+            <section id="contentPanel" class="panel hide">
+
+                <site-navigation-bar></site-navigation-bar>
+
+                <div style="margin-top:1em">
+
+                    <h3>Quality Checks</h3>
+
+                    <p>Quality checks.</p>
+
+                </div>
+
+            </section>
+
+            <section id="loginPanel" class="panel hide">
+
+                <div class="g_id_signin"
+                    data-type="standard"
+                    data-shape="rectangular"
+                    data-theme="outline"
+                    data-text="signin_with"
+                    data-size="large"
+                    data-logo_alignment="left">
+                </div>
+
+                <section id="customLoginPanel" class="panel hide" style="margin-top:1em;">
+
+                    <form id="customLoginForm">
+                        <div class="row">
+                            <div class="six columns">
+                                <label for="usernameInput">Username</label>
+                                <input class="u-full-width" type="text" placeholder="Email" id="usernameInput" value="testuser1" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="six columns">
+                                <label for="passwordInput">Password</label>
+                                <input class="u-full-width" type="password" placeholder="Password" id="passwordInput" value="testuser1a" />
+                            </div>
+                        </div>
+
+                        <input class="button-primary" type="button" value="Validate Credential" id="validateCredentialButton" />
+                    </form>
+
+                </section>
+
+            </section>
+
+            <!--
+
+            <section>
+                <div>
+                    <test-button></test-button>
+                </div>
+
+                &nbsp;
+
+                <div>
+                    <input class="button-primary" type="button" value="Validate Credential"/>
+                </div>
+
+
+            </section>
+            -->
+
+
+        </div>
+
+    </div>
+
+    
+    <script src="../components/qualityChecksNavigationBar.js" async defer></script>
+    <script src="../components/customLogin.js" async defer></script>
+    <script type="text/javascript" src="../js/site.js" async defer></script>
+    <script src="../components/testButton.js" async defer></script>
+    <script type="text/javascript" defer>
+
+        // Standard-flow
+
+        function UiHandler(loginHandler, authenticationTicketApiHandler) {
+
+            this.allowCustomLogin = true;
+            this.loginHandler = loginHandler;
+            this.authenticationTicketApiHandler = authenticationTicketApiHandler;
+
+            this.contentPanel = document.querySelector("section#contentPanel");
+            this.loginPanel = document.querySelector("section#loginPanel");
+            this.customLoginPanel = document.querySelector("section#customLoginPanel");
+            this.customLoginForm = document.querySelector("form#customLoginForm");
+
+
+            this.validateCredentialButton = document.querySelector("#validateCredentialButton");
+            
+            this.updateCredentialTable = function() {
+                let jwt = loginHandler.getCredentialJwt();
+                if (jwt !== null) { // Has credential
+                    const {family_name, given_name, name, email} = jwt;
+                    this.contentPanel.querySelector('.family-name').innerText = family_name;
+                    this.contentPanel.querySelector('.given-name').innerText = given_name;
+                    this.contentPanel.querySelector('.name').innerText = name;
+                    this.contentPanel.querySelector('.email').innerText = email;
+                }
+            }
+
+            this.refreshDisplay = function() {
+                let hasCredentialJwt = loginHandler.hasCredentialJwt();
+                let hasAuthTicket = authenticationTicketApiHandler.hasAuthTicket();
+                if (hasCredentialJwt || hasAuthTicket) {
+                    this.updateCredentialTable();
+                    this.contentPanel.classList.remove('hide'); // Show content panel
+                    this.loginPanel.classList.add('hide');      // Hide login panel
+                    if (this.allowCustomLogin)
+                        this.customLoginPanel.classList.add('hide');          // Hide custom login panel
+                } else {
+                    this.contentPanel.classList.add('hide');    // Hide content panel
+                    this.loginPanel.classList.remove('hide');   // Show login panel
+                    if (this.allowCustomLogin)
+                        this.customLoginPanel.classList.remove('hide');
+                }
+            }
+
+            this.setupEventListeners = function() {
+
+                if (this.allowCustomLogin) {
+                    this.validateCredentialButton.addEventListener('click', async (e) => {
+                        const usernameValue = e.target.form.elements['usernameInput'].value;
+                        const passwordValue = e.target.form.elements['passwordInput'].value;
+                        const authTicket = await authenticationTicketApiHandler.getAuthenticationTicket(usernameValue, passwordValue);
+                        this.refreshDisplay();
+                    });
+                }
+
+            }
+        }
+
+        ////////////////////////////////////////
+        // START
+
+        let loginHandler, authenticationTicketApiHandler, uiHandler;
+
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     uiHandler.refreshDisplay();
+        // });
+
+        window.onload = function () {
+
+            google.accounts.id.initialize({
+                "client_id": '923487745728-6u2evk6ouct6bm6kmoustr89h5oa2tv1.apps.googleusercontent.com',
+                "use_fedcm_for_prompt": true,
+                "use_fedcm_for_button": true,
+                "callback": handleCredentialResponse
+            });
+
+            google.accounts.id.renderButton(
+                document.querySelector(".g_id_signin"),
+                { theme: "outline", size: "large" }  // customization attributes
+            );
+
+            loginHandler = new LoginHandler();
+            authenticationTicketApiHandler = new AuthenticationTicketApiHandler();
+            uiHandler = new UiHandler(loginHandler, authenticationTicketApiHandler);
+
+            uiHandler.setupEventListeners(); // Setup event listeners
+            uiHandler.refreshDisplay();
+        };
+
+    </script>
+</body>
+</html>
