@@ -20,9 +20,20 @@ class ContentSection extends HTMLElement {
     }
 
     connectedCallback() {
-        //console.log("SiteBanner added to page.");
+        
         this.render();
+        document.addEventListener('navigation-changed-event', function (event) {
+            console.log('navigation-changed-event-detail 22:', event.detail);
+        });
 
+        this.contentSection = this.shadowRoot.querySelector('#contentSection');
+        import('./content1.js').then(() => {
+            this.contentSection.replaceChildren();
+            this.contentSection.appendChild(document.createElement('test-content1'));
+            contentId = 'test-content1';
+        });
+
+        //console.log("Content section rendered.");
     }
 
     disconnectedCallback() {
@@ -42,7 +53,7 @@ class ContentSection extends HTMLElement {
     }
 
     render() {
-        this.shadowRoot.innerHTML = `<section id="contentSection"></section>`;
+        this.shadowRoot.innerHTML = `<section id="contentSection">Loading content...</section>`;
     }
 
 }

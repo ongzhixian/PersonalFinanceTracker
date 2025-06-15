@@ -4,7 +4,7 @@ class TestContent1 extends HTMLElement {
     constructor() {
         super(); // Always call super first in constructor
         this.attachShadow({ mode: 'open' });
-        this.channelHandler = new ChannelHandler('site-banner');
+        this.channelHandler = new ChannelHandler('content1');
         this.channelHandler.subscribe((e) => this.onmessage(e));
 
         // this.broadcastChannel = new BroadcastChannel("test_channel");

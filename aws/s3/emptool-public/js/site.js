@@ -39,7 +39,7 @@ function LoginHandler() {
 }
 
 function ChannelHandler(initiator) {
-    console.log(initiator, 'ChannelHandler');
+    //console.log(initiator, 'ChannelHandler');
     this.broadcastChannel = new BroadcastChannel("test_channel");
 
     this.sendMessage = function (messageContent) {
