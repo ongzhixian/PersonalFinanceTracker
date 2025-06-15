@@ -102,7 +102,8 @@ def post_ucm_authentication_ticket(event:dict, context):
 
             # token = shared_token_service.generate_token() if is_valid_credential else None
             data_object = {
-                'token': shared_token_service.generate_token()
+                'token': shared_token_service.generate_token(),
+                'username': authenticate_user_credential_message.username,
             } if is_valid_credential else None
 
             return endpoint_response.data(OperationResultMessage(

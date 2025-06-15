@@ -25,14 +25,66 @@
             <p>TODO: Add dashboard</p>
         </section>
 
+    <!-- TOP-LEVEL CONTAINER
+
+    <content-section></content-section>
+
+    <button id="loadContentButton" onclick="loadContent()">Load content</button>
+
+    <test-content1 class=""></test-content1>
+
+    <test-content2 class="hide"></test-content2>
+
+    <div>
+        <css-replica target-id="sampleButton"></css-replica>
+    </div>
+
+    <div class="row">
+      <div class="one-half column">
+
+        <button id="sampleButton">Sample</button>
+
+      </div>
+    </div>
+
+    -->
+
     </div><!-- END OF TOP-LEVEL CONTAINER -->
 
     <script src="js/site.js" defer></script>
     <script src="components/site-banner.js" defer></script>
     <script src="components/site-navigation-bar.js" defer></script>
+    <!--<script src="components/content-section.js" defer></script>-->
+    <!--<script src="components/content1.js" async defer></script>-->
+    <!--<script src="components/content2.js" async defer></script>-->
+    <!--<script src="components/test-button.js" defer></script>
+    <script src="components/css-replica.js" defer></script>--> 
     <script>
-        let loginHandler, uiHandler;
 
+        const contentSection = document.getElementById('contentSection');
+        let contentId = null;
+
+
+        //function loadContent() {
+        //    if ((contentId === null) || (contentId === 'test-content2')) {
+        //        import('./components/content1.js').then(() => {
+        //            contentSection.replaceChildren();
+        //            contentSection.appendChild(document.createElement('test-content1'));
+        //            contentId = 'test-content1';
+        //        });
+        //    }
+        //    if (contentId === 'test-content1') {
+        //        import('./components/content2.js').then(() => {
+        //            contentSection.replaceChildren();
+        //            contentSection.appendChild(document.createElement('test-content2'));
+        //            contentId = 'test-content2';
+        //        });
+        //    }
+        //}
+
+        // Standard
+
+        let loginHandler, uiHandler;
         function UiHandler(loginHandler) {
             this.loginHandler = loginHandler;
 

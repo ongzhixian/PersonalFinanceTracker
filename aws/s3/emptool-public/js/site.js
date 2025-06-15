@@ -38,6 +38,44 @@ function LoginHandler() {
     }
 }
 
+function AuthenticationModule() {
+    this.AUTH_TICKET_STORAGE_KEY = "test_auth_ticket";
+
+    this.validateCredentials = async (username, password) => {
+        console.log("Validating credentials for", username, password);
+        const endpoint_url = 'https://7pps9elf11.execute-api.us-east-1.amazonaws.com/authentication-ticket';
+        const requestHeaders = new Headers();
+        requestHeaders.append("Content-Type", "application/json");
+
+        const response = await fetch(endpoint_url, {
+            method: "POST",
+            headers: requestHeaders,
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        });
+
+        if (!response.ok) throw new Error("Authentication failed: " + response.statusText);
+
+        const validationResult = await response.json();
+        if (validationResult.data_object && 'token' in validationResult.data_object) {
+            localStorage.setItem(this.AUTH_TICKET_STORAGE_KEY, validationResult.data_object['token']);
+            return true;
+        }
+
+        return false;
+    }
+
+    this.isAuthenticated = () => {
+        return localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY) !== null;
+    }
+
+    this.logout = () => {
+        localStorage.removeItem(this.AUTH_TICKET_STORAGE_KEY);
+    }
+}
+
 function ChannelHandler(initiator) {
     //console.log(initiator, 'ChannelHandler');
     this.broadcastChannel = new BroadcastChannel("test_channel");
@@ -55,3 +93,11 @@ function ChannelHandler(initiator) {
         this.broadcastChannel.close();
     }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (this.window.location.pathname === "/login.html") return;
+
+    window.authenticator = new AuthenticationModule();
+    if (!window.authenticator.isAuthenticated())
+        window.location.href = '/login.html'; // Redirect to login page if not authenticated
+});
