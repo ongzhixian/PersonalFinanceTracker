@@ -7,21 +7,21 @@ function LoginHandler() {
 
     this.CREDENTIAL_STORAGE_KEY = "ucm_credential";
 
-    this.hasCredentialJwt = function() {
+    this.hasCredentialJwt = function () {
         let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
         return credentialJwt !== null;
     }
 
-    this.storeCredential = function(credentialJwt) {
+    this.storeCredential = function (credentialJwt) {
         return localStorage.setItem(this.CREDENTIAL_STORAGE_KEY, credentialJwt);
     }
 
-    this.getCredentialJwt = function() {
+    this.getCredentialJwt = function () {
         try {
             let credentialJwt = localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
             const base64Url = credentialJwt.split('.')[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
                 return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
             }).join(''));
 
@@ -33,7 +33,25 @@ function LoginHandler() {
 
     this.getJwt = () => localStorage.getItem(this.CREDENTIAL_STORAGE_KEY);
 
-    this.logout = function() {
+    this.logout = function () {
         localStorage.removeItem(this.CREDENTIAL_STORAGE_KEY);
+    }
+}
+
+function ChannelHandler(initiator) {
+    console.log(initiator, 'ChannelHandler');
+    this.broadcastChannel = new BroadcastChannel("test_channel");
+
+    this.sendMessage = function (messageContent) {
+        this.broadcastChannel.postMessage(messageContent);
+    }
+
+    this.subscribe = function (eventHandler) {
+        //this.broadcastChannel.onmessage = (event) => eventHandler(event);
+        this.broadcastChannel.onmessage = eventHandler;
+    }
+
+    this.leaveChannel = function () {
+        this.broadcastChannel.close();
     }
 }

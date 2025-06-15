@@ -1,10 +1,10 @@
-class SiteBanner extends HTMLElement {
+class ContentSection extends HTMLElement {
     //static observedAttributes = ["color", "size"];
 
     constructor() {
         super(); // Always call super first in constructor
         this.attachShadow({ mode: 'open' });
-        this.channelHandler = new ChannelHandler('site-banner');
+        this.channelHandler = new ChannelHandler('content-section');
         this.channelHandler.subscribe((e) => this.onmessage(e));
 
         // this.broadcastChannel = new BroadcastChannel("test_channel");
@@ -13,8 +13,8 @@ class SiteBanner extends HTMLElement {
         // }
     }
 
-    onmessage = function (event) {
-        if ((event.data.type === 'setTitle') && (event.data.targetId === 'banner')) {
+    onmessage = function(event) {
+        if ( (event.data.type === 'setTitle') && (event.data.targetId === 'banner') ) {
             this.shadowRoot.querySelector('h1').innerText = event.data.title;
         }
     }
@@ -22,6 +22,7 @@ class SiteBanner extends HTMLElement {
     connectedCallback() {
         //console.log("SiteBanner added to page.");
         this.render();
+
     }
 
     disconnectedCallback() {
@@ -41,17 +42,9 @@ class SiteBanner extends HTMLElement {
     }
 
     render() {
-        this.shadowRoot.innerHTML = `
-<style>
-    :host {}
-    h1 {
-        font-size: 4.0rem;
-        font-weight: 300;
-    }
-</style>
-<h1>UCM</h1>`;
+        this.shadowRoot.innerHTML = `<section id="contentSection"></section>`;
     }
 
 }
 
-customElements.define('site-banner', SiteBanner);
+customElements.define('content-section', ContentSection);

@@ -1,27 +1,36 @@
-class SiteBanner extends HTMLElement {
+class TestButton extends HTMLElement {
     //static observedAttributes = ["color", "size"];
+    displayTarget = null;
 
     constructor() {
         super(); // Always call super first in constructor
         this.attachShadow({ mode: 'open' });
-        this.channelHandler = new ChannelHandler('site-banner');
-        this.channelHandler.subscribe((e) => this.onmessage(e));
+        this.channelHandler = new ChannelHandler('test-button');
 
         // this.broadcastChannel = new BroadcastChannel("test_channel");
         // this.broadcastChannel.onmessage = function(event) {
-        //     console.log('SiteBanner', event.data);
+        //     console.log('testButton', event.data);
         // }
     }
 
-    onmessage = function (event) {
-        if ((event.data.type === 'setTitle') && (event.data.targetId === 'banner')) {
-            this.shadowRoot.querySelector('h1').innerText = event.data.title;
+    #runTestButtonClick(e) {
+        if ( (this.displayTarget === null) || this.displayTarget === 'test-content2' ) {
+            this.displayTarget = 'test-content1';
+        } else {
+            this.displayTarget = 'test-content2';
         }
+
+        this.channelHandler.sendMessage({
+            type: 'display',
+            targetId: this.displayTarget
+        });
+        // this.channelHandler.sendMessage('Hello world')
     }
 
     connectedCallback() {
         //console.log("SiteBanner added to page.");
         this.render();
+        this.shadowRoot.querySelector('#runTestButton').addEventListener('click', (e) => this.#runTestButtonClick(e));
     }
 
     disconnectedCallback() {
@@ -42,16 +51,11 @@ class SiteBanner extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = `
-<style>
-    :host {}
-    h1 {
-        font-size: 4.0rem;
-        font-weight: 300;
-    }
-</style>
-<h1>UCM</h1>`;
+<style></style>
+<button id="runTestButton">Run test</button>
+`;
     }
 
 }
 
-customElements.define('site-banner', SiteBanner);
+customElements.define('test-button', TestButton);

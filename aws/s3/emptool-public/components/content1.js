@@ -1,4 +1,4 @@
-class SiteBanner extends HTMLElement {
+class TestContent1 extends HTMLElement {
     //static observedAttributes = ["color", "size"];
 
     constructor() {
@@ -13,15 +13,21 @@ class SiteBanner extends HTMLElement {
         // }
     }
 
-    onmessage = function (event) {
-        if ((event.data.type === 'setTitle') && (event.data.targetId === 'banner')) {
-            this.shadowRoot.querySelector('h1').innerText = event.data.title;
+    onmessage = function(event) {
+        // console.log(this);
+        // console.log(this.host);
+        if ( (event.data.type === 'display') && (event.data.targetId === 'test-content1') ) {
+            this.classList.remove('hide');
+        } else {
+            this.classList.add('hide');
         }
+
     }
 
     connectedCallback() {
         //console.log("SiteBanner added to page.");
         this.render();
+
     }
 
     disconnectedCallback() {
@@ -49,9 +55,9 @@ class SiteBanner extends HTMLElement {
         font-weight: 300;
     }
 </style>
-<h1>UCM</h1>`;
+<h1>Test Content 1</h1>`;
     }
 
 }
 
-customElements.define('site-banner', SiteBanner);
+customElements.define('test-content1', TestContent1);
