@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+        "ucm_mcp": {
+            "type": "streamable-http",
+            "url": "http://127.0.0.1:4600/mcp-server/mcp",
+            "note": "For Streamable HTTP connections, add this URL directly in Client"
+        }
+    },
+    "client" : {
+        "preferred_llm": "gemini-1.5-flash-002"
+    }
+}

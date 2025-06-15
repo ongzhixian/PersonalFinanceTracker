@@ -306,25 +306,25 @@ class FastMcpClient(object):
 
 
     async def initialize_mcp_resource_list(
-            self,
-            dump_ping: bool=False,
-            dump_connect: bool=False,
-            dump_resources: bool=False,
-            dump_resource_templates: bool = False,
-            dump_tools: bool=False,
-            dump_prompts: bool=False,
-            dump_resource_list: bool = False):
-        # async with self.mcp_client:
-        await self._is_connected(dump_connect)
-        await self._ping(dump_ping)
-        self.resource_list = []
-        await self._get_resources(dump_resources)
-        await self._get_resource_templates(dump_resource_templates)
-        await self._get_tools(dump_tools)
-        await self._get_prompts(dump_prompts)
-        if dump_resource_list:
-            for resource in self.resource_list:
-                print(resource)
+        self,
+        dump_ping: bool=False,
+        dump_connect: bool=False,
+        dump_resources: bool=False,
+        dump_resource_templates: bool = False,
+        dump_tools: bool=False,
+        dump_prompts: bool=False,
+        dump_resource_list: bool = False):
+        async with self.mcp_client:
+            await self._is_connected(dump_connect)
+            await self._ping(dump_ping)
+            self.resource_list = []
+            await self._get_resources(dump_resources)
+            await self._get_resource_templates(dump_resource_templates)
+            await self._get_tools(dump_tools)
+            await self._get_prompts(dump_prompts)
+            if dump_resource_list:
+                for resource in self.resource_list:
+                    print(resource)
 
     def initialize_chat(self, chat_client, system_prompt: Optional[str] = None):
         """

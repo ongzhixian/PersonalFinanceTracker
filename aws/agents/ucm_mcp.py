@@ -144,7 +144,7 @@ def get_file_list(directory_path: str) -> str:
         path=resolved_directory_path,
         name=f"Directory listing of {directory_path}",
         description=f"Lists files in {directory_path} directory.",
-        recursive=False,
+        recursive=True,
         tags={"file-listing"},
         mime_type="plain/text"
     )
