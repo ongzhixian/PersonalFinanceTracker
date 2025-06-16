@@ -7,7 +7,7 @@ class LoginForm extends HTMLElement {
         this.authenticator = new AuthenticationModule();
         this.attachShadow({ mode: 'open' });
     }
-    
+
     connectedCallback() {
         this.render();
         this.usernameInput = this.shadowRoot.querySelector('#usernameInput');
@@ -26,12 +26,18 @@ class LoginForm extends HTMLElement {
         let isValidCredential = await this.authenticator.validateCredentials(this.usernameInput.value, this.passwordInput.value);
 
         if (isValidCredential) {
-            window.location.href = '/index.html'; // Redirect to home page
+
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('redirect')) {
+                window.location.href = params.get('redirect')
+            } else {
+                window.location.href = '/index.html'; // Redirect to home page
+            }
             return;
         }
-        
+
         console.error("Validation failed. Please check your credentials.");
-        
+
 
         //this.AUTH_TICKET_STORAGE_KEY = "test_auth_ticket";
         //this.storeAuthTicket = (authTicket) => localStorage.setItem(this.AUTH_TICKET_STORAGE_KEY, authTicket);
@@ -66,9 +72,11 @@ class LoginForm extends HTMLElement {
 <style>
 #loginForm {
     display: grid;
-    grid-template-columns: 200px 1fr 1fr;
-    grid-template-rows: repeat(3 1fr);
+    grid-template-columns: 5rem 18rem 5rem;
+    grid-template-rows: repeat(3, 1fr);
     grid-gap: .5rem;
+    justify-content: center;
+    margin-top: 4rem;
 }
 #loginForm label {
     justify-self: end;
@@ -85,7 +93,7 @@ class LoginForm extends HTMLElement {
     <div></div>
 
     <div></div>
-    <input class="button-primary" type="button" value="login" id="loginButton" />
+    <input class="button-primary" type="button" value="Login" id="loginButton" />
     <div></div>
     
 </form>

@@ -23,23 +23,11 @@ class LogoutForm extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = `
-<style>
-#logoutForm {
-    display: grid;
-    grid-template-columns: 200px 1fr 1fr;
-    grid-template-rows: repeat(3 1fr);
-    grid-gap: .5rem;
-}
-#logoutForm label {
-    justify-self: end;
-    margin-right: .5rem;
-}
-</style>
 <form id="logoutForm">
     
-    <div></div>
-    <input class="button-primary" type="button" value="logout" id="logoutButton" />
-    <div></div>
+    <p>Are you sure you want to logout?</p>
+
+    <input class="button-primary" type="button" value="Confirm log out" id="logoutButton" />
     
 </form>
 `;

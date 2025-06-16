@@ -71,8 +71,38 @@ function AuthenticationModule() {
         return localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY) !== null;
     }
 
+    this.getToken = () => {
+        return localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY);
+    }
+
     this.logout = () => {
         localStorage.removeItem(this.AUTH_TICKET_STORAGE_KEY);
+    }
+
+    this.urlsafeBase64Decode = function (str) {
+
+        // Replace URL-safe characters with standard Base64 characters
+        str = str.replace(/-/g, '+').replace(/_/g, '/');
+        // Pad with '=' to make the length a multiple of 4
+        while (str.length % 4) {
+            str += '=';
+        }
+        // Decode
+        return atob(str);
+    }
+
+    this.getParsedToken = function () {
+        const token = localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY);
+        if (!token) return null;
+
+        const tokenParts = this.urlsafeBase64Decode(token).slice(0, -32).split('|');
+
+        if (tokenParts.length < 2) return null;
+
+        return {
+            expiry: tokenParts[0],
+            username: tokenParts[1]
+        };
     }
 }
 
@@ -98,6 +128,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (this.window.location.pathname === "/login.html") return;
 
     window.authenticator = new AuthenticationModule();
-    if (!window.authenticator.isAuthenticated())
-        window.location.href = '/login.html'; // Redirect to login page if not authenticated
+    if (!window.authenticator.isAuthenticated()) {
+        window.location.href = `/login.html?redirect=${window.location.pathname}`; // Redirect to login page if not authenticated
+    }
+    const worker = new Worker('./js/site-worker.js');
+    //worker.onmessage = function (e) {
+    //    console.log('WORKER SENT: ', e);
+    //};
 });
