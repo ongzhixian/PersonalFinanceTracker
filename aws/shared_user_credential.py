@@ -20,6 +20,8 @@ from shared_data_repositories import DynamoDbEntity, BaseRepository
 from shared_messages import OperationResultMessage
 from shared_user_credential_messages import AddUserCredentialMessage, AuthenticateUserCredentialMessage, UpdateUserCredentialPasswordMessage
 
+import pdb
+
 # AWS SETUP
 
 runtime_dns_domain = environ.get('USERDNSDOMAIN')
@@ -71,6 +73,16 @@ class UserCredentialEntity(DynamoDbEntity):
     RECORD_UPDATE_DATETIME_FIELD_NAME = 'record_update_datetime'
     RECORD_CREATE_BY_FIELD_NAME = 'record_create_by'
     RECORD_CREATE_DATETIME_FIELD_NAME = 'record_create_datetime'
+
+    private_fields = [
+        'last_login_attempt_datetime',
+        'last_successful_login',
+        'password_hash',
+        'password_salt', 
+        'record_update_by',
+        'record_update_datetime',
+        'record_create_by',
+        'record_create_datetime']
 
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -137,7 +149,11 @@ class UserCredentialEntity(DynamoDbEntity):
     #     """unambiguous, developer-friendly string representation"""
     #     return json.dumps(self.__dict__)
 
-    def to_json_object(self):
+    def to_json_object(self, public_only=False):
+        if public_only:
+            for field_name in UserCredentialEntity.private_fields:
+                self.__dict__.pop(field_name)
+
         return self.__dict__
 
     @staticmethod
@@ -503,19 +519,72 @@ class UserCredentialRepository(BaseRepository):
                 return OperationResultMessage(False, 'Item code does not exist or was returned')
             return OperationResultMessage(False, client_error.response)
 
+    def get_user_credential_list(self, page_size:int=5, page_number:int=1, sort_field:str='username', sort_order:str='asc'):
+        """
+        List user credentials with pagination and sorting.
+
+        Args:
+            page_size (int): Number of items per page.
+            page_number (int): Page number (1-based).
+            sort_field (str): Field to sort by (default 'username').
+            sort_order (str): 'asc' or 'desc' (default 'asc').
+
+        Returns:
+            dict: {
+                'items': [UserCredentialEntity, ...],
+                'last_evaluated_key': dict or None
+            }
+        """
+        try:
+            items = []
+            scan_kwargs = {
+                'TableName': self._TABLE_NAME,
+                'ProjectionExpression': '#USERNAME, #STATUS, #FAILED_LOGIN_ATTEMPTS, #PASSWORD_LAST_CHANGED_DATETIME',
+                'ExpressionAttributeNames': {
+                    '#USERNAME': 'username',
+                    '#STATUS': 'status', 
+                    '#FAILED_LOGIN_ATTEMPTS': 'failed_login_attempts', 
+                    '#PASSWORD_LAST_CHANGED_DATETIME' : 'password_last_changed_datetime'
+                }
+            }
+            while True:
+                response = dynamodb_client.scan(**scan_kwargs)
+                items.extend(UserCredentialEntity(item).to_json_object(True) for item in response.get('Items', []))
+                last_key = response.get('LastEvaluatedKey')
+                if not last_key:
+                    break
+                scan_kwargs['ExclusiveStartKey'] = last_key
+
+            reverse = sort_order.lower() == 'desc'
+            items.sort(key=lambda record: record.get(sort_field), reverse=reverse)
+            
+            start = (page_number - 1) * page_size
+            end = start + page_size
+
+            return OperationResultMessage(True, None, data_object={
+                'page_number': page_number,
+                'page_size': page_size,
+                'total_items': len(items),
+                'page_items': items[start:end]
+            })
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            return OperationResultMessage(False, client_error.response)
 
 # TESTs
 
 
 def test_repository():
     # Create message
-    add_user_credential_message = AddUserCredentialMessage('testuser2','testpass2')
-    authenticate_user_credential_message = AuthenticateUserCredentialMessage('testuser2', 'testpass2')
+    #add_user_credential_message = AddUserCredentialMessage('testuser2','testpass2')
+    #authenticate_user_credential_message = AuthenticateUserCredentialMessage('testuser2', 'testpass2')
     #update_user_credential_password_message = UpdateUserCredentialPasswordMessage('testuser1', 'testuser1a')
     # Instantiate repository
     test_repository = UserCredentialRepository()
+    operation_result_message = test_repository.get_user_credential_list(page_number=1, sort_order='asc')
+    
     # Repository action
-    operation_result_message = test_repository.add_user_credential(add_user_credential_message)
+    #operation_result_message = test_repository.add_user_credential(add_user_credential_message)
     #operation_result_message = test_repository.authenticate_user_credential(authenticate_user_credential_message)
     #operation_result_message = test_repository.successful_login_update('testuser1')
     #operation_result_message = test_repository.failed_login_update('testuser1')

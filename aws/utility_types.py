@@ -145,6 +145,50 @@ class TokenUtility(object):
             print(f"Invalid token: {e}")
             return False
 
+    def get_token_content(self, token:str):
+        """
+        Verifies the token's validity, checks if it has expired, and detects tampering.
+
+        Args:
+            token (str): The token to verify.
+
+        Returns:
+            bool: True if the token is valid and not expired, False otherwise.
+        """
+        try:
+            # Decode the token from Base64
+            decoded_data = base64.urlsafe_b64decode(token.encode())
+
+            # Split the decoded data into the expiry timestamp and the signature
+            payload = decoded_data[:-32]    # Anything before last 32 bytes is payload
+            signature = decoded_data[-32:]  # Last 32 bytes are the HMAC signature
+
+            # Recreate the signature using the expiry timestamp and the secret key
+            expected_signature = hmac.new(self.SECRET_KEY, payload, hashlib.sha256).digest()
+
+            # Check if the signature matches (detect tampering)
+            if not hmac.compare_digest(signature, expected_signature):
+                print("Token has been tampered with!")
+                return False
+
+            payload_str = payload.decode('utf-8')
+            expiry_str, message = payload_str.split('|', 1)
+            expiry_timestamp = int(expiry_str)
+
+            # Check if the token has expired
+            if time.time() > expiry_timestamp:
+                print("Token has expired!")
+                return False
+
+            # Token is valid
+            return message
+
+        except Exception as e:
+            # Handle decoding errors or other issues
+            print(f"Invalid token: {e}")
+            return False
+
+
 class FileUtility(object):
     @staticmethod
     def normalize_path(directory_path, file_name = None):

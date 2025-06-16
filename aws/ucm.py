@@ -11,7 +11,8 @@ from shared_lambda import (
     dump_api_gateway_event_context,
     EndpointResponse,
     EventBodyJson,
-    EventHeadersJson)
+    EventHeadersJson,
+    EventQueryStringParametersJson)
 from shared_messages import OperationResultMessage
 from shared_user_credential_messages import AddUserCredentialMessage, AuthenticateUserCredentialMessage
 from shared_user_credential import UserCredentialRepository
@@ -102,7 +103,7 @@ def post_ucm_authentication_ticket(event:dict, context):
 
             # token = shared_token_service.generate_token() if is_valid_credential else None
             data_object = {
-                'token': shared_token_service.generate_token(),
+                'token': shared_token_service.generate_token(authenticate_user_credential_message.username),
                 'username': authenticate_user_credential_message.username,
             } if is_valid_credential else None
 
@@ -117,6 +118,42 @@ def post_ucm_authentication_ticket(event:dict, context):
         return endpoint_response.ok(False, f'HAS ERROR: {error}')
 
 
+@endpoint_url('/ucm/authentication-ticket', 'PUT')
+def put_ucm_authentication_ticket(event:dict, context):
+    """Refreshes a token (given a valid token)
+    Use case:
+        (authentication)
+    """
+    dump_api_gateway_event_context(event, context)
+
+    try:
+        # Validation
+        print('# Request Validation Phase')
+
+        authorization_header = EventHeadersJson.get_authorization_header(event)
+        if authorization_header is None:
+            return endpoint_response.forbidden()
+        
+        token_body = authorization_header.replace('TOKEN', '').strip()
+        token_is_valid = shared_token_service.verify_token(token_body)
+        if not token_is_valid:
+            return endpoint_response.forbidden()
+
+        # Parse the token to get the username
+        username = shared_token_service.get_token_content(token_body)
+
+        data_object = {
+            'token': shared_token_service.generate_token(username )
+        }
+
+        return endpoint_response.data(OperationResultMessage(
+                operation_is_successful=True,
+                message='Token refreshed.',
+                data_object=data_object))
+        
+    except Exception as error:
+        print(error)
+        return endpoint_response.ok(False, f'HAS ERROR: {error}')
 
 ## User Credential
 
@@ -126,7 +163,56 @@ def get_ucm_user_credential(event:dict, context):
     Use case:
         (list user credentials)
     """
-    return dump_api_gateway_event_context(event, context)
+    dump_api_gateway_event_context(event, context)
+
+    try:
+        # Validation
+        print('# Request Validation Phase')
+
+        print('## Check authorization header')
+
+        authorization_header = EventHeadersJson.get_authorization_header(event)
+        if authorization_header is None:
+            return endpoint_response.forbidden()
+        
+        token_body = authorization_header.replace('TOKEN', '').strip()
+        token_is_valid = shared_token_service.verify_token(token_body)
+        if not token_is_valid:
+            return endpoint_response.forbidden()
+
+        #print('## Event body retrieval')
+        #event_body_json = EventBodyJson.get_event_body_json(event)
+        #if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
+
+        print('## Query String Parameters')
+
+        page_number = 1
+        page_size = 5
+        
+        event_query_string_parameters_json = EventQueryStringParametersJson.get_event_query_string_parameters_json(event)
+        if event_query_string_parameters_json.is_valid:
+            print('event_query_string_parameters_json.is_valid')
+            query_string_parameters = event_query_string_parameters_json.data_object
+            page_number = int(query_string_parameters.get('page_number', 1))
+            page_size = int(query_string_parameters.get('page_size', 5))
+
+        # print('## Generating message from event body')
+        # authenticate_user_credential_message = AuthenticateUserCredentialMessage.create_from_dict(event_body_json.data_object)
+        # if authenticate_user_credential_message is None: return endpoint_response.bad_request('Invalid authenticate user credential message')
+
+        # Repository action
+        print('# Repository Action Phase')
+
+        repository = UserCredentialRepository()
+        operation_result_message = repository.get_user_credential_list(page_size=page_size, page_number=page_number)
+
+        if operation_result_message.is_success:
+            return endpoint_response.data(operation_result_message)
+        return endpoint_response.bad_gateway(operation_result_message)
+    except Exception as error:
+        print(error)
+        return endpoint_response.ok(False, f'HAS ERROR: {error}')
+
 
 @endpoint_url('/ucm/user-credential', 'POST')
 def post_ucm_user_credential(event:dict, context):

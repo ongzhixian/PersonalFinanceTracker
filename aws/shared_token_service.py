@@ -28,3 +28,8 @@ class SharedTokenService(object):
         secret_key = self.get_secret_key_from_configuration(configuration_id)
         token_utility = TokenUtility(secret_key)
         return token_utility.verify_token(auth_token)
+
+    def get_token_content(self, auth_token:str, configuration_id:str = 'UCM_SECRETS'):
+        secret_key = self.get_secret_key_from_configuration(configuration_id)
+        token_utility = TokenUtility(secret_key)
+        return token_utility.get_token_content(auth_token)

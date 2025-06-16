@@ -150,12 +150,41 @@ class EventHeadersJson(object):
         if 'headers' not in event:
             return None
         try:
-            json_obj = json.loads(event['headers'])
+            json_obj = event['headers']
             return json_obj['authorization'] if 'authorization' in json_obj else None
         except json.decoder.JSONDecodeError:
             return None
 
 
+class EventQueryStringParametersJson(object):
+    """Parsed result of an API Gateway event queryStringParameters"""
+    def __init__(self, data_object:dict|None = None, error_message:str|None = None):
+        """
+        Args:
+            data_object (dict|none): Data object result of parsing event object
+            error_message (str|none): An error message to indicate where parsing failed
+        """
+        self.data_object = data_object
+        self.error_message = error_message
+        self.is_valid = self.data_object is not None
+
+    def __str__(self):
+        return f"is_invalid:{self.is_invalid}, ErrorMessage:{self.error_message}, DataObject:{self.data_object}"
+
+    @staticmethod
+    def get_event_query_string_parameters_json(event: dict):
+        """Parses an API Gateway event object to return EventQueryStringParametersJson
+        Args:
+            event (dict): Event object received from API Gateway
+        Returns:
+            EventQueryStringParametersJson: Result from parsing event arg
+        """
+        if 'queryStringParameters' not in event:
+            return EventQueryStringParametersJson(error_message='`queryStringParameters` not found in context')
+        try:
+            return EventQueryStringParametersJson(data_object=event['queryStringParameters'])
+        except json.decoder.JSONDecodeError:
+            return EventQueryStringParametersJson(error_message='`queryStringParameters` is invalid json')
 
 # Example
 
