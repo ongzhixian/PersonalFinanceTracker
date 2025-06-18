@@ -1,0 +1,21 @@
+{
+    "name": "Ariadne Sample Project",
+    "schema": "schema.graphql",
+    "documents": "**/*.graphql",
+    "extensions": {
+        "endpoints": {
+            "ariadne-localhost": {
+                "url": "http://localhost:9300",
+                "headers": {
+                    "Authorization": "Bearer YOUR_ACCESS"
+                }
+            },
+            "ucm-localhost": {
+                "url": "http://localhost:9400",
+                "headers": {
+                    "Authorization": "Bearer YOUR_ACCESS"
+                }
+            }
+        }
+    }
+}
