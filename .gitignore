@@ -410,3 +410,5 @@ aws/diagrams/*.png
 
 *client-key.json
 diff-to-notes-filelist.txt
+google_oauth_credentials_token.json
+msal_authentication_record.json
