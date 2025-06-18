@@ -62,6 +62,7 @@ function Publish-LambdaLayer {
 
 $layer_name = "http_layer"
 $layer_name = "google_api_layer"
+$layer_name = "graphql_layer"
 $pip_output_path = Join-Path $temp_layer_folder_path "$layer_name/python"
 Resolve-Folder $pip_output_path
 
