@@ -4,6 +4,7 @@ import secrets
 import time
 import hmac
 import os
+import json
 
 class PasswordUtility(object):
     def __init__(self):
@@ -213,6 +214,37 @@ class FileUtility(object):
         file_name = split_ext[0]
         file_extension = split_ext[1].lower()
         return (file_name, file_extension)
+
+
+class JwtUtility(object):
+    """
+    Utility class for decoding JWT tokens.
+    This class does not verify the signature, it only decodes the header and payload.
+    """
+    @staticmethod
+    def decode_jwt(token):
+        try:
+            header, payload, signature = token.split('.')
+        except ValueError:
+            raise ValueError("Invalid JWT format")
+
+        def decode_segment(segment):
+            # Add padding if needed
+            missing_padding = len(segment) % 4
+            if missing_padding:
+                segment += '=' * (4 - missing_padding)
+            try:
+                return base64.urlsafe_b64decode(segment)
+            except:
+                raise ValueError("Invalid base64 encoding")
+
+        try:
+          decoded_header = json.loads(decode_segment(header))
+          decoded_payload = json.loads(decode_segment(payload))
+        except json.JSONDecodeError:
+          raise ValueError("Invalid JSON in header or payload")
+
+        return decoded_header, decoded_payload, signature
 
 
 
