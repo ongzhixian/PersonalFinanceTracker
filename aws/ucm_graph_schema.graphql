@@ -1,0 +1,27 @@
+# This file was generated. Do not edit manually.
+
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+type Counter {
+    id: String
+    description: String
+    value: Int
+}
+
+#type LoginResult {
+#    status: Boolean!
+#    error: Error
+#    user: User
+#}
+
+type Query {
+    counters(id: String): [Counter]!
+    hello: String!
+}
+
+type Mutation {
+    incrementCounter(id: String!) : Boolean!
+}
