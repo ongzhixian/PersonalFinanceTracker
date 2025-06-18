@@ -275,9 +275,11 @@ class CounterRepository(BaseRepository):
             result = []
             scan_kwargs = {
                 'TableName': self._TABLE_NAME,
-                'ProjectionExpression': '#ID',
+                'ProjectionExpression': '#ID, #DESCRIPTION, #VALUE',
                 'ExpressionAttributeNames': {
                     '#ID': 'id',
+                    '#DESCRIPTION': 'description',
+                    '#VALUE': 'value',
                 }
             }
             while True:
