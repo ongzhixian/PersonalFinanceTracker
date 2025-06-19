@@ -7,26 +7,18 @@ schema {
 }
 
 type Counter {
-    id: String
     description: String
+    id: String
     value: Int
 }
 
-#type LoginResult {
-#    status: Boolean!
-#    error: Error
-#    user: User
-#}
-
-
+type Mutation {
+    incrementCounter(id: String!): Boolean!
+}
 
 type Query {
     counters(id: String): [Counter]!
     hello: String!
-}
-
-type Mutation {
-    incrementCounter(id: String!) : Boolean!
 }
 
 type Subscription {

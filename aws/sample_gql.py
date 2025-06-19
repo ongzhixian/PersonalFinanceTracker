@@ -136,6 +136,18 @@ query {
     }
 }
     """)
+    query = gql("""
+{
+  __schema {
+    types {
+      name
+      fields {
+        name
+      }
+    }
+  }
+}
+    """)
 
     try:
         # Execute the query on the transport
