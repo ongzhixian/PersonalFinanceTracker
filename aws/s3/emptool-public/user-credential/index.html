@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="description" content="PFT" />
+    <meta name="author" content="Ong Zhi Xian" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UCM</title>
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="/css/normalize.css" />
+    <link rel="stylesheet" href="/css/skeleton.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="icon" type="image/png" href="/images/favicon.png" />
+
+    <script src="/js/site.js" defer></script>
+    <script src="/components/site-banner.js" defer></script>
+    <script src="/components/site-navigation-bar.js" defer></script>
+    <script src="/components/user-credentials-table.js" defer></script>
+
+</head>
+<body>
+
+    <div class="container">
+
+        <site-banner></site-banner>
+
+        <site-navigation-bar></site-navigation-bar>
+
+        <user-credentials-table state="LOADING"></user-credentials-table>
+
+        <section class="actions panel">
+            <a class="button button-primary" href="add-user-credential.html">Add user credential</a>
+        </section>
+
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const table = document.querySelector("user-credentials-table");
+            const actionsPanel = document.querySelector("section.actions.panel");
+
+            // Initially hide the panel
+            actionsPanel.style.display = "none";
+
+            const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (
+                mutation.type === "attributes" &&
+                mutation.attributeName === "state"
+                ) {
+                const state = table.getAttribute("state");
+                actionsPanel.style.display = state === "LOADED" ? "block" : "none";
+                }
+            });
+            });
+
+            // Start observing attribute changes
+            observer.observe(table, { attributes: true });
+        });
+    </script>
+</body>
+</html>
