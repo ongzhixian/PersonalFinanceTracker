@@ -1,4 +1,11 @@
 class UserCredentialTable extends HTMLElement {
+
+    static observedAttributes = ["state"];
+    // Applicable state
+    // LOADING
+    // LOADED
+
+
     data = null;
 
     constructor() {
@@ -20,6 +27,7 @@ class UserCredentialTable extends HTMLElement {
         });
 
         try {
+            this.setAttribute('state', 'LOADING');
             const response = await fetch(endpoint_url, {
                 method: "GET",
                 headers: requestHeaders
@@ -35,10 +43,12 @@ class UserCredentialTable extends HTMLElement {
 
             const responseJsonData = await response.json();
             this.data = responseJsonData.data_object || {};
+            this.setAttribute('state', 'LOADED');
         } catch (e) {
             console.error(e);
             this.data = {};
         }
+        
         this.render();
     }
 
@@ -77,21 +87,40 @@ class UserCredentialTable extends HTMLElement {
 <style>
 .pagination-link {
     margin: 0 0.5rem;
+    color: var(--color2);
 }
 .pagination-link.current {
     font-weight: bold;
     text-decoration: underline;
+    color: var(--color3);
 }
 table {
     width: 100%;
 }
-table tbody td {
+table tbody td, table thead th {
     text-align:center;
 }
 th, td {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid #E1E1E1;
+}
+/* Loading Spinner Styles */
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--color3);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 </style>
 <section>

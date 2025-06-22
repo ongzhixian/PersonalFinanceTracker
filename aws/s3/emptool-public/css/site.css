@@ -19,3 +19,12 @@ body {
 .hide {
     display: none;
 }
+
+.prototype {
+    color: var(--color9);
+    font-weight: lighter;
+}
+
+.panel {
+    margin-top: 1em;
+}

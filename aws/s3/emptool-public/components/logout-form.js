@@ -23,6 +23,9 @@ class LogoutForm extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = `
+<link rel="stylesheet" href="css/normalize.css" />
+<link rel="stylesheet" href="css/skeleton.css" />
+<link rel="stylesheet" href="css/site.css" />
 <form id="logoutForm">
     
     <p>Are you sure you want to logout?</p>

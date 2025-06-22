@@ -69,6 +69,9 @@ class LoginForm extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = `
+<link rel="stylesheet" href="css/normalize.css" />
+<link rel="stylesheet" href="css/skeleton.css" />
+<link rel="stylesheet" href="css/site.css" />
 <style>
 #loginForm {
     display: grid;
@@ -77,10 +80,12 @@ class LoginForm extends HTMLElement {
     grid-gap: .5rem;
     justify-content: center;
     margin-top: 4rem;
+    align-items: center;
 }
 #loginForm label {
     justify-self: end;
     margin-right: .5rem;
+    margin-bottom: 1.5rem;
 }
 </style>
 <form id="loginForm">

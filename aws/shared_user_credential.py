@@ -424,12 +424,14 @@ class UserCredentialRepository(BaseRepository):
 
                 if is_valid_credentials:
                     print('authenticate_user_credential-return', 'True: Valid credentials')
+                    self.successful_login_update(authenticate_user_credential_message.username)
                     return OperationResultMessage(True, 'Credentials are authentic', {
                         'is_valid': True,
                         'message': 'Valid credentials'
                     })
                 else:
                     print('authenticate_user_credential-return', 'False: Invalid credentials')
+                    self.failed_login_update(authenticate_user_credential_message.username)
                     return OperationResultMessage(True, 'Credentials are not valid', {
                         'is_valid': False,
                         'message': 'Invalid credentials'

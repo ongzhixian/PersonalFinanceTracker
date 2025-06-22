@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!window.authenticator.isAuthenticated()) {
         window.location.href = `/login.html?redirect=${window.location.pathname}`; // Redirect to login page if not authenticated
     }
-    const worker = new Worker('./js/site-worker.js');
+    const worker = new Worker('/js/site-worker.js');
     //worker.onmessage = function (e) {
     //    console.log('WORKER SENT: ', e);
     //};
