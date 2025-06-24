@@ -224,11 +224,22 @@ def post_ucm_user_credential(event:dict, context):
 
     # Validation
 
-    authorization_header = None
-    if 'headers' in event:
-        headers = event['headers']
-        if 'authorization' in headers:
-            authorization_header = headers['authorization']
+    print('# Request Validation Phase')
+
+    authorization_header = EventHeadersJson.get_authorization_header(event)
+    if authorization_header is None:
+        return endpoint_response.forbidden()
+
+    token_body = authorization_header.replace('TOKEN', '').strip()
+    token_is_valid = shared_token_service.verify_token(token_body)
+    if not token_is_valid:
+        return endpoint_response.forbidden()
+
+    # authorization_header = None
+    # if 'headers' in event:
+    #     headers = event['headers']
+    #     if 'authorization' in headers:
+    #         authorization_header = headers['authorization']
 
     event_body_json = EventBodyJson.get_event_body_json(event)
     if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
