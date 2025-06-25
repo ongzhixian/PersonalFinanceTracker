@@ -412,3 +412,6 @@ aws/diagrams/*.png
 diff-to-notes-filelist.txt
 google_oauth_credentials_token.json
 msal_authentication_record.json
+*_token.txt
+*.db
+*_parameters.json

@@ -1,67 +1,39 @@
-function UserCredentialModule() {
-    this.AUTH_TICKET_STORAGE_KEY = "test_auth_ticket";
+import { BASE_API_GATEWAY_ENDPOINT_URL, AuthenticationModule } from '../../components/shared_module.js';
 
-    this.validateCredentials = async (username, password) => {
-        console.log("Validating credentials for", username, password);
-        const endpoint_url = 'https://7pps9elf11.execute-api.us-east-1.amazonaws.com/authentication-ticket';
-        const requestHeaders = new Headers();
-        requestHeaders.append("Content-Type", "application/json");
+export default function UserCredentialModule() {
+    this.authenticationModule = new AuthenticationModule();
+    this.registerUserCredential = async (username, password) => {
 
+        // Simulate response
+        return {
+            is_success: true,
+            message: `${username} exists already`,
+            data_object: null
+        };
+
+        const jwt = this.authenticationModule.getToken();
+        if (jwt === null)
+            return {
+                is_success: false,
+                message: `No authentication token found. Please log in first.`,
+                data_object: null
+            };
+
+        const endpoint_url = `${BASE_API_GATEWAY_ENDPOINT_URL}/user-credential`;
         const response = await fetch(endpoint_url, {
             method: "POST",
-            headers: requestHeaders,
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${jwt}`
+            },
             body: JSON.stringify({
                 username: username,
                 password: password
             })
         });
 
-        if (!response.ok) throw new Error("Authentication failed: " + response.statusText);
+        if (!response.ok) throw new Error("Registration failed: " + response.statusText);
 
-        const validationResult = await response.json();
-        if (validationResult.data_object && 'token' in validationResult.data_object) {
-            localStorage.setItem(this.AUTH_TICKET_STORAGE_KEY, validationResult.data_object['token']);
-            return true;
-        }
-
-        return false;
-    }
-
-    this.isAuthenticated = () => {
-        return localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY) !== null;
-    }
-
-    this.getToken = () => {
-        return localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY);
-    }
-
-    this.logout = () => {
-        localStorage.removeItem(this.AUTH_TICKET_STORAGE_KEY);
-    }
-
-    this.urlsafeBase64Decode = function (str) {
-
-        // Replace URL-safe characters with standard Base64 characters
-        str = str.replace(/-/g, '+').replace(/_/g, '/');
-        // Pad with '=' to make the length a multiple of 4
-        while (str.length % 4) {
-            str += '=';
-        }
-        // Decode
-        return atob(str);
-    }
-
-    this.getParsedToken = function () {
-        const token = localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY);
-        if (!token) return null;
-
-        const tokenParts = this.urlsafeBase64Decode(token).slice(0, -32).split('|');
-
-        if (tokenParts.length < 2) return null;
-
-        return {
-            expiry: tokenParts[0],
-            username: tokenParts[1]
-        };
+        return await response.json();
     }
 }

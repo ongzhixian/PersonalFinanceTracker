@@ -141,9 +141,23 @@ query {
   __schema {
     types {
       name
+      kind
       fields {
         name
+        type {
+          name
+          kind
+        }
       }
+    }
+    queryType {
+      name
+    }
+    mutationType {
+      name
+    }
+    subscriptionType {
+      name
     }
   }
 }
