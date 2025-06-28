@@ -221,8 +221,8 @@ subscription {
 def main3():
     # Get the schema directly - no need to parse it again
     executable_schema = get_schema()
-    # pdb.set_trace()
+    pdb.set_trace()
 
 
 if __name__ == '__main__':
-    main()
+    main3()
