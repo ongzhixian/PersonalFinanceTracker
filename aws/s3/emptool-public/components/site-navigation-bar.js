@@ -99,7 +99,7 @@ class SiteNavigationBar extends HTMLElement {
 <nav>
     <div><a href="/">Home</a></div>
     <div><a href="/user-credential/index.html">User Credentials</a></div>
-    <div><a href="/memberships.html">Memberships</a></div>
+    <div><a href="/roles/index.html">Roles</a></div>
     <div><a href="/configurations.html">Configurations</a></div>
 </nav>`;
     }
