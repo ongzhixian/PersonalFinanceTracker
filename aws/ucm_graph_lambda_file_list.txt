@@ -8,3 +8,5 @@ shared_user_credential.py
 shared_user_credential_messages.py
 shared_configuration.py
 shared_configuration_messages.py
+shared_role.py
+shared_role_messages.py

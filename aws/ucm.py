@@ -275,6 +275,40 @@ def get_ucm_membership(event:dict, context):
     """
     return dump_api_gateway_event_context(event, context)
 
+@endpoint_url('/ucm/membership', 'POST')
+def post_ucm_membership(event:dict, context):
+    """Add membership
+    Use case:
+        (add membership)
+    """
+    return dump_api_gateway_event_context(event, context)
+
+@endpoint_url('/ucm/user-membership', 'POST')
+def post_ucm_user_membership(event:dict, context):
+    """Add user membership
+    Use case:
+        (add user membership)
+    """
+    return dump_api_gateway_event_context(event, context)
+
+@endpoint_url('/ucm/user-membership', 'DELETE')
+def delete_ucm_user_membership(event:dict, context):
+    """Delete user membership
+    Use case:
+        (delete user membership)
+    """
+    return dump_api_gateway_event_context(event, context)
+
+
+## Role
+
+@endpoint_url('/ucm/role', 'GET')
+def get_ucm_role(event:dict, context):
+    """List roles
+    Use case:
+        (list roles)
+    """
+    return dump_api_gateway_event_context(event, context)
 
 
 ## Configuration
