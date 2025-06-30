@@ -15,7 +15,9 @@ from zoneinfo import ZoneInfo, reset_tzpath
 import boto3
 from botocore.exceptions import ClientError
 
-from utility_types import PasswordUtility
+from shared_configuration import ConfigurationRepository
+from shared_configuration_messages import ResertConfigurationMessage
+
 from shared_data_repositories import DynamoDbEntity, BaseRepository
 from shared_messages import OperationResultMessage
 from shared_role_messages import AddRoleMessage
@@ -43,14 +45,8 @@ SINGAPORE_TIMEZONE = ZoneInfo("Asia/Singapore")
 class RoleEntity(DynamoDbEntity):
     """Base Role entity class.
     A role record can have the following fields:
-    1. username
-    1. failed_login_attempts
-    1. last_login_attempt_datetime
-    1. last_successful_login
-
-    1. password_hash
-    1. password_last_changed_datetime
-    1. password_salt
+    1. name
+    1. description
     1. status
 
     1. record_update_by
@@ -103,18 +99,24 @@ class RoleEntity(DynamoDbEntity):
         return item
 
     def load_from_dict(self, data: dict):
-        self.username = self.map_from_dynamodb_attribute(data, RoleEntity.NAME_FIELD_NAME)
-        self.description = self.map_from_dynamodb_attribute(data, RoleEntity.DESCRIPTION_FIELD_NAME)
-        self.status = self.map_from_dynamodb_attribute(data, RoleEntity.STATUS_FIELD_NAME)
+        """
+        Load data from a dictionary into the RoleEntity instance.
+        Note: Role is stored within a single entity in Configuration;
+              So we read directly from the dictionary keys instead of using self.map_from_dynamodb_attribute() function
+        """
+        self.name = data[RoleEntity.NAME_FIELD_NAME] if RoleEntity.NAME_FIELD_NAME in data else None
+        self.description = data[RoleEntity.DESCRIPTION_FIELD_NAME] if RoleEntity.DESCRIPTION_FIELD_NAME in data else None
+        self.status = data[RoleEntity.STATUS_FIELD_NAME] if RoleEntity.STATUS_FIELD_NAME in data else None
 
-        self.record_update_by = self.map_from_dynamodb_attribute(data, RoleEntity.RECORD_UPDATE_BY_FIELD_NAME)
-        self.record_update_datetime = self.map_from_dynamodb_attribute(data, RoleEntity.RECORD_UPDATE_BY_FIELD_NAME)
-        self.record_create_by = self.map_from_dynamodb_attribute(data, RoleEntity.RECORD_CREATE_BY_FIELD_NAME)
-        self.record_create_datetime = self.map_from_dynamodb_attribute(data, RoleEntity.RECORD_CREATE_DATETIME_FIELD_NAME)
+        self.record_update_by = data[RoleEntity.RECORD_UPDATE_BY_FIELD_NAME] if RoleEntity.RECORD_UPDATE_BY_FIELD_NAME in data else None
+        self.record_update_datetime = data[RoleEntity.RECORD_UPDATE_BY_FIELD_NAME] if RoleEntity.RECORD_UPDATE_BY_FIELD_NAME in data else None
+        self.record_create_by = data[RoleEntity.RECORD_CREATE_BY_FIELD_NAME] if RoleEntity.RECORD_CREATE_BY_FIELD_NAME in data else None
+        self.record_create_datetime = data[RoleEntity.RECORD_CREATE_DATETIME_FIELD_NAME] if RoleEntity.RECORD_CREATE_DATETIME_FIELD_NAME in data else None
+
 
     def __str__(self):
         """human-readable, informal string representation"""
-        return (f"{RoleEntity.USERNAME_FIELD_NAME}: {self.username}, "
+        return (f"{RoleEntity.NAME_FIELD_NAME}: {self.name}, "
                 f"{RoleEntity.STATUS_FIELD_NAME}: {self.status}")
 
     # def __repr__(self):
@@ -134,6 +136,12 @@ class RoleEntity(DynamoDbEntity):
         record_timestamp = datetime.now(SINGAPORE_TIMEZONE)
         return record_timestamp
 
+    @staticmethod
+    def json_type_convertor(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()  # Convert datetime to string
+        raise TypeError(f"Type {type(obj)} not serializable")
+
 
 class AddRoleEntity(RoleEntity):
     """(Re)place or In(sert) a configuration record."""
@@ -142,7 +150,7 @@ class AddRoleEntity(RoleEntity):
         super().__init__()
         record_timestamp = self.get_record_timestamp()
 
-        self.username = add_user_credential_message.username
+        self.name = add_user_credential_message.name
         self.description = add_user_credential_message.description
         self.status = add_user_credential_message.status
 
@@ -162,31 +170,37 @@ class RoleRepository(BaseRepository):
     """
 
     def __init__(self):
-        self._TABLE_NAME = 'configuration'
         self._TABLE_RECORD_ID = 'UCM_ROLE_LIST'
-        # self._TABLE_RECORD_ID = 'UCM_ROLES'
+        self.configuration_repository = ConfigurationRepository()
 
-    def add_role(self, add_role_message: AddRoleMessage):
+    def json_type_convertor(obj):
+        """
+        Custom JSON encoder
+        Consider putting this in a shared module
+        """
+        if isinstance(obj, datetime):
+            return obj.isoformat()  # Convert datetime to string
+        raise TypeError(f"Type {type(obj)} not serializable")
+
+    def update_role(self, role_entity: RoleEntity):
         try:
             # Get role list record
-            role_list = self._get_underlying_role_list_record()
+            role_list_record = self._get_underlying_role_list_record()
+            role_list = role_list_record.get('roles', {})
+
             # Add entry to role_list data object
-            role_key = add_role_message.name.lower().replace(' ', '_')
-            role_list[role_key] = {
-                "name": add_role_message.name,
-                "description": add_role_message.name,
-                "status": 'active'
-            }
+            json_object = role_entity.to_json_object()
+            role_key = self._derive_key_from_name(role_entity.name)
+            role_list[role_key] = json_object
+
             # Store updated role_list data object
+            message = ResertConfigurationMessage(
+                record_id=self._TABLE_RECORD_ID,
+                content_type='JSON',
+                content=json.dumps(role_list_record, default=RoleEntity.json_type_convertor),
+                user_code='SYSTEM_TEST')
+            return self.configuration_repository.resert_configuration(message)
 
-
-            response = dynamodb_client.put_item(
-                TableName=self._TABLE_NAME,
-                Item=AddRoleEntity(add_role_message).to_dynamodb_item(),
-                ReturnConsumedCapacity='TOTAL',
-                ConditionExpression="attribute_not_exists(username)",
-            )
-            # print('put_item:', response)
             return OperationResultMessage(True)
         except ClientError as client_error:
             print('client_error:', client_error)
@@ -196,6 +210,103 @@ class RoleRepository(BaseRepository):
                 return OperationResultMessage(False, 'Record with username exists')
             return OperationResultMessage(False, client_error.response)
 
+    def add_role(self, add_role_message: AddRoleMessage):
+        try:
+            # Get role list record
+            role_list_record = self._get_underlying_role_list_record()
+            role_list = role_list_record.get('roles', {})
+
+            # Add entry to role_list data object
+            json_object = AddRoleEntity(add_role_message).to_json_object()
+            role_key = self._derive_key_from_name(add_role_message.name)
+            role_list[role_key] = json_object
+
+            # Store updated role_list data object
+            message = ResertConfigurationMessage(
+                record_id=self._TABLE_RECORD_ID,
+                content_type='JSON',
+                content=json.dumps(role_list_record, default=RoleEntity.json_type_convertor),
+                user_code='SYSTEM_TEST')
+            return self.configuration_repository.resert_configuration(message)
+
+            return OperationResultMessage(True)
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            if 'Error' in client_error.response \
+                    and 'Code' in client_error.response['Error'] \
+                    and client_error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                return OperationResultMessage(False, 'Record with username exists')
+            return OperationResultMessage(False, client_error.response)
+
+    def delete_role(self, role_name: str):
+        try:
+            # Get role list record
+            role_list_record = self._get_underlying_role_list_record()
+            role_list = role_list_record.get('roles', {})
+            role_key = self._derive_key_from_name(role_name)
+
+            # Remove entry from role_list data object
+            if role_key in role_list:
+                del role_list[role_key]
+
+            # Store updated role_list data object
+            message = ResertConfigurationMessage(
+                record_id=self._TABLE_RECORD_ID,
+                content_type='JSON',
+                content=json.dumps(role_list_record, default=RoleEntity.json_type_convertor),
+                user_code='SYSTEM_TEST')
+            return self.configuration_repository.resert_configuration(message)
+
+            return OperationResultMessage(True)
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            if 'Error' in client_error.response \
+                    and 'Code' in client_error.response['Error'] \
+                    and client_error.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                return OperationResultMessage(False, 'Record with username exists')
+            return OperationResultMessage(False, client_error.response)
+
+    def get_role_list(self):
+        try:
+            items = self._get_underlying_role_list_record()
+            return OperationResultMessage(True, None, data_object=items)
+
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            return OperationResultMessage(False, client_error.response)
+
+    def get_role(self, role_name: str):
+        """
+        Get role by name.
+
+        Args:
+            role_name (str): Name of the role to retrieve.
+
+        Returns:
+            OperationResultMessage: Result of the operation, containing the role entity if successful.
+        """
+        try:
+            items = self._get_underlying_role_list_record()
+            roles = items.get('roles', {})
+            role_key = self._derive_key_from_name(role_name)
+
+            if role_key in roles:
+                role_data = roles[role_key]
+                role_entity = RoleEntity(role_data)
+                return OperationResultMessage(True, None, data_object=role_entity)
+
+            return OperationResultMessage(False, f'Role {role_name} not found')
+
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            return OperationResultMessage(False, client_error.response)
+
+    def _derive_key_from_name(self, name: str) -> str:
+        """Convert name to a key suitable for use in a database
+        Returns:
+            str: Key representation of the name
+        """
+        return name.lower().replace(' ', '_')
 
     def _get_underlying_role_list_record(self):
         """
@@ -207,37 +318,33 @@ class RoleRepository(BaseRepository):
                 'last_evaluated_key': dict or None
             }
         """
-
         items = {
             "roles": {}
         }
 
-        response = dynamodb_client.get_item(
-            TableName=self._TABLE_NAME,
-            Key={
-                'id': {'S': self._TABLE_RECORD_ID}
-            }
-        )
+        operation_result_message = self.configuration_repository.get_configuration(self._TABLE_RECORD_ID)
+        print('operation_result_message', operation_result_message)
+        if operation_result_message.is_success and operation_result_message.data_object is not None:
+            items = operation_result_message.data_object['content']
 
-        if 'Item' in response:
-            role_list = json.loads(response['Item']['content']['S'])
-            role_list['roles'] = dict(sorted(
-                role_list['roles'].items(),
-                key=lambda item: item[0],
-                reverse=True
-            ))
-            items = role_list
         return items
+        #
+        # response = dynamodb_client.get_item(
+        #     TableName=self._TABLE_NAME,
+        #     Key={
+        #         'id': {'S': self._TABLE_RECORD_ID}
+        #     }
+        # )
+        #
+        # if 'Item' in response:
+        #     role_list = json.loads(response['Item']['content']['S'])
+        #     role_list['roles'] = dict(sorted(
+        #         role_list['roles'].items(),
+        #         key=lambda item: item[0],
+        #         reverse=True
+        #     ))
+        #     items = role_list
 
-
-    def get_role_list(self):
-        try:
-            items = self._get_underlying_role_list_record()
-            return OperationResultMessage(True, None, data_object=items)
-
-        except ClientError as client_error:
-            print('client_error:', client_error)
-            return OperationResultMessage(False, client_error.response)
 
 # TESTs
 
@@ -247,22 +354,31 @@ def test_repository():
     # add_user_credential_message = AddUserCredentialMessage('testuser2','testpass2')
     # authenticate_user_credential_message = AuthenticateUserCredentialMessage('testuser2', 'testpass2')
     # update_user_credential_password_message = UpdateUserCredentialPasswordMessage('testuser1', 'testuser1a')
-    add_role_message = AddRoleMessage('TESTER', 'Tester role')
-
 
     # Instantiate repository
     test_repository = RoleRepository()
-    operation_result_message = test_repository.get_role_list()
-    test_repository.add_role(add_role_message)
-    # operation_result_message = test_repository.get_user_credential_list(page_number=1, sort_order='asc')
 
-    # Repository action
-    # operation_result_message = test_repository.add_user_credential(add_user_credential_message)
-    # operation_result_message = test_repository.authenticate_user_credential(authenticate_user_credential_message)
-    # operation_result_message = test_repository.successful_login_update('testuser1')
-    # operation_result_message = test_repository.failed_login_update('testuser1')
-    # operation_result_message = test_repository.update_password(update_user_credential_password_message)
-    print(operation_result_message)
+    # Add some new role
+    # add_role_message = AddRoleMessage('TESTER', 'Tester role')
+    # test_repository.add_role(add_role_message)
+
+    # Get specific role
+    # operation_result_message = test_repository.get_role('TESTER')
+    # tester_data_object: RoleEntity = operation_result_message.data_object
+    # print(vars(tester_data_object))
+
+    # Simulate updating a role
+    # tester_data_object.description = 'Tester role for development'
+    # test_repository.update_role(tester_data_object)
+
+    # Simulate deleting a role
+    # test_repository.delete_role('TESTERDEL')
+
+    operation_result_message = test_repository.get_role_list()
+    print('\noperation_result_message', operation_result_message)
+
+    role_list = operation_result_message.data_object['roles']
+    print('Role keys:', list(role_list.keys()))
 
 
 if __name__ == '__main__':
