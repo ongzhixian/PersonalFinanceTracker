@@ -220,7 +220,7 @@ class ConfigurationRepository(BaseRepository):
             #     print('some other dynamodb related error'
 
 
-if __name__ == '__main__':
+def main():
     # Example
     configuration_repository = ConfigurationRepository()
     # message = ResertConfigurationMessage(
@@ -286,3 +286,13 @@ if __name__ == '__main__':
     print(len(data_object_list))
     print(data_object_list)
 
+
+def main2():
+    configuration_repository = ConfigurationRepository()
+    # operation_result_message = configuration_repository.get_all_configurations()
+    operation_result_message = configuration_repository.get_configuration('UCM_ROLE_LIST')
+    print('\noperation_result_message', operation_result_message)
+
+if __name__ == '__main__':
+    #main()
+    main2()
