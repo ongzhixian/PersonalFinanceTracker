@@ -14,6 +14,14 @@ from utility_types import JwtUtility
 
 import pdb
 
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logging.getLogger("requests").setLevel(logging.DEBUG)
+logging.getLogger("aiohttp").setLevel(logging.DEBUG)
+logging.getLogger("gql.transport.aiohttp").setLevel(logging.DEBUG)
+logging.getLogger("gql.transport.requests").setLevel(logging.DEBUG)
+
 def read_stored_csid_token():
     print("Reading CSID token from file...")
     token_path = './csid_token.txt'
@@ -38,7 +46,7 @@ def get_csid_token_from_api():
     # You can download it from https://ca.mlp.com/certData/ca-bundle.txt
     # https://wiki-pm.mlp.com/display/ISEC/Proxies%3A+Certificate
     print("Retrieving CSID token from API...")
-    csid_token_url = "https://cs-identity-uat.mlp.com/api/v2.0/token?applications=CoreDataUAT"
+    csid_token_url = "https://cs-identity.mlp.com/api/v2.0/token?applications=CoreData"
     csid_token_response = requests.get(csid_token_url, auth=HttpNegotiateAuth(), verify="C:/Code/certs/cacerts.pem")
     csid_token_response_json = csid_token_response.json()
     csid_token = csid_token_response_json['token']
@@ -59,6 +67,7 @@ try:
 except ValueError as e:
     print(f"Error: {e}")
 
+exit(0)
 
 ## SETUP NETWORK PROXY
 
@@ -89,10 +98,10 @@ transport = AIOHTTPTransport(
 # )
 
 
-def get_schema():
+def get_schema(use_production: bool = True):
     print("Retrieving GraphQL schema...")
-    #graphql_url = "https://security-api.mlp.com/graphql" if prod else "https://security-api.uat.mlp.com/graphql"
-    graphql_url = "https://coredata-api.uat.mlp.com/graphql"
+    # graphql_url = "https://security-api.mlp.com/graphql" if use_production else "https://security-api.uat.mlp.com/graphql"
+    graphql_url = "https://coredata-api.mlp.com/graphql" if use_production else "https://coredata-api.uat.mlp.com/graphql"
 
     transport = RequestsHTTPTransport(
         url=f"{graphql_url}/request",
@@ -221,6 +230,15 @@ subscription {
 def main3():
     # Get the schema directly - no need to parse it again
     executable_schema = get_schema()
+
+    # from graphql import print_schema
+    # schema_sdl = print_schema(executable_schema)
+
+    # with open('schema_xx.graphql', 'w', encoding='utf-8') as f:
+    #     f.write(schema_sdl)
+    #
+    # print(schema_sdl)
+
     pdb.set_trace()
 
 
