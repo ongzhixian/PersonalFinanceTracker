@@ -148,6 +148,7 @@ def sse_main():
         event = {}
         data_lines = []
         for line in lines:
+            print('Receive line', line)
             line = line.decode("utf-8").strip()
             #print(line)
             if line.startswith("data:"):
