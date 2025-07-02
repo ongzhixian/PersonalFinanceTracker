@@ -18,6 +18,10 @@ type Counter {
 #    user: User
 #}
 
+type Position {
+    userId: String!
+    position: Int!
+}
 
 
 type Query {
@@ -31,4 +35,6 @@ type Mutation {
 
 type Subscription {
     beanCounter: Int!
+    beanCounter2: Int!
+    position: Position!
 }

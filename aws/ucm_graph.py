@@ -48,10 +48,36 @@ async def counter_generator(obj, info):
 def counter_resolver(count, info):
     return count + 1
 
+
+async def beanCounter2_generator(obj, info):
+    for i in range(5):
+        await asyncio.sleep(1)
+        yield i
+
+def beanCounter2_resolver(count, info):
+    return count * 2
+
+async def position_generator(obj, info):
+    for i in range(5):
+        await asyncio.sleep(1)
+        yield {
+            "userId": f"user{i}",
+            "position": i,
+        }
+
+def position_resolver(pos, info):
+    return pos
+
+
 subscription_type = SubscriptionType()
 subscription_type.set_field("beanCounter", counter_resolver)
 subscription_type.set_source("beanCounter", counter_generator)
 
+subscription_type.set_field("beanCounter2", beanCounter2_resolver)
+subscription_type.set_source("beanCounter2", beanCounter2_generator)
+
+subscription_type.set_field("position", position_resolver)
+subscription_type.set_source("position", position_generator)
 
 # Collate resolvers and create the final executable schema
 schema = make_executable_schema(type_defs, [query_type, mutation_type, subscription_type, counter_type])
@@ -95,6 +121,7 @@ def main():
     print(print_schema(schema))
 
     # graphql_app = GraphQL(schema, debug=True, websocket_handler=GraphQLWSHandler())
+    print("WARNING: Using SSE handler for subscriptions, which is not the same as WebSocket subscriptions.")
     graphql_app = GraphQL(schema, debug=True, http_handler=GraphQLHTTPSSEHandler())
     # Lifespan allows your application to run code when the server starts up and when it is about to shut down.
     # But it requires an ASGI lifespan manager `pip install asgi-lifespan`, which is not included in the default ASGI app.
