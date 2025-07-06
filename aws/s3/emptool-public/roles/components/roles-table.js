@@ -20,7 +20,8 @@ class RolesTable extends HTMLElement {
 
     async getData(page_number = 1, page_size = 5) {
         const auth_module = new AuthenticationModule();
-        const endpoint_url = `https://7pps9elf11.execute-api.us-east-1.amazonaws.com/user-credential?page_number=${page_number}&page_size=${page_size}`;
+        //const endpoint_url = `https://7pps9elf11.execute-api.us-east-1.amazonaws.com/user-credential?page_number=${page_number}&page_size=${page_size}`;
+        const endpoint_url = `https://7pps9elf11.execute-api.us-east-1.amazonaws.com/role`;
         const requestHeaders = new Headers({
             "Content-Type": "application/json",
             "Authorization": `TOKEN ${auth_module.getToken()}`
