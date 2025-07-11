@@ -124,15 +124,19 @@ function ChannelHandler(initiator) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    if (this.window.location.pathname === "/login.html") return;
+if (typeof document !== "undefined") {
+    document.addEventListener("DOMContentLoaded", () => {
+        if (this.window.location.pathname === "/login.html") return;
 
-    window.authenticator = new AuthenticationModule();
-    if (!window.authenticator.isAuthenticated()) {
-        window.location.href = `/login.html?redirect=${window.location.pathname}`; // Redirect to login page if not authenticated
-    }
-    const worker = new Worker('/js/site-worker.js');
-    //worker.onmessage = function (e) {
-    //    console.log('WORKER SENT: ', e);
-    //};
-});
+        window.authenticator = new AuthenticationModule();
+        if (!window.authenticator.isAuthenticated()) {
+            window.location.href = `/login.html?redirect=${window.location.pathname}`; // Redirect to login page if not authenticated
+        }
+
+        //        const worker = new Worker('/js/site-worker.js');
+        //        worker.onmessage = function (e) {
+        //            console.log('WORKER SENT: ', e);
+        //        };
+        //        worker.postMessage('start'); // Start the worker
+    });
+}
