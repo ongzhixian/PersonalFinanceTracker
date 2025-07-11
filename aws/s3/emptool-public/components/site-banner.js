@@ -58,7 +58,7 @@ class SiteBanner extends HTMLElement {
 
         if (this.parsedToken) {
             username = `Log in as ${this.parsedToken.username || 'Guest'}`;
-            logoutLink = '<a href="./logout.html">logout</a>';
+            logoutLink = '<a href="/logout.html">logout</a>';
         }
 
         this.shadowRoot.innerHTML = `
