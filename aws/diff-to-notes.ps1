@@ -5,6 +5,10 @@ $repo_root_path = git rev-parse --show-toplevel
 
 Write-Host Repo root path is $repo_root_path
 
+if (Test-Path $out_file_path) {
+    Remove-Item $out_file_path -Force
+}
+
 $content = git diff --name-only | ForEach-Object { Join-Path $repo_root_path $_ }
 if ($null -ne $content) {
     [System.IO.File]::WriteAllLines($out_file_path, $content, $encoding)
