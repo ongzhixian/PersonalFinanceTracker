@@ -12,6 +12,7 @@ class RegisterUserCredentialForm extends HTMLElement {
 
     connectedCallback() {
         this.render();
+
         this.sectionFeedback = this.shadowRoot.querySelector('section.feedback');
         this.loginForm = this.shadowRoot.querySelector('form#loginForm');
 

@@ -45,11 +45,13 @@ class RolesTable extends HTMLElement {
             const responseJsonData = await response.json();
             this.data = responseJsonData.data_object || {};
             this.setAttribute('state', 'LOADED');
+            console.log('Fetched data:', this.data);
+
         } catch (e) {
             console.error(e);
             this.data = {};
         }
-        
+
         this.render();
     }
 
@@ -63,8 +65,11 @@ class RolesTable extends HTMLElement {
     }
 
     render() {
-        const { page_items = [], page_number = 1, page_size = 0, total_items = 0 } = this.data || {};
-        const totalPages = page_size > 0 ? Math.ceil(total_items / page_size) : 1;
+        let page_items = Object.entries(this.data.roles).map(([key, value]) => {
+            value.id ||= key;
+            return value;
+        });
+
         const gbFormatter = new Intl.DateTimeFormat('en-GB');
         const rows = Array.isArray(page_items) && page_items.length
             ? page_items.map(item => `
@@ -76,24 +81,8 @@ class RolesTable extends HTMLElement {
             `).join('')
             : '<tr><td colspan="4">No data available</td></tr>';
 
-        const paginationLinks = Array.from({ length: totalPages }, (_, i) => {
-            const page = i + 1;
-            const pageStr = page.toString().padStart(2, '0');
-            const isCurrent = page === page_number;
-            return `<a href="#" class="pagination-link${isCurrent ? ' current' : ''}" data-page="${page}">${pageStr}</a>`;
-        }).join('');
-
         this.shadowRoot.innerHTML = `
 <style>
-.pagination-link {
-    margin: 0 0.5rem;
-    color: var(--color2);
-}
-.pagination-link.current {
-    font-weight: bold;
-    text-decoration: underline;
-    color: var(--color3);
-}
 table {
     width: 100%;
 }
@@ -136,20 +125,6 @@ th, td {
         <tbody>
             ${rows}
         </tbody>
-        <tfoot>
-            <tr>
-                <td colspan="4">
-                    <div style="display:flex; justify-content: space-between;">
-                        <div class="left">
-                            Page ${page_number} of ${totalPages}
-                        </div>
-                        <div class="right">
-                            ${paginationLinks}
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        </tfoot>
     </table>
 </section>
 `;
