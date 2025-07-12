@@ -5,6 +5,7 @@ Messages:
     UpdateUserCredentialPasswordMessage
 """
 import re
+import stat
 from shared_messages import Message
 
 class AddRoleMessage(Message):
@@ -37,3 +38,22 @@ class AddRoleMessage(Message):
     #         str: Key representation of the name
     #     """
     #     return self.name.lower().replace(' ', '_')
+
+    @staticmethod
+    def create_from_dict(json: dict):
+        """Create AddRoleMessage if json contains valid data
+        Args:
+            json (dict): data to create AddRoleMessage
+        Returns:
+            AddRoleMessage: if json args contain valid information to create AddRoleMessage
+            None: if json args does not contain valid information to create AddRoleMessage
+        """
+        if AddRoleMessage.NAME_FIELD_NAME not in json: return None
+        if AddRoleMessage.DESCRIPTION_FIELD_NAME not in json: return None
+        if AddRoleMessage.STATUS_FIELD_NAME not in json: return None
+
+        return AddRoleMessage(
+            name=json[AddRoleMessage.NAME_FIELD_NAME],
+            description=json[AddRoleMessage.DESCRIPTION_FIELD_NAME],
+            status=json[AddRoleMessage.STATUS_FIELD_NAME]
+        )

@@ -16,6 +16,7 @@ from shared_lambda import (
 from shared_messages import OperationResultMessage
 from shared_user_credential_messages import AddUserCredentialMessage, AuthenticateUserCredentialMessage
 from shared_user_credential import UserCredentialRepository
+from shared_role_messages import AddRoleMessage
 from shared_role import RoleRepository
 from shared_configuration import ConfigurationRepository
 from utility_types import TokenUtility
@@ -372,40 +373,42 @@ def add_ucm_role(event:dict, context):
         print('# Request Validation Phase')
         print('## Check authorization header')
 
-        authorization_header = EventHeadersJson.get_authorization_header(event)
-        if authorization_header is None:
-            return endpoint_response.forbidden()
+        # authorization_header = EventHeadersJson.get_authorization_header(event)
+        # if authorization_header is None:
+        #     return endpoint_response.forbidden()
 
-        token_body = authorization_header.replace('TOKEN', '').strip()
-        token_is_valid = shared_token_service.verify_token(token_body)
-        if not token_is_valid:
-            return endpoint_response.forbidden()
+        # token_body = authorization_header.replace('TOKEN', '').strip()
+        # token_is_valid = shared_token_service.verify_token(token_body)
+        # if not token_is_valid:
+        #     return endpoint_response.forbidden()
 
-        # print('## Event body retrieval')
-        # event_body_json = EventBodyJson.get_event_body_json(event)
-        # if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
+        print('## Event body retrieval')
+        event_body_json = EventBodyJson.get_event_body_json(event)
+        if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
 
-        print('## Query String Parameters')
+        # print('## Query String Parameters')
 
-        page_number = 1
-        page_size = 5
+        # page_number = 1
+        # page_size = 5
 
-        event_query_string_parameters_json = EventQueryStringParametersJson.get_event_query_string_parameters_json(
-            event)
-        if event_query_string_parameters_json.is_valid:
-            print('event_query_string_parameters_json.is_valid')
-            query_string_parameters = event_query_string_parameters_json.data_object
-            page_number = int(query_string_parameters.get('page_number', 1))
-            page_size = int(query_string_parameters.get('page_size', 5))
+        # event_query_string_parameters_json = EventQueryStringParametersJson.get_event_query_string_parameters_json(
+        #     event)
+        # if event_query_string_parameters_json.is_valid:
+        #     print('event_query_string_parameters_json.is_valid')
+        #     query_string_parameters = event_query_string_parameters_json.data_object
+        #     page_number = int(query_string_parameters.get('page_number', 1))
+        #     page_size = int(query_string_parameters.get('page_size', 5))
 
-        # print('## Generating message from event body')
-        # authenticate_user_credential_message = AuthenticateUserCredentialMessage.create_from_dict(event_body_json.data_object)
-        # if authenticate_user_credential_message is None: return endpoint_response.bad_request('Invalid authenticate user credential message')
+        print('## Generating message from event body')
+        
+        add_role_message = AddRoleMessage.create_from_dict(event_body_json.data_object)
+        if add_role_message is None: return endpoint_response.bad_request('Invalid add role message')
 
         # Repository action
         print('# Repository Action Phase')
 
         repository = RoleRepository()
+        repository.add_role(add_role_message)
         operation_result_message = repository.get_role_list()
 
         if operation_result_message.is_success:
