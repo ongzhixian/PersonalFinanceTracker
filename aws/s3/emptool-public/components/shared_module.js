@@ -1,7 +1,7 @@
 export const BASE_API_GATEWAY_ENDPOINT_URL = "https://7pps9elf11.execute-api.us-east-1.amazonaws.com";
 export const AUTH_TICKET_STORAGE_KEY = "test_auth_ticket";
 
-function AuthenticationModule() {
+export function AuthenticationModule() {
 
     this.validateCredentials = async (username, password) => {
         console.log("Validating credentials for", username, password);
