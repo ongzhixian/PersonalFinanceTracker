@@ -15,8 +15,8 @@
     <script src="/js/site.js" defer></script>
     <script src="/components/site-banner.js" defer></script>
     <script src="/components/site-navigation-bar.js" defer></script>
-    <script src="/user-credential/components/user-credential-module.js" type="module" defer></script>
-    <script src="/user-credential/components/register-user-credential-form.js" type="module" defer></script>
+    <script src="./components/role-module.js" type="module" defer></script>
+    <script src="./components/register-role-form.js" type="module" defer></script>
 
 </head>
 <body>
@@ -27,9 +27,77 @@
 
         <site-navigation-bar></site-navigation-bar>
 
-        <register-user-credential-form></register-user-credential-form>
+        <register-role-form></register-role-form>
 
     </div>
 
+    <template id="registerRoleFormTemplate">
+        <link rel="stylesheet" href="/css/normalize.css" />
+        <link rel="stylesheet" href="/css/skeleton.css" />
+        <link rel="stylesheet" href="/css/site.css" />
+        <style>
+            #registerRoleForm {
+                display: grid;
+                grid-template-columns: 9rem 24rem 1fr;
+                grid-gap: .5rem;
+                justify-content: center;
+                margin: 4rem auto;
+                align-items: center;
+                width: fit-content;
+            }
+
+                #registerRoleForm label {
+                    justify-self: end;
+                    margin-right: .5rem;
+                    margin-bottom: 1.5rem;
+                }
+
+            #registerButton {
+                width: fit-content;
+            }
+
+                #registerButton[disabled] {
+                    background-color: dimgray;
+                    color: darkslategrey
+                }
+
+            .error {
+                color: var(--color8);
+            }
+
+            .tooltips span {
+                cursor: help;
+            }
+
+                .tooltips span:hover {
+                    color: var(--color9);
+                }
+        </style>
+        <form id="registerRoleForm">
+            <label for="nameInput" title="Name of role">Name</label>
+            <input class="u-full-width" type="text" placeholder="Role name" id="nameInput" value="testuser20" />
+            <div class='tooltips'><span title='Required'>&sharp;required</span></div>
+
+            <label for="descriptionInput" title="Description of role">Description</label>
+            <input class="u-full-width" type="text" placeholder="Role description" id="descriptionInput" value="Generic test user 20" />
+            <div class='tooltips'><span title='Optional'>&sharp;optional</span></div>
+
+            <label for="statusOption">Status</label>
+            <select id="statusOption">
+                <option value="active" selected>active</option>
+                <option value="inactive">inactive</option>
+            </select>
+            <div class='tooltips'><span title='Required'>&sharp;required</span></div>
+
+            <div></div>
+            <input class="button-primary" type="button" value="Register" id="registerButton" />
+            <div></div>
+
+            <div></div>
+            <div class="error message hide" id="errorMessage"></div>
+            <div></div>
+
+        </form>
+    </template>
 </body>
 </html>

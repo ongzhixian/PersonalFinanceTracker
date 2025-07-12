@@ -1,135 +1,197 @@
-import UserCredentialModule from './user-credential-module.js';
+import RoleModule from './role-module.js';
 
-class RegisterUserCredentialForm extends HTMLElement {
+class RegisterRoleForm extends HTMLElement {
+
+    #roleModule;
+    #elements = {}; // Centralized storage for DOM elements
+    #boundListeners = {}; // Centralized storage for bound event listeners
 
     constructor() {
         super();
-        this.onRegisterButtonClicked = (e) => this.#onRegisterButtonClicked(e);
-        this.onRegisterAnotherButtonClicked = (e) => this.#onRegisterAnotherButtonClicked(e);
-        this.userCredentialModule = new UserCredentialModule();
+        this.#roleModule = new RoleModule();
         this.attachShadow({ mode: 'open' });
     }
 
     connectedCallback() {
-        this.render();
-
-        this.sectionFeedback = this.shadowRoot.querySelector('section.feedback');
-        this.loginForm = this.shadowRoot.querySelector('form#loginForm');
-
-        this.errorMessage = this.shadowRoot.querySelector('div#errorMessage');
-        this.usernameInput = this.shadowRoot.querySelector('#usernameInput');
-        this.passwordInput = this.shadowRoot.querySelector('#passwordInput');
-        this.passwordConfirmInput = this.shadowRoot.querySelector('#passwordConfirmInput');
-        this.registerButton = this.shadowRoot.querySelector('#registerButton');
-        this.registerButton.addEventListener('click', this.onRegisterButtonClicked);
-
-        this.registerAnotherButton = this.shadowRoot.querySelector('#registerAnotherButton');
-        this.registerAnotherButton.addEventListener('click', this.onRegisterAnotherButtonClicked);
+        this.#render();
+        this.#cacheDomElements();
+        this.#addEventListeners();
+        this.#initializeFormState(); // Ensure initial state is correct
     }
 
     disconnectedCallback() {
-        this.registerButton.removeEventListener('click', this.onRegisterButtonClicked);
+        this.#removeEventListeners();
     }
 
+    /**
+     * Renders the component's HTML content from a template.
+     * @private
+     */
+    #render() {
+        const template = document.getElementById("registerRoleFormTemplate");
+        if (!template) {
+            console.error("Template 'registerRoleFormTemplate' not found.");
+            return;
+        }
+        this.shadowRoot.appendChild(template.content.cloneNode(true));
+    }
+
+    /**
+     * Adds event listeners to the relevant DOM elements.
+     * Uses bound methods stored in #boundListeners to ensure correct 'this' context.
+     * @private
+     */
+    #addEventListeners() {
+        this.#boundListeners.onRegisterButtonClicked = this.#onRegisterButtonClicked.bind(this);
+        this.#elements.registerButton?.addEventListener('click', this.#boundListeners.onRegisterButtonClicked);
+    }
+
+    /**
+     * Removes event listeners to prevent memory leaks.
+     * @private
+     */
+    #removeEventListeners() {
+        this.#elements.registerButton?.removeEventListener('click', this.#boundListeners.onRegisterButtonClicked);
+    }
+
+    /**
+     * Sets the initial display state of the form and feedback sections.
+     * @private
+     */
+    #initializeFormState() {
+        this.#elements.registerRoleForm?.classList.remove('hide');
+        this.#elements.sectionFeedback?.classList.add('hide');
+        this.#elements.errorMessage?.classList.add('hide');
+    }
+
+    /**
+     * Caches references to frequently used DOM elements.
+     * @private
+     */
+    #cacheDomElements() {
+        const selectors = {
+            registerRoleForm: 'form#registerRoleForm',
+            errorMessage: 'div#errorMessage',
+            nameInput: '#nameInput',
+            descriptionInput: '#descriptionInput',
+            statusOption: '#statusOption',
+            registerButton: '#registerButton',
+        };
+
+        this.#elements = Object.fromEntries(
+            Object.entries(selectors).map(([key, selector]) => [
+                key,
+                this.shadowRoot.querySelector(selector)
+            ])
+        );
+    }
+
+
+    /**
+     * Handles the click event for the register button.
+     * @param {Event} e - The click event object.
+     * @private
+     */
     async #onRegisterButtonClicked(e) {
+        e.preventDefault(); // Prevent default form submission behavior
         console.debug("Register button clicked.");
 
-        // Validate the form inputs
-        if (this.usernameInput.value === '' || this.passwordInput.value === '' || this.passwordConfirmInput.value === '') {
+        const { nameInput, descriptionInput, statusOption, errorMessage, registerRoleForm, registerButton } = this.#elements;
 
+        registerButton.disabled = true;
+        //registerButton.attribute('disabled', 'true'); // Disable button to prevent multiple clicks
+        
+
+        if (!nameInput.value || !statusOption.value) {
+            this.#updateErrorMessage("All fields are required.");
+            return;
         }
 
-        let registrationResponse = await this.userCredentialModule.registerUserCredential(this.usernameInput.value, this.passwordInput.value);
-        console.log('registrationResponse', registrationResponse);
+        this.#hideErrorMessage(); // Clear previous error messages
 
-        // {is_success: true, message: 'testuser5 added successfully', data_object: null}
-        if (registrationResponse.is_success) {
-            console.log("Registration successful:", registrationResponse.message);
-            // Hide form and show feedback
-            //this.sectionFeedback.getElementsByTagName('p')[0].innerHTML = registrationResponse.message;
-            this.loginForm.classList.add('hide');
-            this.sectionFeedback.classList.remove('hide');
-        } else {
-            // Update the error messaage and show feedback
-            this.errorMessage.innerHTML = `<span>${registrationResponse.message}</span>`;
-            this.errorMessage.classList.remove('hide');
+        try {
+            console.debug("Simulating registration process...");
+            const registrationDetail = {
+                name: nameInput.value,
+                description: descriptionInput.value,
+                status: statusOption.value
+            }
+            console.dir(registrationDetail);
+            
+            const registrationResponse = await this.#roleModule.registerRole(registrationDetail);
+            if (registrationResponse.is_success) {
+                console.log("Registration successful:", registrationResponse.message);
+                this.#showSuccessFeedback(registrationResponse.message);
+            } else {
+                this.#updateErrorMessage(registrationResponse.message || "Registration failed. Please try again.");
+            }
+
+        } catch (error) {
+            console.error("Error during registration:", error);
+            this.#updateErrorMessage("An unexpected error occurred during registration.");
         }
+
+        registerButton.disabled = false;
     }
 
-    async #onRegisterAnotherButtonClicked(e) {
+    /**
+     * Handles the click event for the "Register Another" button.
+     * @param {Event} e - The click event object.
+     * @private
+     */
+    #onRegisterAnotherButtonClicked(e) {
         console.debug("Register another button clicked.");
 
         // Clear the form inputs
-        this.usernameInput.value = '';
-        this.passwordInput.value = '';
-        this.passwordConfirmInput.value = '';
+        this.#elements.usernameInput.value = '';
+        this.#elements.passwordInput.value = '';
+        this.#elements.passwordConfirmInput.value = '';
 
-        // Hide feedback section and show the form again
-        this.errorMessage.classList.add('hide');
-        this.sectionFeedback.classList.add('hide');
-        this.loginForm.classList.remove('hide');
+        // Reset form display
+        this.#elements.errorMessage?.classList.add('hide');
+        this.#elements.sectionFeedback?.classList.add('hide');
+        this.#elements.loginForm?.classList.remove('hide');
     }
 
-    render() {
-        this.shadowRoot.innerHTML = `
-<link rel="stylesheet" href="/css/normalize.css" />
-<link rel="stylesheet" href="/css/skeleton.css" />
-<link rel="stylesheet" href="/css/site.css" />
-<style>
-#loginForm {
-    display: grid;
-    grid-template-columns: 5rem 18rem 5rem;
-    grid-template-rows: repeat(3, 1fr);
-    grid-gap: .5rem;
-    justify-content: center;
-    margin-top: 4rem;
-    align-items: center;
-}
-#loginForm label {
-    justify-self: end;
-    margin-right: .5rem;
-    margin-bottom: 1.5rem;
-}
-.error {
-    color: var(--color8);
-}
-.tooltips span {
-    cursor: help;
-}
-.tooltips span:hover {
-    color: var(--color9);
-}
-</style>
-<section class="feedback hide">
-    <p>Added successfully</p>
 
-    <div>
-        <input class="button-primary" type="button" value="Register another" id="registerAnotherButton" />
-    </div>
-</section>
-<form id="loginForm">
-    <label for="usernameInput">Username</label>
-    <input class="u-full-width" type="text" placeholder="Username (email)" id="usernameInput" value="testuser5" />
-    <div class='tooltips'><span title='Required'>&sharp;1</span> <span title='Existing'>&sharp;2</span></div>
-
-    <label for="passwordInput">Password</label>
-    <input class="u-full-width" type="password" placeholder="Password" id="passwordInput" value="testuser5a" />
-    <div class='tooltips'><span title='Mismatching'>&sharp;3</span></div>
-
-    <label for="passwordConfirmInput">Password<br/>(confirm)</label>
-    <input class="u-full-width" type="password" placeholder="Password" id="passwordConfirmInput" value="testuser5a" />
-    <div class='tooltips'><span title='Mismatching'>&sharp;3</span></div>
-
-    <div></div>
-    <div>
-        <input class="button-primary" type="button" value="Register" id="registerButton" />
-        <div class="error message hide" id="errorMessage"><div>
-    </div>
-    <div></div>
-</form>
-`;
+    /**
+     * Displays an error message to the user.
+     * @param {string} message - The error message to display.
+     * @private
+     */
+    #updateErrorMessage(message) {
+        if (this.#elements.errorMessage) {
+            this.#elements.errorMessage.innerHTML = `<span>${message}</span>`;
+            this.#elements.errorMessage.classList.remove('hide');
+        }
     }
 
+    /**
+     * Hides the error message.
+     * @private
+     */
+    #hideErrorMessage() {
+        this.#elements.errorMessage?.classList.add('hide');
+        this.#elements.errorMessage.innerHTML = ''; // Clear content when hidden
+    }
+
+    /**
+     * Shows success feedback to the user and hides the form.
+     * @param {string} message - The success message to display.
+     * @private
+     */
+    #showSuccessFeedback(message) {
+        if (this.#elements.sectionFeedback && this.#elements.loginForm) {
+            // Assuming there's a paragraph element to update message
+            const feedbackParagraph = this.#elements.sectionFeedback.querySelector('p');
+            if (feedbackParagraph) {
+                feedbackParagraph.innerHTML = message;
+            }
+            this.#elements.loginForm.classList.add('hide');
+            this.#elements.sectionFeedback.classList.remove('hide');
+            this.#hideErrorMessage(); // Ensure error message is hidden on success
+        }
+    }
 }
 
-customElements.define('register-user-credential-form', RegisterUserCredentialForm);
+customElements.define('register-role-form', RegisterRoleForm);
