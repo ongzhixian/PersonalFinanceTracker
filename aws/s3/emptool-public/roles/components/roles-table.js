@@ -86,9 +86,6 @@ class RolesTable extends HTMLElement {
 table {
     width: 100%;
 }
-table tbody td, table thead th {
-    text-align:center;
-}
 th, td {
     padding: 12px 15px;
     text-align: left;
@@ -112,6 +109,9 @@ th, td {
     100% { transform: rotate(360deg); }
 }
 </style>
+<section class="actions panel">
+    <a class="button button-primary" href="add-role.html">Add role</a>
+</section>
 <section>
     <table>
         <caption>Role list</caption>
