@@ -6,12 +6,12 @@ export default function RoleModule() {
 
     this.registerRole = async (registrationDetail) => {
         // Simulate response
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
-        return {
-            is_success: true,
-            message: `${registrationDetail.name} exists already`,
-            data_object: null
-        };
+        //await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
+        //return {
+        //    is_success: true,
+        //    message: `${registrationDetail.name} exists already`,
+        //    data_object: null
+        //};
 
         const jwt = this.authenticationModule.getToken();
         if (jwt === null)
@@ -20,6 +20,7 @@ export default function RoleModule() {
                 message: `No authentication token found. Please log in first.`,
                 data_object: null
             };
+
         const endpoint_url = `${BASE_API_GATEWAY_ENDPOINT_URL}/role`;
         const response = await fetch(endpoint_url, {
             method: "POST",
@@ -29,6 +30,7 @@ export default function RoleModule() {
             },
             body: JSON.stringify(registrationDetail)
         });
+
         if (!response.ok) throw new Error("Registration failed: " + response.statusText);
         return await response.json();
     }
