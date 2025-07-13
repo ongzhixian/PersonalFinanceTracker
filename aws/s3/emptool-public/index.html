@@ -1,60 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="description" content="UCM" />
-    <meta name="author" content="Ong Zhi Xian" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>UCM</title>
-    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" href="css/normalize.css" />
-    <link rel="stylesheet" href="css/skeleton.css" />
-    <link rel="stylesheet" href="css/site.css" />
-    <link rel="icon" type="image/png" href="images/favicon.png" />
+  <meta charset="utf-8" />
+  <meta name="description" content="PFT" />
+  <meta name="author" content="Ong Zhi Xian" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PFT</title>
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="css/normalize.css" />
+  <link rel="stylesheet" href="css/skeleton.css" />
+  <link rel="stylesheet" href="css/site.css" />
+  <link rel="icon" type="image/png" href="images/favicon.png" />
 
+  <script src="components/site-banner.js" async defer></script>
+  <script src="components/site-navigation-bar.js" async defer></script>
+  <script src="js/site.js"></script>
 </head>
 <body>
 
-    <div class="container">
+  <div class="container">
 
-        <site-banner></site-banner>
+    <site-banner></site-banner>
 
-        <site-navigation-bar></site-navigation-bar>
+    <site-navigation-bar></site-navigation-bar>
 
-        <section>
-            <p>TODO: Add dashboard</p>
-        </section>
+    &nbsp;
 
-    </div><!-- END OF TOP-LEVEL CONTAINER -->
+    <div class="row">
+      <div class="one-half column">
 
-    <script src="js/site.js" defer></script>
-    <script src="components/site-banner.js" defer></script>
-    <script src="components/site-navigation-bar.js" defer></script>
-    <script>
-        let loginHandler, uiHandler;
+        <p>Home page 2</p>
 
-        function UiHandler(loginHandler) {
-            this.loginHandler = loginHandler;
+      </div>
+    </div>
 
-            this.refreshDisplay = function () {
-                let hasCredentialJwt = loginHandler.hasCredentialJwt();
-                if (hasCredentialJwt) {
-                    // this.updateCredentialTable();
-                    // this.contentPanel.classList.remove('hide'); // Show content panel
-                    // this.loginPanel.classList.add('hide');      // Hide login panel
-                } else {
-                    // this.contentPanel.classList.add('hide');    // Hide content panel
-                    // this.loginPanel.classList.remove('hide');   // Show login panel
-                }
-            }
-        }
+  </div><!-- END OF TOP-LEVEL CONTAINER -->
 
-        document.addEventListener('DOMContentLoaded', function () {
-            loginHandler = new LoginHandler();
-            uiHandler = new UiHandler(loginHandler);
-            uiHandler.refreshDisplay();
-        });
+<script>
 
-    </script>
+</script>
 </body>
 </html>

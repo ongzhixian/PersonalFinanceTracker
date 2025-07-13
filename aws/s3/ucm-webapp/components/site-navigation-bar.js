@@ -1,3 +1,45 @@
+class NavItem extends HTMLElement {
+
+    static observedAttributes = ["componentName", "active"];
+
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+    }
+
+    connectedCallback() {
+        this.render();
+        this.shadowRoot.querySelector('.nav-item').addEventListener('click', () => {
+            console.log(`NavItem clicked: ${this.getAttribute('componentName')}`);
+            const isActive = this.getAttribute('active') === 'true';
+            this.setAttribute('active', isActive ? 'false' : 'true');
+        });
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        console.log(`NavItem Attribute ${name} changed from ${oldValue} to ${newValue}`);
+    }
+
+    render() {
+        this.shadowRoot.innerHTML = `
+<style>
+span.nav-item {
+    cursor: pointer;
+}
+span.nav-item:hover {
+        color: #ffffff;
+    }
+span.nav-item.active {
+    color: #fff275;
+    font-weight: bold;
+}
+</style>
+<span class='nav-item ${this.getAttribute("active") === "true" ? "active" : ""}'>${this.textContent}</span>`;
+
+    }
+}
+
+
 class SiteNavigationBar extends HTMLElement {
     //static observedAttributes = ["color", "size"];
 
@@ -36,30 +78,35 @@ class SiteNavigationBar extends HTMLElement {
         font-weight: 300;
     }
     nav {
-        background-color: aliceblue;
+        background-color: #1282a2;
         display: flex;
         justify-items: center;
         justify-content: center;
         gap: 1em;
         padding:1em;
+        margin-bottom:1em;
     }
     nav a {
         padding: 0.8rem 1.6rem;
         border-radius: 1em;
         text-decoration: none;
-        color: orchid;
+        color: #fefcfb;
     }
     nav a:hover {
-        color:blue;
+        color: #fff275;
     }
 </style>
 <nav>
-  <div><a href="/">Home</a></div>
-  <div><a href="/page-1.html">Page 1</a></div>
-  <div><a href="/page-2.html">Page 2</a></div>
+    <div><a href="/">Home</a></div>
+    <div><a href="/user-credential/index.html">User Credentials</a></div>
+    <div><a href="/roles/index.html">Roles</a></div>
+    <div><a href="/configurations.html">Configurations</a></div>
 </nav>`;
     }
-
 }
 
+
+// Define the custom elements
+
+customElements.define('nav-item', NavItem);
 customElements.define('site-navigation-bar', SiteNavigationBar);
