@@ -36,4 +36,41 @@ export default function UserCredentialModule() {
 
         return await response.json();
     }
+
+    this.getUserCredential = async (username) => {
+
+        // Simulate response
+        // return {
+        //     is_success: true,
+        //     message: `${username} exists already`,
+        //     data_object: null
+        // };
+
+        const jwt = this.authenticationModule.getToken();
+        if (jwt === null)
+            return {
+                is_success: false,
+                message: `No authentication token found. Please log in first.`,
+                data_object: null
+            };
+
+        
+        const endpoint_url = `${BASE_API_GATEWAY_ENDPOINT_URL}/user-credential/${username}?sampleQueryParam1=asdasd123&sampleQueryParam2=zxczxc123`;
+        console.debug('Fetching user credential', endpoint_url);
+        const response = await fetch(endpoint_url, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${jwt}`
+            },
+            // body: JSON.stringify({
+            //     username: username,
+            //     password: password
+            // })
+        });
+
+        if (!response.ok) throw new Error("Registration failed: " + response.statusText);
+
+        return response.json();
+    }
 }

@@ -5,6 +5,8 @@ Sections:
     Base Repository classes
         BaseRepository
 """
+import pdb
+
 
 # BASE ENTITY CLASSES
 
@@ -27,6 +29,10 @@ class DynamoDbEntity(object):
         return {'B': value}
 
     @staticmethod
+    def dynamodb_string_set_value(value: list[str]):
+        return {'SS': value}
+
+    @staticmethod
     def __map_from_dynamodb_attribute(att:dict):
         for k, v in att.items():
             match k:
@@ -36,6 +42,8 @@ class DynamoDbEntity(object):
                     return float(v)
                 case 'NULL':
                     return None if v == True else v
+                case 'SS':
+                    return v
                 case _:
                     print(f'Unhandled DynamoDb attribute {k}')
                     return None

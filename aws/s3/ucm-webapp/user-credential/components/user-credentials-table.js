@@ -68,7 +68,7 @@ class UserCredentialTable extends HTMLElement {
         const rows = Array.isArray(page_items) && page_items.length
             ? page_items.map(item => `
                 <tr>
-                    <td>${item.username ?? ''}</td>
+                    <td><a href="view-user-credential.html?username=${item.username ?? ''}">${item.username ?? ''}</a></td>
                     <td>${item.status ?? ''}</td>
                     <td>${item.failed_login_attempts ?? ''}</td>
                     <td>${gbFormatter.format(new Date(item.password_last_changed_datetime)) ?? ''}</td>

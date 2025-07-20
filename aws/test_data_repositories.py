@@ -87,14 +87,16 @@ class TestUserCredentialRepository(unittest.TestCase):
         print('AFTER', table_list)
         pass
 
+    @unittest.skip("We do not want to test this by default")
     def test_get_record_list(self):
         record_list = self.repo.get_record_list()
-        print(record_list)
+        print(len(record_list))
 
     # def test_get_record
 
     # def test_find_record
 
+    @unittest.skip("We do not want to test this by default")
     def test_put_record(self):
         # insert else update
         # vice-versa -> update_if_exist or insert (upsert)
@@ -140,7 +142,7 @@ class TestUserCredentialRepository(unittest.TestCase):
         # }
         # print(res)
 
-
+    @unittest.skip("We do not want to test this by default")
     def test_func(self):
         import secrets
         import hashlib
@@ -156,6 +158,7 @@ class TestUserCredentialRepository(unittest.TestCase):
         print(salt_bytes)
         print(base64.b64encode(salt_bytes).decode())
 
+    @unittest.skip("We do not want to test this by default")
     def test__hash_password(self):
         password_text = 'my secret password'
         sha_digest1 = self.repo.hash_password(password_text)

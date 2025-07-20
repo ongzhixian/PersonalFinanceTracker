@@ -12,7 +12,8 @@ from shared_lambda import (
     EndpointResponse,
     EventBodyJson,
     EventHeadersJson,
-    EventQueryStringParametersJson)
+    EventQueryStringParametersJson,
+    EventPathParametersJson)
 from shared_messages import OperationResultMessage
 from shared_user_credential_messages import AddUserCredentialMessage, AuthenticateUserCredentialMessage
 from shared_user_credential import UserCredentialRepository
@@ -215,7 +216,6 @@ def get_ucm_user_credential(event:dict, context):
         print(error)
         return endpoint_response.ok(False, f'HAS ERROR: {error}')
 
-
 @endpoint_url('/ucm/user-credential', 'POST')
 def post_ucm_user_credential(event:dict, context):
     """Create user credentials if validation passes
@@ -265,6 +265,71 @@ def post_ucm_user_credential(event:dict, context):
     #         'status': 'ok'
     #     })
     # return endpoint_response.data(operation_result_message)
+
+@endpoint_url('/ucm/user-credential/{0}', 'GET')
+def get_ucm_user_credential_record(event: dict, context):
+    """List user credentials
+    Use case:
+        (list user credentials)
+    """
+    dump_api_gateway_event_context(event, context)
+
+    try:
+        # Validation
+        print('# Request Validation Phase')
+
+        print('## Check authorization header')
+
+        # authorization_header = EventHeadersJson.get_authorization_header(event)
+        # if authorization_header is None:
+        #     print('MISSING authorization_header')
+        #     return endpoint_response.forbidden()
+        #
+        # token_body = authorization_header.replace('TOKEN', '').strip()
+        # token_is_valid = shared_token_service.verify_token(token_body)
+        # if not token_is_valid:
+        #     print('INVALID token')
+        #     return endpoint_response.forbidden()
+
+        # print('## Event body retrieval')
+        # event_body_json = EventBodyJson.get_event_body_json(event)
+        # if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
+        username = None
+        print('## Query String Parameters')
+        event_query_string_parameters_json = EventQueryStringParametersJson.get_event_query_string_parameters_json(event)
+        if event_query_string_parameters_json.is_valid:
+            print('event_query_string_parameters_json.is_valid')
+            query_string_parameters = event_query_string_parameters_json.data_object
+            print(query_string_parameters)
+            username = str(query_string_parameters.get('id', None))
+            print('Query params for username %s', username)
+
+        path_parameters_json = EventPathParametersJson.get_event_path_parameters_json(event)
+        if path_parameters_json.is_valid:
+            print('path_parameters_json.is_valid')
+            path_parameters = path_parameters_json.data_object
+            print(path_parameters)
+            username = str(path_parameters.get('id', None))
+            print('path_parameters for username %s', username)
+
+        print('Final username %s', username)
+
+        # print('## Generating message from event body')
+        # authenticate_user_credential_message = AuthenticateUserCredentialMessage.create_from_dict(event_body_json.data_object)
+        # if authenticate_user_credential_message is None: return endpoint_response.bad_request('Invalid authenticate user credential message')
+
+        # Repository action
+        print('# Repository Action Phase')
+
+        repository = UserCredentialRepository()
+        operation_result_message = repository.get_user_credential(username=username)
+
+        if operation_result_message.is_success:
+            return endpoint_response.data(operation_result_message)
+        return endpoint_response.bad_gateway(operation_result_message)
+    except Exception as error:
+        print(error)
+        return endpoint_response.ok(False, f'HAS ERROR: {error}')
 
 
 ## Membership

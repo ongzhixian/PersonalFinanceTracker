@@ -8,6 +8,7 @@ Sections:
         UserCredentialRepository
 """
 import json
+import logging
 from datetime import datetime
 from os import environ
 from zoneinfo import ZoneInfo, reset_tzpath
@@ -68,6 +69,7 @@ class UserCredentialEntity(DynamoDbEntity):
     PASSWORD_LAST_CHANGED_DATETIME_FIELD_NAME = 'password_last_changed_datetime'
     PASSWORD_SALT_FIELD_NAME = 'password_salt'
     STATUS_FIELD_NAME = 'status'
+    ROLES_FIELD_NAME = 'roles'
 
     RECORD_UPDATE_BY_FIELD_NAME = 'record_update_by'
     RECORD_UPDATE_DATETIME_FIELD_NAME = 'record_update_datetime'
@@ -78,7 +80,7 @@ class UserCredentialEntity(DynamoDbEntity):
         'last_login_attempt_datetime',
         'last_successful_login',
         'password_hash',
-        'password_salt', 
+        'password_salt',
         'record_update_by',
         'record_update_datetime',
         'record_create_by',
@@ -101,6 +103,7 @@ class UserCredentialEntity(DynamoDbEntity):
         self.record_update_datetime = None
         self.record_create_by = None
         self.record_create_datetime = None
+        self.roles = []
 
         if len(args) > 0 and isinstance(args[0], dict):
             self.load_from_dict(args[0])
@@ -116,6 +119,7 @@ class UserCredentialEntity(DynamoDbEntity):
             'password_last_changed_datetime': self.dynamodb_null_value() if self.password_last_changed_datetime is None else self.dynamodb_string_value(self.password_last_changed_datetime.isoformat()),
             'password_salt': self.dynamodb_null_value() if self.password_salt is None else self.dynamodb_string_value(self.password_salt),
             'status': self.dynamodb_null_value() if self.status is None else self.dynamodb_string_value(self.status),
+            'roles': self.dynamodb_null_value() if len(self.roles) <= 0 else self.dynamodb_string_set_value(self.roles),
 
             'record_update_by': self.dynamodb_null_value() if self.record_update_by is None else self.dynamodb_string_value(self.record_update_by),
             'record_update_datetime': self.dynamodb_null_value() if self.record_update_datetime is None else self.dynamodb_string_value(self.record_update_datetime.isoformat()),
@@ -134,6 +138,7 @@ class UserCredentialEntity(DynamoDbEntity):
         self.password_last_changed_datetime = self.map_from_dynamodb_attribute(data, UserCredentialEntity.PASSWORD_LAST_CHANGED_DATETIME_FIELD_NAME)
         self.password_salt = self.map_from_dynamodb_attribute(data, UserCredentialEntity.PASSWORD_SALT_FIELD_NAME)
         self.status = self.map_from_dynamodb_attribute(data, UserCredentialEntity.STATUS_FIELD_NAME)
+        self.roles = self.map_from_dynamodb_attribute(data, UserCredentialEntity.ROLES_FIELD_NAME)
 
         self.record_update_by = self.map_from_dynamodb_attribute(data, UserCredentialEntity.RECORD_UPDATE_BY_FIELD_NAME)
         self.record_update_datetime = self.map_from_dynamodb_attribute(data, UserCredentialEntity.RECORD_UPDATE_BY_FIELD_NAME)
@@ -379,6 +384,11 @@ class UserCredentialRepository(BaseRepository):
     """
     def __init__(self):
         self._TABLE_NAME = 'user_credential'
+        self.logger = logging.getLogger('UserCredentialRepository')
+        self.logger.setLevel(logging.INFO)
+        ch = logging.StreamHandler()
+        # ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s:  %(message)s"))
+        self.logger.addHandler(ch)
 
     def add_user_credential(self, add_user_credential_message:AddUserCredentialMessage):
         try:
@@ -388,10 +398,11 @@ class UserCredentialRepository(BaseRepository):
                 ReturnConsumedCapacity='TOTAL',
                 ConditionExpression="attribute_not_exists(username)",
             )
-            print('put_item:', response)
+            self.logger.info('put_item: %s', response)
+            # print('put_item:', response)
             return OperationResultMessage(True)
         except ClientError as client_error:
-            print('client_error:', client_error)
+            # print('client_error:', client_error)
             if 'Error' in client_error.response  \
                 and 'Code' in client_error.response['Error'] \
                 and client_error.response['Error']['Code'] == 'ConditionalCheckFailedException':
@@ -544,8 +555,8 @@ class UserCredentialRepository(BaseRepository):
                 'ProjectionExpression': '#USERNAME, #STATUS, #FAILED_LOGIN_ATTEMPTS, #PASSWORD_LAST_CHANGED_DATETIME',
                 'ExpressionAttributeNames': {
                     '#USERNAME': 'username',
-                    '#STATUS': 'status', 
-                    '#FAILED_LOGIN_ATTEMPTS': 'failed_login_attempts', 
+                    '#STATUS': 'status',
+                    '#FAILED_LOGIN_ATTEMPTS': 'failed_login_attempts',
                     '#PASSWORD_LAST_CHANGED_DATETIME' : 'password_last_changed_datetime'
                 }
             }
@@ -559,7 +570,7 @@ class UserCredentialRepository(BaseRepository):
 
             reverse = sort_order.lower() == 'desc'
             items.sort(key=lambda record: record.get(sort_field), reverse=reverse)
-            
+
             start = (page_number - 1) * page_size
             end = start + page_size
 
@@ -573,6 +584,109 @@ class UserCredentialRepository(BaseRepository):
             print('client_error:', client_error)
             return OperationResultMessage(False, client_error.response)
 
+    def get_user_credential(self, username:str):
+        """
+        Get user credential
+
+        Args:
+            username (str): Username to retrieve.
+
+        Returns:
+            dict: {
+                'items': [UserCredentialEntity, ...],
+                'last_evaluated_key': dict or None
+            }
+        """
+        try:
+            response = dynamodb_client.get_item(
+                TableName=self._TABLE_NAME,
+                Key={'username': {'S': username}}
+            )
+            # print('get_item:', response)
+            if 'Item' in response:
+                entity = UserCredentialEntity(response['Item'])
+                self.logger.info('get_item: %s', entity)
+                return OperationResultMessage(
+                    True,
+                    'Retrieved user credential successfully',
+                    data_object=UserCredentialEntity(response['Item']).to_json_object())
+            return OperationResultMessage(True, 'User not found', data_object=None)
+        except ClientError as client_error:
+            print('client_error:', client_error)
+            return OperationResultMessage(False, client_error.response)
+
+    def __remove_user_credential__(self, username:str):
+        """
+        Remove user credential
+
+        Args:
+            username (str): Username to retrieve.
+
+        Returns:
+            dict: {
+                'items': [UserCredentialEntity, ...],
+                'last_evaluated_key': dict or None
+            }
+        """
+        try:
+            response = dynamodb_client.delete_item(
+                TableName=self._TABLE_NAME,
+                Key={'username': {'S': username}},
+                ConditionExpression="attribute_exists(username)"  # Ensure item exists before deleting
+            )
+            if 'ResponseMetadata' in response and 'HTTPStatusCode' in response['ResponseMetadata']:
+                http_status_code = response['ResponseMetadata']['HTTPStatusCode']
+                if http_status_code == 200:  # Successful deletion
+                    return OperationResultMessage(True, 'User credential deleted successfully')
+            return OperationResultMessage(False, 'Invalid response',
+                                          data_object=response['ResponseMetadata']['HTTPStatusCode'])
+            # pdb.set_trace()
+            # if 'Item' in response:
+            #     entity = UserCredentialEntity(response['Item'])
+            #     return OperationResultMessage(
+            #         True,
+            #         data_object=UserCredentialEntity(response['Item']).to_json_object())
+            # return OperationResultMessage(True, 'User not found', data_object=None)
+            #
+            # items = []
+            # scan_kwargs = {
+            #     'TableName': self._TABLE_NAME,
+            #     'ProjectionExpression': '#USERNAME, #STATUS, #FAILED_LOGIN_ATTEMPTS, #PASSWORD_LAST_CHANGED_DATETIME',
+            #     'ExpressionAttributeNames': {
+            #         '#USERNAME': 'username',
+            #         '#STATUS': 'status',
+            #         '#FAILED_LOGIN_ATTEMPTS': 'failed_login_attempts',
+            #         '#PASSWORD_LAST_CHANGED_DATETIME': 'password_last_changed_datetime'
+            #     }
+            # }
+            # while True:
+            #     # response = dynamodb_client.scan(**scan_kwargs)
+            #     response = dynamodb_client.get_item(
+            #         TableName=self._TABLE_NAME,
+            #         Key={'id': {'S': username}}
+            #     )
+            #     items.extend(UserCredentialEntity(item).to_json_object(True) for item in response.get('Items', []))
+            #     last_key = response.get('LastEvaluatedKey')
+            #     if not last_key:
+            #         break
+            #     scan_kwargs['ExclusiveStartKey'] = last_key
+            #
+            # # reverse = sort_order.lower() == 'desc'
+            # # items.sort(key=lambda record: record.get(sort_field), reverse=reverse)
+            # #
+            # # start = (page_number - 1) * page_size
+            # # end = start + page_size
+            #
+            # return OperationResultMessage(True, None, data_object={
+            #     'page_number': page_number,
+            #     'page_size': page_size,
+            #     'total_items': len(items),
+            #     'page_items': items[start:end]
+            # })
+        except ClientError as client_error:
+            # print('client_error:', client_error)
+            return OperationResultMessage(False, client_error.response)
+
 # TESTs
 
 
@@ -583,7 +697,10 @@ def test_repository():
     #update_user_credential_password_message = UpdateUserCredentialPasswordMessage('testuser1', 'testuser1a')
     # Instantiate repository
     test_repository = UserCredentialRepository()
-    operation_result_message = test_repository.get_user_credential_list(page_number=1, sort_order='asc')
+    # operation_result_message = test_repository.get_user_credential_list(page_number=1, page_size=50, sort_order='asc')
+    # operation_result_message = test_repository.get_user_credential(username='testuser1')
+    operation_result_message = test_repository.__remove_user_credential__(username='unittestuser')
+
     
     # Repository action
     #operation_result_message = test_repository.add_user_credential(add_user_credential_message)
