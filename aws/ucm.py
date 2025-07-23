@@ -20,8 +20,10 @@ from shared_user_credential import UserCredentialRepository
 from shared_role_messages import AddRoleMessage
 from shared_role import RoleRepository
 from shared_configuration import ConfigurationRepository
+from shared_notification import Notification
 from utility_types import TokenUtility
 from shared_token_service import SharedTokenService
+
 
 # AWS PROFILE SETUP
 
@@ -136,7 +138,7 @@ def put_ucm_authentication_ticket(event:dict, context):
         authorization_header = EventHeadersJson.get_authorization_header(event)
         if authorization_header is None:
             return endpoint_response.forbidden()
-        
+
         token_body = authorization_header.replace('TOKEN', '').strip()
         token_is_valid = shared_token_service.verify_token(token_body)
         if not token_is_valid:
@@ -153,12 +155,59 @@ def put_ucm_authentication_ticket(event:dict, context):
                 operation_is_successful=True,
                 message='Token refreshed.',
                 data_object=data_object))
-        
+
     except Exception as error:
         print(error)
         return endpoint_response.ok(False, f'HAS ERROR: {error}')
 
 ## User Credential
+
+def access_denied(event: dict, target_roles:list[str] = []):
+    """Validates access to endpoint.
+    Use case:
+        (validate access)
+    """
+    print('Checking access to endpoint...')
+    authorization_header = EventHeadersJson.get_authorization_header(event)
+    if authorization_header is None:
+        print('MISSING authorization_header')
+        return True
+
+    token_body = authorization_header.replace('TOKEN', '').strip()
+    # token_is_valid = shared_token_service.verify_token(token_body)
+    # if not token_is_valid:
+    #     print('INVALID token')
+    #     return True
+
+    # token_content = shared_token_service.get_token_content(token_body)
+    # print('Token content:', token_content)
+
+    has_target_roles = shared_token_service.verify_token_has_roles(token_body, target_roles=target_roles)
+    print('Has target roles:', has_target_roles)
+    return False if has_target_roles else True
+
+
+def get_query_string_parameters(event: dict, target_parameters: dict):
+    """Get query string parameters from event.
+    Use case:
+        (get query string parameters)
+    """
+    event_query_string_parameters_json = EventQueryStringParametersJson.get_event_query_string_parameters_json(event)
+    if not event_query_string_parameters_json.is_valid:
+        print('MISSING or INVALID query string parameters')
+        return ()
+    print("Start checking")
+    query_param_dict = {}
+    query_string_parameters = event_query_string_parameters_json.data_object
+    for query_param_k, query_param_v in target_parameters:
+        print('Query parameter:', query_param_k, 'with default value:', query_param_v)
+        query_param_dict[query_param_k] = query_string_parameters.get(query_param_k, query_param_v)
+    print('Query parameters:', query_param_dict)
+    return tuple(query_param_dict)
+    # page_number = int(query_param_dict.get('page_number', target_parameters['page_number']))
+    # page_size = int(query_param_dict.get('page_size', target_parameters['page_size']))
+    # return (page_number, page_size)
+    # return (target_parameters['page_number'], target_parameters['page_size'])
 
 @endpoint_url('/ucm/user-credential', 'GET')
 def get_ucm_user_credential(event:dict, context):
@@ -170,28 +219,40 @@ def get_ucm_user_credential(event:dict, context):
 
     try:
         # Validation
-        print('# Request Validation Phase')
+        # print('# Request Validation Phase')
 
-        print('## Check authorization header')
+        # print('## Check authorization header')
 
-        authorization_header = EventHeadersJson.get_authorization_header(event)
-        if authorization_header is None:
-            return endpoint_response.forbidden()
-        
-        token_body = authorization_header.replace('TOKEN', '').strip()
-        token_is_valid = shared_token_service.verify_token(token_body)
-        if not token_is_valid:
-            return endpoint_response.forbidden()
+        # authorization_header = EventHeadersJson.get_authorization_header(event)
+        # if authorization_header is None:
+        #     return endpoint_response.forbidden()
+
+        # print('## Validating token')
+
+        # token_body = authorization_header.replace('TOKEN', '').strip()
+        # token_is_valid = shared_token_service.verify_token(token_body)
+        # if not token_is_valid:
+        #     return endpoint_response.forbidden()
+
 
         #print('## Event body retrieval')
         #event_body_json = EventBodyJson.get_event_body_json(event)
         #if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
 
+        if access_denied(event, target_roles=['application_administrator', 'system_administrator']):
+            return endpoint_response.forbidden()
+
+
         print('## Query String Parameters')
+        (page_number, page_size) = get_query_string_parameters(event, {
+            'page_number' : 1,
+            'page_size': 6})
+
+        print('Page number:', page_number, 'Page size:', page_size)
 
         page_number = 1
         page_size = 5
-        
+
         event_query_string_parameters_json = EventQueryStringParametersJson.get_event_query_string_parameters_json(event)
         if event_query_string_parameters_json.is_valid:
             print('event_query_string_parameters_json.is_valid')
@@ -465,7 +526,7 @@ def add_ucm_role(event:dict, context):
         #     page_size = int(query_string_parameters.get('page_size', 5))
 
         print('## Generating message from event body')
-        
+
         add_role_message = AddRoleMessage.create_from_dict(event_body_json.data_object)
         if add_role_message is None: return endpoint_response.bad_request('Invalid add role message')
 
@@ -552,7 +613,29 @@ def get_ucm_configuration(event:dict, context):
     return dump_api_gateway_event_context(event, context)
 
 
+## Notification
 
+@endpoint_url('/ucm/notification', 'POST')
+def post_ucm_notification(event:dict, context):
+    """Post notification
+    Use case:
+        (post notification)
+    """
+    dump_api_gateway_event_context(event, context)
+
+    event_body_json = EventBodyJson.get_event_body_json(event)
+    if event_body_json.is_invalid: return endpoint_response.bad_request(event_body_json.error_message)
+
+    chat_id = event_body_json.data_object.get("chatId", None)
+    message = event_body_json.data_object.get("message", None)
+    print("Sending message to chat_id:", chat_id, "with message:", message)
+
+    notification = Notification()
+    # notification.send_telegram_message('-1002841796915', 'hello world')
+    send_success = notification.send_telegram_message(chat_id=chat_id, message=message)
+    if send_success:
+        return endpoint_response.ok(True, f'Message sent to chat {chat_id}')
+    return endpoint_response.bad_request(f'Failed to send message to chat {chat_id}')
 
 # from hci_inventory_item import InventoryItemRepository
 # repository = InventoryItemRepository()

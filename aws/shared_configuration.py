@@ -179,7 +179,7 @@ class ConfigurationRepository(BaseRepository):
                 Key={'id': {'S': record_id}
                 }
             )
-            print('get_item:', response)
+            print('get_configuration:', response)
             if 'Item' in response:
                 # data_obj = self.__data_object_from_dynamodb_response_item(response['Item'])
                 # message = BaseConfigurationMessage()
