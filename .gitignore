@@ -415,3 +415,5 @@ msal_authentication_record.json
 *_token.txt
 *.db
 *_parameters.json
+
+**/mlp*
