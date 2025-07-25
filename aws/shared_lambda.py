@@ -16,10 +16,25 @@ from shared_messages import OperationResultMessage, ResponseMessage
 
 def endpoint_url(relative_path:str, http_method:str):
     """A decorator that does nothing"""
-    def endpoint_url_decorator(func, relative_path = relative_path, http_method = http_method):
+    def endpoint_url_decorator(func, relative_path = relative_path, http_method = http_method, required_roles = required_roles):
         def endpoint_url_decorator_wrapper(*args, **kwargs):
-            print(http_method, relative_path, func.__name__)
+            print(http_method, relative_path, func.__name__, required_roles)
             return func(*args, **kwargs)
+        endpoint_url_decorator_wrapper.__is_endpoint_url_decorator__ = True
+        endpoint_url_decorator_wrapper.__name__ = func.__name__ # Preserve function name
+        endpoint_url_decorator_wrapper.__doc__ = func.__doc__   # Preserve docstring
+        return endpoint_url_decorator_wrapper
+    return endpoint_url_decorator
+
+
+def endpoint_url_prototype(relative_path:str, http_method:str, required_roles:list[str]|None = None):
+    """A decorator that does nothing"""
+    def endpoint_url_decorator(func, relative_path = relative_path, http_method = http_method, required_roles = required_roles):
+        def endpoint_url_decorator_wrapper(*args, **kwargs):
+            print(http_method, relative_path, func.__name__, required_roles)
+            pdb.set_trace()
+            return func(*args, **kwargs)
+        endpoint_url_decorator_wrapper.__is_endpoint_url_decorator__ = True
         endpoint_url_decorator_wrapper.__name__ = func.__name__ # Preserve function name
         endpoint_url_decorator_wrapper.__doc__ = func.__doc__   # Preserve docstring
         return endpoint_url_decorator_wrapper
@@ -219,7 +234,7 @@ class EventPathParametersJson(object):
 # Example
 
 @my_decorator
-@endpoint_url('/hci-blazer', 'GET')
+@endpoint_url('/hci-blazer', 'GET', ['requireRole1', 'requireRole2'])
 def test_endpoint_url_decorator(event:dict, context):
     print('TEST test_endpoint decorator')
     dump_api_gateway_event_context(event, context)
