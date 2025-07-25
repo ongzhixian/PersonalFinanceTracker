@@ -1,0 +1,594 @@
+{
+  "version": "2.0",
+  "name": "Gemini Advanced MCP Integration",
+  "description": "Advanced multi-context management and MCP server orchestration",
+  "updated": "2024-01-15T10:00:00Z",
+  
+  "global_settings": {
+    "max_concurrent_connections": 15,
+    "default_timeout": 45,
+    "context_cache_ttl_minutes": 20,
+    "max_context_size_mb": 15,
+    "enable_context_compression": true,
+    "enable_smart_routing": true,
+    "log_level": "INFO",
+    "performance_monitoring": true,
+    "auto_retry": true,
+    "max_retry_attempts": 3,
+    "session_persistence": true
+  },
+  
+  "servers": {
+    "filesystem": {
+      "description": "Enhanced filesystem operations with code analysis",
+      "transport_type": "stdio",
+      "connection_params": {
+        "command": "npx",
+        "args": ["@modelcontextprotocol/server-filesystem", "/tmp"],
+        "working_directory": ".",
+        "environment": {}
+      },
+      "capabilities": [
+        "read_file",
+        "write_file", 
+        "list_directory",
+        "search_files",
+        "analyze_code_structure",
+        "detect_file_types"
+      ],
+      "priority": 8,
+      "enabled": true,
+      "retry_attempts": 3,
+      "timeout_seconds": 30,
+      "context_extraction": {
+        "file_patterns": ["*.py", "*.js", "*.ts", "*.md", "*.json"],
+        "max_file_size_mb": 5,
+        "include_metadata": true
+      }
+    },
+    
+    "git": {
+      "description": "Git repository operations with enhanced history analysis",
+      "transport_type": "stdio", 
+      "connection_params": {
+        "command": "npx",
+        "args": ["@modelcontextprotocol/server-git"],
+        "working_directory": ".",
+        "environment": {}
+      },
+      "capabilities": [
+        "get_status",
+        "get_log",
+        "get_diff", 
+        "get_branches",
+        "analyze_changes",
+        "detect_conflicts"
+      ],
+      "priority": 9,
+      "enabled": true,
+      "retry_attempts": 3,
+      "timeout_seconds": 30,
+      "context_extraction": {
+        "max_commits": 50,
+        "include_diff": true,
+        "analyze_patterns": true
+      }
+    },
+    
+    "orchestrator": {
+      "description": "Main orchestrator MCP server with workflow management",
+      "transport_type": "http",
+      "connection_params": {
+        "host": "127.0.0.1",
+        "port": 14600,
+        "path": "/mcp-server/mcp",
+        "protocol": "http",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "capabilities": [
+        "orchestrate_workflows",
+        "manage_sessions",
+        "coordinate_servers",
+        "aggregate_context",
+        "execute_pipelines"
+      ],
+      "priority": 10,
+      "enabled": true,
+      "retry_attempts": 5,
+      "timeout_seconds": 60,
+      "load_balancing": {
+        "enabled": true,
+        "max_concurrent_requests": 10
+      }
+    },
+    
+    "gemini_agent": {
+      "description": "Gemini AI Agent MCP server with advanced context management",
+      "transport_type": "http",
+      "connection_params": {
+        "host": "127.0.0.1", 
+        "port": 8000,
+        "path": "/mcp",
+        "protocol": "http"
+      },
+      "capabilities": [
+        "generate_text",
+        "chat",
+        "analyze_image",
+        "process_document",
+        "manage_contexts",
+        "synthesize_information"
+      ],
+      "priority": 9,
+      "enabled": true,
+      "retry_attempts": 3,
+      "timeout_seconds": 120,
+      "ai_specific": {
+        "model": "gemini-2.0-flash",
+        "temperature": 0.7,
+        "max_tokens": 2048,
+        "context_window": 32768
+      }
+    },
+    
+    "database": {
+      "description": "Database operations and query execution",
+      "transport_type": "stdio",
+      "connection_params": {
+        "command": "python",
+        "args": ["-m", "database_mcp_server"],
+        "working_directory": "./agents"
+      },
+      "capabilities": [
+        "execute_query",
+        "get_schema",
+        "analyze_data",
+        "generate_reports"
+      ],
+      "priority": 6,
+      "enabled": false,
+      "retry_attempts": 2,
+      "timeout_seconds": 60
+    },
+    
+    "web_search": {
+      "description": "Web search and information retrieval",
+      "transport_type": "http",
+      "connection_params": {
+        "host": "api.websearch.local",
+        "port": 9090,
+        "path": "/search",
+        "auth": {
+          "type": "api_key",
+          "key": "${WEB_SEARCH_API_KEY}"
+        }
+      },
+      "capabilities": [
+        "search_web",
+        "get_webpage_content",
+        "analyze_search_results",
+        "extract_information"
+      ],
+      "priority": 4,
+      "enabled": false,
+      "retry_attempts": 3,
+      "timeout_seconds": 30
+    }
+  },
+  
+  "routing_rules": [
+    {
+      "name": "code_analysis_routing",
+      "description": "Route code-related content to appropriate servers",
+      "source_patterns": [
+        "*.py",
+        "*.js", 
+        "*.ts",
+        "*.java",
+        "*.cpp",
+        "*.go",
+        "*.rs"
+      ],
+      "target_servers": ["filesystem", "git", "gemini_agent"],
+      "transformation": null,
+      "priority": 9,
+      "enabled": true,
+      "conditions": {
+        "content_type": "code",
+        "min_size": 10,
+        "max_size": 1048576
+      }
+    },
+    
+    {
+      "name": "documentation_routing", 
+      "description": "Route documentation to filesystem and AI analysis",
+      "source_patterns": [
+        "*.md",
+        "*.rst",
+        "*.txt",
+        "README*",
+        "CHANGELOG*",
+        "*.adoc"
+      ],
+      "target_servers": ["filesystem", "gemini_agent"],
+      "transformation": null,
+      "priority": 7,
+      "enabled": true,
+      "conditions": {
+        "content_type": "documentation"
+      }
+    },
+    
+    {
+      "name": "git_operations_routing",
+      "description": "Route git-related operations",
+      "source_patterns": [
+        "git status",
+        "git log",
+        "git diff",
+        "commit",
+        "branch",
+        "merge"
+      ],
+      "target_servers": ["git", "gemini_agent"],
+      "transformation": null,
+      "priority": 8,
+      "enabled": true,
+      "conditions": {
+        "keywords": ["git", "commit", "branch", "merge", "pull", "push"]
+      }
+    },
+    
+    {
+      "name": "ai_analysis_routing",
+      "description": "Route complex analysis tasks to AI",
+      "source_patterns": [
+        "analyze*",
+        "summarize*", 
+        "explain*",
+        "generate*",
+        "review*"
+      ],
+      "target_servers": ["gemini_agent"],
+      "transformation": null,
+      "priority": 6,
+      "enabled": true,
+      "conditions": {
+        "requires_ai": true
+      }
+    },
+    
+    {
+      "name": "workflow_orchestration",
+      "description": "Route workflow requests to orchestrator",
+      "source_patterns": [
+        "workflow*",
+        "pipeline*",
+        "batch*",
+        "automate*"
+      ],
+      "target_servers": ["orchestrator", "gemini_agent"],
+      "transformation": null,
+      "priority": 10,
+      "enabled": true,
+      "conditions": {
+        "requires_orchestration": true
+      }
+    },
+    
+    {
+      "name": "data_operations",
+      "description": "Route database and data operations",
+      "source_patterns": [
+        "*.sql",
+        "query*",
+        "database*",
+        "table*",
+        "data*"
+      ],
+      "target_servers": ["database", "gemini_agent"],
+      "transformation": null,
+      "priority": 5,
+      "enabled": false,
+      "conditions": {
+        "content_type": "data"
+      }
+    },
+    
+    {
+      "name": "research_routing",
+      "description": "Route research tasks to web search and AI",
+      "source_patterns": [
+        "research*",
+        "find information*",
+        "search for*",
+        "look up*"
+      ],
+      "target_servers": ["web_search", "gemini_agent"],
+      "transformation": null,
+      "priority": 4,
+      "enabled": false,
+      "conditions": {
+        "requires_external_data": true
+      }
+    }
+  ],
+  
+  "workflows": {
+    "comprehensive_code_analysis": {
+      "name": "Comprehensive Code Analysis",
+      "description": "Deep analysis of code changes with security, performance, and quality insights",
+      "steps": [
+        {
+          "tool": "git.get_status",
+          "params": {},
+          "description": "Get current git status"
+        },
+        {
+          "tool": "git.get_diff", 
+          "params": {"unified": 3},
+          "description": "Get detailed diff of changes"
+        },
+        {
+          "tool": "filesystem.search_files",
+          "params": {"pattern": "*.py", "recursive": true},
+          "description": "Find all Python files"
+        },
+        {
+          "tool": "filesystem.analyze_code_structure",
+          "params": {"files": "auto"},
+          "description": "Analyze code structure and complexity"
+        },
+        {
+          "synthesize": "code_context",
+          "description": "Synthesize code analysis context"
+        },
+        {
+          "analyze": "security_vulnerabilities",
+          "prompt": "Analyze the code for potential security vulnerabilities",
+          "description": "Security analysis"
+        },
+        {
+          "analyze": "performance_optimization",
+          "prompt": "Identify performance optimization opportunities",
+          "description": "Performance analysis"
+        },
+        {
+          "generate": "improvement_recommendations",
+          "prompt": "Generate comprehensive code improvement recommendations",
+          "description": "Generate recommendations"
+        }
+      ],
+      "context_synthesis": "recent_code_changes",
+      "parallel_execution": false,
+      "timeout_minutes": 15,
+      "retry_on_failure": true
+    },
+    
+    "project_documentation_update": {
+      "name": "Project Documentation Update",
+      "description": "Comprehensive documentation generation and updates",
+      "steps": [
+        {
+          "tool": "filesystem.list_directory",
+          "params": {"path": ".", "recursive": true},
+          "description": "Scan project structure"
+        },
+        {
+          "tool": "filesystem.read_file",
+          "params": {"path": "README.md"},
+          "description": "Read current README"
+        },
+        {
+          "tool": "git.get_log",
+          "params": {"limit": 20, "format": "oneline"},
+          "description": "Get recent commit history"
+        },
+        {
+          "synthesize": "doc_context",
+          "description": "Synthesize documentation context"
+        },
+        {
+          "generate": "updated_readme",
+          "prompt": "Generate updated README.md based on current project state",
+          "description": "Generate README update"
+        },
+        {
+          "generate": "api_documentation", 
+          "prompt": "Generate API documentation from code analysis",
+          "description": "Generate API docs"
+        },
+        {
+          "generate": "changelog",
+          "prompt": "Generate changelog from recent commits",
+          "description": "Generate changelog"
+        }
+      ],
+      "context_synthesis": "documentation",
+      "parallel_execution": false,
+      "timeout_minutes": 10,
+      "output_format": "markdown"
+    },
+    
+    "intelligent_project_overview": {
+      "name": "Intelligent Project Overview",
+      "description": "AI-powered comprehensive project analysis and insights",
+      "steps": [
+        {
+          "tool": "git.get_status",
+          "params": {},
+          "description": "Current status"
+        },
+        {
+          "tool": "git.get_log",
+          "params": {"limit": 50, "graph": true},
+          "description": "Project history"
+        },
+        {
+          "tool": "filesystem.analyze_code_structure",
+          "params": {"recursive": true},
+          "description": "Code structure analysis"
+        },
+        {
+          "synthesize": "general_context",
+          "description": "Synthesize all available context"
+        },
+        {
+          "analyze": "project_health",
+          "prompt": "Analyze overall project health and development velocity",
+          "description": "Health analysis"
+        },
+        {
+          "analyze": "architecture_assessment",
+          "prompt": "Assess the project architecture and design patterns",
+          "description": "Architecture analysis"
+        },
+        {
+          "generate": "strategic_recommendations",
+          "prompt": "Provide strategic recommendations for project improvement",
+          "description": "Strategic insights"
+        }
+      ],
+      "context_synthesis": "general",
+      "parallel_execution": true,
+      "timeout_minutes": 20,
+      "ai_enhanced": true
+    },
+    
+    "automated_testing_workflow": {
+      "name": "Automated Testing Workflow",
+      "description": "Comprehensive testing strategy and execution",
+      "steps": [
+        {
+          "tool": "filesystem.search_files",
+          "params": {"pattern": "*test*.py", "recursive": true},
+          "description": "Find test files"
+        },
+        {
+          "tool": "filesystem.search_files", 
+          "params": {"pattern": "*.py", "exclude": "*test*"},
+          "description": "Find source files"
+        },
+        {
+          "analyze": "test_coverage_gaps",
+          "prompt": "Identify gaps in test coverage",
+          "description": "Coverage analysis"
+        },
+        {
+          "generate": "test_recommendations",
+          "prompt": "Generate recommendations for improving test coverage",
+          "description": "Test recommendations"
+        },
+        {
+          "generate": "test_automation_plan",
+          "prompt": "Create test automation strategy",
+          "description": "Automation planning"
+        }
+      ],
+      "context_synthesis": "recent_code_changes",
+      "parallel_execution": false,
+      "timeout_minutes": 12,
+      "quality_focused": true
+    }
+  },
+  
+  "context_synthesis": {
+    "rules": [
+      {
+        "name": "recent_code_changes",
+        "priority": 10,
+        "max_tokens": 1200,
+        "sources": ["git", "filesystem"],
+        "focus": ["recent_commits", "modified_files", "code_complexity"]
+      },
+      {
+        "name": "documentation",
+        "priority": 7,
+        "max_tokens": 800,
+        "sources": ["filesystem"],
+        "focus": ["readme", "docs", "comments", "api_docs"]
+      },
+      {
+        "name": "general",
+        "priority": 3,
+        "max_tokens": 600,
+        "sources": ["all"],
+        "focus": ["project_overview", "structure", "recent_activity"]
+      },
+      {
+        "name": "security_focused",
+        "priority": 9,
+        "max_tokens": 1000,
+        "sources": ["git", "filesystem"],
+        "focus": ["security_patterns", "vulnerabilities", "auth_changes"]
+      }
+    ],
+    "cache_policy": {
+      "enabled": true,
+      "ttl_minutes": 15,
+      "max_entries": 100,
+      "compression": true
+    }
+  },
+  
+  "monitoring": {
+    "enabled": true,
+    "metrics": [
+      "request_count",
+      "response_time",
+      "error_rate",
+      "context_cache_hit_rate",
+      "workflow_completion_rate"
+    ],
+    "alerts": {
+      "high_error_rate": {
+        "threshold": 0.1,
+        "window_minutes": 5
+      },
+      "slow_response": {
+        "threshold_ms": 5000,
+        "window_minutes": 2
+      }
+    },
+    "logging": {
+      "level": "INFO",
+      "structured": true,
+      "include_context": true
+    }
+  },
+  
+  "security": {
+    "authentication": {
+      "enabled": false,
+      "method": "api_key"
+    },
+    "authorization": {
+      "enabled": false,
+      "default_permissions": ["read", "write"]
+    },
+    "encryption": {
+      "in_transit": true,
+      "at_rest": false
+    },
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 100,
+      "burst_size": 20
+    }
+  },
+  
+  "development": {
+    "debug_mode": false,
+    "verbose_logging": false,
+    "mock_external_services": true,
+    "enable_profiling": false,
+    "test_configuration": {
+      "run_integration_tests": true,
+      "mock_ai_responses": false,
+      "simulate_network_delays": false
+    }
+  }
+}

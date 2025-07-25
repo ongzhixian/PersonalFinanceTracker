@@ -1,0 +1,19 @@
+{
+  "models": {
+    "text": "gemini-2.0-flash",
+    "vision": "gemini-2.0-flash",
+    "image_generation": "gemini-2.0-flash-preview-image-generation",
+    "pro": "gemini-pro"
+  },
+  "default_settings": {
+    "temperature": 0.7,
+    "max_tokens": 1024,
+    "max_retries": 3
+  },
+  "system_instructions": {
+    "default": "You are a helpful AI assistant.",
+    "creative": "You are a creative AI assistant that provides imaginative and artistic responses.",
+    "technical": "You are a technical AI assistant specialized in programming and technology.",
+    "casual": "You are a friendly and casual AI assistant that uses conversational language."
+  }
+}
