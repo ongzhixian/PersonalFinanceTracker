@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "SQL Docs Agent Configuration",
+    "type": "object",
+    "description": "Configuration for the SQL documents agent",
+    "sql_files_location": {
+        "description": "Location of SQL files for RAG",
+        "type": "string",
+        "default": "C:\\Code\\core\\financing.database\\",
+        "value": "C:\\Code\\core\\financing.database\\"
+    },
+    "llm": {
+        "description": "LLM model name",
+        "type": "string",
+        "default": "gemini-2.5-flash",
+        "value": "gemini-2.5-flash"
+    }
+}

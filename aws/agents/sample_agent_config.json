@@ -1,0 +1,5 @@
+{
+    "client" : {
+        "preferred_llm": "gemini-1.5-flash-002"
+    }
+}

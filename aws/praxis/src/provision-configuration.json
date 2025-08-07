@@ -1,0 +1,16 @@
+{
+    "praxis": {
+        "s3": {
+            
+        },
+        "cloudfront": {
+
+        },
+        "api_gateway": {
+
+        },
+        "dns": {
+            
+        }
+    }
+}

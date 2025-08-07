@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sample_agent"
+#version = "0.0.1"
+dynamic = ["version"]
+authors = [
+    { name="Ong Zhi Xian", email="zhixian@hotmail.com" },
+]
+description = "Sample agent to demostrate writing Python packages"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+#[project.urls]
+#Homepage = "https://github.com/ongzhixian/sample-pypi-package/wiki"
+#Issues = "https://github.com/ongzhixian/sample-pypi-package/issues"
+
+[tool.hatch.version]
+source = "env"
+variable = "RELEASE_VERSION"
