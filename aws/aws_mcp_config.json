@@ -1,0 +1,55 @@
+{
+  "server": {
+    "name": "AWS MCP Server",
+    "version": "1.0.0",
+    "description": "Comprehensive AWS service integration via Model Context Protocol"
+  },
+  "aws": {
+    "profile": "default",
+    "default_region": "us-east-1",
+    "services": {
+      "s3": {
+        "enabled": true,
+        "default_max_keys": 100
+      },
+      "ec2": {
+        "enabled": true,
+        "default_region": "us-east-1"
+      },
+      "lambda": {
+        "enabled": true,
+        "default_region": "us-east-1"
+      },
+      "dynamodb": {
+        "enabled": true,
+        "default_region": "us-east-1"
+      },
+      "iam": {
+        "enabled": true
+      },
+      "cloudwatch": {
+        "enabled": true,
+        "default_region": "us-east-1",
+        "default_time_range_hours": 24
+      },
+      "cost_explorer": {
+        "enabled": false,
+        "note": "Requires special permissions and may incur costs"
+      }
+    }
+  },
+  "fastapi": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "root_path": "/mcp"
+  },
+  "mcp": {
+    "transport": {
+      "type": "stdio"
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  }
+}
