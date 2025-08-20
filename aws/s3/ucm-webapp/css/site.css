@@ -28,3 +28,7 @@ body {
 .panel {
     margin-top: 1em;
 }
+
+.placeholder-text {
+    color:lightgray;
+}

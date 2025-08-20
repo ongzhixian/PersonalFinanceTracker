@@ -1,5 +1,8 @@
 class SiteBanner extends HTMLElement {
-    //static observedAttributes = ["color", "size"];
+
+    static BANNER_TEXT_ATTRIBUTE = "bannerText";
+
+    static observedAttributes = [SiteBanner.BANNER_TEXT_ATTRIBUTE];
 
     constructor() {
         super(); // Always call super first in constructor
@@ -19,6 +22,11 @@ class SiteBanner extends HTMLElement {
         // }
         this.auth_module = new AuthenticationModule();
         this.parsedToken = this.auth_module.getParsedToken();
+
+        this.setAttribute(SiteBanner.BANNER_TEXT_ATTRIBUTE,
+            this.getAttribute(SiteBanner.BANNER_TEXT_ATTRIBUTE)
+            ?? window.site?.name
+            ?? "Dev" );
     }
 
     onMessage(event) {
@@ -66,6 +74,7 @@ class SiteBanner extends HTMLElement {
     :host {
         display: block;
         width: 100%;
+        text-align:center;
     }
     .banner-container {
         position: relative;
@@ -134,7 +143,7 @@ class SiteBanner extends HTMLElement {
 </style>
 <div class="banner-container">
     <div class="banner-left">
-        <h1>TEST</h1>
+        <h1>${this.getAttribute(SiteBanner.BANNER_TEXT_ATTRIBUTE)}</h1>
     </div>
     <div class="banner-top-right">${logoutLink}</div>
     <div class="banner-bottom-right">${username}</div>

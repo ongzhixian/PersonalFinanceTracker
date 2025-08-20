@@ -5,11 +5,11 @@ export default function UserCredentialModule() {
     this.registerUserCredential = async (username, password) => {
 
         // Simulate response
-        return {
-            is_success: true,
-            message: `${username} exists already`,
-            data_object: null
-        };
+        // return {
+        //     is_success: true,
+        //     message: `${username} exists already`,
+        //     data_object: null
+        // };
 
         const jwt = this.authenticationModule.getToken();
         if (jwt === null)
@@ -20,11 +20,12 @@ export default function UserCredentialModule() {
             };
 
         const endpoint_url = `${BASE_API_GATEWAY_ENDPOINT_URL}/user-credential`;
+        console.log('registerUserCredential endpoint_url', endpoint_url);
         const response = await fetch(endpoint_url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${jwt}`
+                "Authorization": `TOKEN ${jwt}`
             },
             body: JSON.stringify({
                 username: username,
@@ -61,7 +62,7 @@ export default function UserCredentialModule() {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${jwt}`
+                "Authorization": `TOKEN ${jwt}`
             },
             // body: JSON.stringify({
             //     username: username,

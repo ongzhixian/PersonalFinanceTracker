@@ -199,7 +199,8 @@ def get_query_string_parameters(event: dict, target_parameters: dict):
     print("Start checking")
     query_param_dict = {}
     query_string_parameters = event_query_string_parameters_json.data_object
-    for query_param_k, query_param_v in target_parameters:
+    print('Query string parameters:', query_string_parameters)
+    for query_param_k, query_param_v in query_string_parameters.items():
         print('Query parameter:', query_param_k, 'with default value:', query_param_v)
         query_param_dict[query_param_k] = query_string_parameters.get(query_param_k, query_param_v)
     print('Query parameters:', query_param_dict)
@@ -289,13 +290,17 @@ def post_ucm_user_credential(event:dict, context):
 
     print('# Request Validation Phase')
 
-    authorization_header = EventHeadersJson.get_authorization_header(event)
-    if authorization_header is None:
-        return endpoint_response.forbidden()
+    # Old style
+    # authorization_header = EventHeadersJson.get_authorization_header(event)
+    # if authorization_header is None:
+    #     return endpoint_response.forbidden()
 
-    token_body = authorization_header.replace('TOKEN', '').strip()
-    token_is_valid = shared_token_service.verify_token(token_body)
-    if not token_is_valid:
+    # token_body = authorization_header.replace('TOKEN', '').strip()
+    # token_is_valid = shared_token_service.verify_token(token_body)
+    # if not token_is_valid:
+    #     return endpoint_response.forbidden()
+    
+    if access_denied(event, target_roles=['application_administrator', 'system_administrator']):
         return endpoint_response.forbidden()
 
     # authorization_header = None

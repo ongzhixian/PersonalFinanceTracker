@@ -5,11 +5,11 @@ export default function UserCredentialModule() {
     this.registerUserCredential = async (username, password) => {
 
         // Simulate response
-        return {
-            is_success: true,
-            message: `${username} exists already`,
-            data_object: null
-        };
+        // return {
+        //     is_success: true,
+        //     message: `${username} exists already`,
+        //     data_object: null
+        // };
 
         const jwt = this.authenticationModule.getToken();
         if (jwt === null)

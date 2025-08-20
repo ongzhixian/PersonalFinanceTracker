@@ -42,15 +42,15 @@
             actionsPanel.style.display = "none";
 
             const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (
-                mutation.type === "attributes" &&
-                mutation.attributeName === "state"
-                ) {
-                const state = table.getAttribute("state");
-                actionsPanel.style.display = state === "LOADED" ? "block" : "none";
-                }
-            });
+                mutations.forEach((mutation) => {
+                    if (
+                    mutation.type === "attributes" &&
+                    mutation.attributeName === "state"
+                    ) {
+                    const state = table.getAttribute("state");
+                    actionsPanel.style.display = state === "LOADED" ? "block" : "none";
+                    }
+                });
             });
 
             // Start observing attribute changes

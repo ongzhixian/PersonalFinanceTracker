@@ -1,3 +1,6 @@
+import RoleModule from "./role-module.js";
+import { UiModule } from "../../components/shared_module.js";
+
 class RolesTable extends HTMLElement {
 
     static observedAttributes = ["state"];
@@ -5,16 +8,21 @@ class RolesTable extends HTMLElement {
     // LOADING
     // LOADED
 
-
     data = null;
+
+    #roleModule;
+    #uiModule;
 
     constructor() {
         super();
+        this.#roleModule = new RoleModule();
+        this.#uiModule = new UiModule();
         this.attachShadow({ mode: 'open' });
         this.handlePaginationClick = this.handlePaginationClick.bind(this);
     }
 
     connectedCallback() {
+        this.template = this.#uiModule.get_template_or_throw('rolesTableTemplate')
         this.getData();
     }
 
@@ -29,20 +37,26 @@ class RolesTable extends HTMLElement {
 
         try {
             this.setAttribute('state', 'LOADING');
-            const response = await fetch(endpoint_url, {
-                method: "GET",
-                headers: requestHeaders
-            });
+            // const registrationResponse = await this.#roleModule.registerRole(registrationDetail);
 
-            if (response.status === 401) {
-                auth_module.logout();
-                window.location.reload();
-                return;
-            }
+            // const response = await fetch(endpoint_url, {
+            //     method: "GET",
+            //     headers: requestHeaders
+            // });
 
-            if (!response.ok) throw new Error("Fetch failed: " + response.statusText);
 
-            const responseJsonData = await response.json();
+
+            // const response = await this.#roleModule.getRoleListAsync();
+            // if (response.status === 401) {
+            //     auth_module.logout();
+            //     window.location.reload();
+            //     return;
+            // }
+            // if (!response.ok) throw new Error("Fetch failed: " + response.statusText);
+
+            // const responseJsonData = await response.json();
+
+            const responseJsonData = await this.#roleModule.getRoleListAsync();
             this.data = responseJsonData.data_object || {};
             this.setAttribute('state', 'LOADED');
             console.log('Fetched data:', this.data);
@@ -59,13 +73,16 @@ class RolesTable extends HTMLElement {
         if (e.target.classList.contains('pagination-link')) {
             e.preventDefault();
             const page = parseInt(e.target.getAttribute('data-page'), 10);
-            const pageSize = this.data?.page_size || 5;
+            const pageSize = this.data?.page_size ?? 5;
             this.getData(page, pageSize);
         }
     }
 
     render() {
-        let page_items = Object.entries(this.data.roles).map(([key, value]) => {
+        if (!this.template) return;
+        this.shadowRoot.innerHTML = ""; // Clear previous content
+
+        let page_items = Object.entries(this.data.roles ?? {}).map(([key, value]) => {
             value.id ||= key;
             return value;
         });
@@ -81,53 +98,13 @@ class RolesTable extends HTMLElement {
             `).join('')
             : '<tr><td colspan="4">No data available</td></tr>';
 
-        this.shadowRoot.innerHTML = `
-<style>
-table {
-    width: 100%;
-}
-th, td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #E1E1E1;
-}
-/* Loading Spinner Styles */
-.loading-spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid var(--color3);
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    animation: spin 1s linear infinite;
-    display: inline-block;
-    vertical-align: middle;
-    margin-right: 8px;
-}
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-</style>
-<section class="actions panel">
-    <a class="button button-primary" href="add-role.html">Add role</a>
-</section>
-<section>
-    <table>
-        <caption>Role list</caption>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${rows}
-        </tbody>
-    </table>
-</section>
-`;
+        const clone = this.template.content.cloneNode(true);
+        const tbody = clone.querySelector('tbody');
+        if (tbody) {
+            tbody.innerHTML = rows;
+        }
+        this.shadowRoot.appendChild(clone);
 
         // Use event delegation for pagination links
         const rightDiv = this.shadowRoot.querySelector('.right');

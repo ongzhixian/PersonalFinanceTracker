@@ -42,6 +42,7 @@ class UserCredentialTable extends HTMLElement {
             if (!response.ok) throw new Error("Fetch failed: " + response.statusText);
 
             const responseJsonData = await response.json();
+            if (false === responseJsonData?.is_success ?? false) console.warn("Data fetch failed:", responseJsonData.message);
             this.data = responseJsonData.data_object || {};
             this.setAttribute('state', 'LOADED');
         } catch (e) {
@@ -65,6 +66,7 @@ class UserCredentialTable extends HTMLElement {
         const { page_items = [], page_number = 1, page_size = 0, total_items = 0 } = this.data || {};
         const totalPages = page_size > 0 ? Math.ceil(total_items / page_size) : 1;
         const gbFormatter = new Intl.DateTimeFormat('en-GB');
+
         const rows = Array.isArray(page_items) && page_items.length
             ? page_items.map(item => `
                 <tr>

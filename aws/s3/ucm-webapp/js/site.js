@@ -1,5 +1,11 @@
 // SHARED FUNCTIONS FOR ALL PAGES
 
+// Shared object/namespace
+const SiteConfiguration = {
+    name: "Test"
+};
+window.site = SiteConfiguration;
+
 ////////////////////////////////////////
 // FOR HANDLING LOGIN AND CREDENTIALS
 
@@ -68,7 +74,13 @@ function AuthenticationModule() {
     }
 
     this.isAuthenticated = () => {
-        return localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY) !== null;
+        let token = this.getParsedToken();
+        if (token && token.expiry) {
+            let epochSeconds = Math.floor(Date.now() / 1000);
+            if (epochSeconds < token.expiry) return true;
+        }
+        // return localStorage.getItem(this.AUTH_TICKET_STORAGE_KEY) !== null;
+        return false;
     }
 
     this.getToken = () => {

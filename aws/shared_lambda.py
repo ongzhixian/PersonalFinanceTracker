@@ -14,7 +14,7 @@ from shared_messages import OperationResultMessage, ResponseMessage
 
 # Decorators
 
-def endpoint_url(relative_path:str, http_method:str):
+def endpoint_url(relative_path:str, http_method:str, required_roles:list[str]|None = None):
     """A decorator that does nothing"""
     def endpoint_url_decorator(func, relative_path = relative_path, http_method = http_method, required_roles = required_roles):
         def endpoint_url_decorator_wrapper(*args, **kwargs):
@@ -234,7 +234,7 @@ class EventPathParametersJson(object):
 # Example
 
 @my_decorator
-@endpoint_url('/hci-blazer', 'GET', ['requireRole1', 'requireRole2'])
+@endpoint_url_prototype('/hci-blazer', 'GET', ['requireRole1', 'requireRole2'])
 def test_endpoint_url_decorator(event:dict, context):
     print('TEST test_endpoint decorator')
     dump_api_gateway_event_context(event, context)

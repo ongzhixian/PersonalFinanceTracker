@@ -126,7 +126,7 @@ class TokenUtility(object):
 
             # Check if the signature matches (detect tampering)
             if not hmac.compare_digest(signature, expected_signature):
-                print("Token has been tampered with!")
+                print("Token has been tampered with. Cannot verify token.")
                 return False
 
             payload_str = payload.decode('utf-8')
@@ -169,7 +169,7 @@ class TokenUtility(object):
 
             # Check if the signature matches (detect tampering)
             if not hmac.compare_digest(signature, expected_signature):
-                print("Token has been tampered with!")
+                print("Token has been tampered with. Cannot get token content.")
                 return False
 
             payload_str = payload.decode('utf-8')
