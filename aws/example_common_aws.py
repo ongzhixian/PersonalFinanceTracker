@@ -5,9 +5,10 @@ from botocore.exceptions import ClientError
 import pdb
 
 def setup_aws_profile():
+    mlp_domain = 'AD.MLP.COM'
     runtime_dns_domain = environ.get('USERDNSDOMAIN')
-    aws_profile = 'stub-dev' if runtime_dns_domain == 'XXXAD.XXXMLP.COM' else None
-    if runtime_dns_domain == 'XXXAD.XXXMLP.COM': reset_tzpath(['C:/Anaconda3/share/zoneinfo'])
+    aws_profile = 'stub-dev' if runtime_dns_domain == mlp_domain else None
+    if runtime_dns_domain == mlp_domain: reset_tzpath(['C:/Anaconda3/share/zoneinfo'])
     print('Using %s for AWS profile' % aws_profile)
     boto3.setup_default_session(profile_name=aws_profile)
 
